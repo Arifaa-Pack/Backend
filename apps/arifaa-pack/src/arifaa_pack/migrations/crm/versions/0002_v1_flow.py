@@ -21,7 +21,7 @@ depends_on = None
 SQL = r"""
 SET search_path = crm, public;
 -- btree_gist: uuid equality inside the tier exclusion constraint. Trusted extension (PG13+), so the DB
--- owner role may create it; infra/scripts/db_bootstrap.sh pre-creates it as well.
+-- owner role may create it; infra/server/postgres/db_bootstrap.sh pre-creates it as well.
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 -- ---------- approvals: D1 the salesperson approves; D3 special price needs the manager ----------

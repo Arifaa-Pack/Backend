@@ -6,7 +6,7 @@ Platform contest round 4 conditions, as built here:
   container) on the process's first task and reused for every task after it;
 * **idempotent tasks with acks_late** — `kx.run_job` claims its row atomically, so a redelivered message
   for a job already done, running or cancelled is a no-op;
-* **exactly one Beat** — enforced by ECS (desired count 1, no overlap on deploy), not by code;
+* **exactly one Beat** — enforced by the deployment (one `beat` container, stop-then-start), not by code;
 * **long waits in PostgreSQL** — Beat never schedules ETAs; it only sends `kx.periodic(<name>)`.
 """
 
@@ -63,9 +63,9 @@ class _Process:
 def _configure(**_: Any) -> None:
     core = get_settings()
     configure_logging(core.log_level, core.log_json)
-    from arifaa_pack.observability import init_error_tracking  # noqa: PLC0415
+    from arifaa_pack.telemetry import init_telemetry  # noqa: PLC0415
 
-    init_error_tracking(app_settings(), core.env.value, "worker")
+    init_telemetry(app_settings(), component="worker", company=core.company_code, environment=core.env.value)
 
 
 @signals.worker_process_shutdown.connect

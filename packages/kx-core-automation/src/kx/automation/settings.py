@@ -32,38 +32,47 @@ class WhatsAppSettings(_Group):
 
 
 class SesSettings(_Group):
+    """D44: Amazon SES is Stalwart's outbound relay (configured in Stalwart) and the app's backup sender
+    (SES v2 API, `ses:SendEmail` only). `from_address` is the company sending address for both routes."""
+
     from_address: str = "sales@example.com"
     configuration_set: str | None = None
-    # Only these SNS topics may feed /webhooks/ses. SNS signs messages from *any* topic, so a valid
-    # signature alone does not prove the event is ours.
-    sns_topic_arns: frozenset[str] = frozenset()
-    inbound_bucket: str = ""  # S3 bucket SES Mail Manager writes inbound MIME to
+    region: str = "me-central-1"  # the SES region the domain identity was verified in
 
 
-class PostmarkSettings(_Group):
-    """D33: SES -> Postmark for sending; Postmark inbound for buyer replies (Basic auth in the URL)."""
+class StalwartSettings(_Group):
+    """D44: the Stalwart mail server on our server, reached over JMAP (RFC 8620 / 8621). One account for the
+    company sending address: quotes are sent from it, buyer replies and SES bounce / complaint reports land in
+    its inbox and are read by the `automation.mail_poll` Beat job."""
 
-    server_token: SecretStr = SecretStr("")  # empty = Postmark not configured (SES only)
-    message_stream: str = "outbound"
-    inbound_user: str = ""
-    inbound_password: SecretStr = SecretStr("")
-    timeout_seconds: float = 10.0
+    url: str = ""  # http://stalwart:8080 (internal); empty = Stalwart not configured (SES API only)
+    username: str = ""  # the JMAP login of the sending account
+    password: SecretStr = SecretStr("")
+    timeout_seconds: float = 15.0
+    poll_batch: int = 25
 
     @property
     def enabled(self) -> bool:
-        return bool(self.server_token.get_secret_value())
+        return bool(self.url and self.username)
 
 
-class TwilioSettings(_Group):
-    api_base_url: str = "https://api.twilio.com"
-    account_sid: str = ""
-    auth_token: SecretStr = SecretStr("")
-    from_number: str = ""
-    # Public https base that Twilio calls back (also the URL it signs): https://api.arifapack.com
-    status_callback_base_url: str = "http://localhost:8000"
-    ring_timeout_seconds: int = 30
+class TelnyxSettings(_Group):
+    """D43: Telnyx TeXML (TwiML-compatible) for staff alert calls and buyer call-backs (§14, §16)."""
+
+    api_base_url: str = "https://api.telnyx.com"
+    api_key: SecretStr = SecretStr("")  # empty = calls not configured (alerts stay WhatsApp only)
+    account_sid: str = ""  # the TeXML account SID (Telnyx portal → TeXML applications)
+    from_number: str = ""  # caller ID, E.164 (OPEN_QUESTIONS #70)
+    public_key: SecretStr = SecretStr("")  # Ed25519 public key (base64) to verify webhook signatures
+    ring_timeout_seconds: int = 30  # D31: not connected in 30 s -> next step on the ladder
     voice: str = "Polly.Joanna"
     language: str = "en-US"
+    callback_ttl_seconds: int = 7200  # signed callback URLs expire after the call can no longer happen
+    callback_secret: SecretStr = SecretStr("dev-only-change-me")  # signs the per-attempt callback tokens
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.api_key.get_secret_value() and self.account_sid and self.from_number)
 
 
 class AlertSettings(_Group):
@@ -142,13 +151,13 @@ class PriceSourceConfig(_Group):
 
 class AutomationSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="KX_AUTO_", env_nested_delimiter="__", extra="ignore", frozen=True
+        env_prefix="KX_AUTO_", env_nested_delimiter="__", extra="ignore", frozen=True, env_ignore_empty=True
     )
 
     whatsapp: WhatsAppSettings = WhatsAppSettings()
     ses: SesSettings = SesSettings()
-    postmark: PostmarkSettings = PostmarkSettings()
-    twilio: TwilioSettings = TwilioSettings()
+    stalwart: StalwartSettings = StalwartSettings()
+    telnyx: TelnyxSettings = TelnyxSettings()
     alerts: AlertSettings = AlertSettings()
     followup: FollowUpSettings = FollowUpSettings()
     rate_limit: RateLimitSettings = RateLimitSettings()

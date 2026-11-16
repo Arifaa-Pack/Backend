@@ -345,7 +345,16 @@ class ClickToCall(Protocol):
 @runtime_checkable
 class StaffMailer(Protocol):
     """Sends a one-time login or recovery code to a staff member's work address (D26). Implemented by the app
-    over the email field's vendors (SES, then Postmark). Never through the buyer queue: a code must not be
+    over the email field's vendors (Stalwart, then the SES API). Never through the buyer queue: a code must
+    not be
     stored in a message table."""
 
     async def send_code(self, to_email: str, subject: str, body: str) -> None: ...
+
+
+@runtime_checkable
+class BlobStore(Protocol):
+    """D45 / D48: object storage (Cloudflare R2 through the S3 API) for archives and other files any package
+    writes. The app's `S3MediaStore` satisfies it."""
+
+    async def put(self, key: str, data: bytes, content_type: str) -> None: ...

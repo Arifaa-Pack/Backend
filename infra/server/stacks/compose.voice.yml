@@ -1,0 +1,25 @@
+# Live voice (v2 §2): LiveKit server, self-hosted. The `voice` agent worker is in compose.app.yml.
+# Public: 7880 (signalling, via Coolify proxy at wss://voice.<domain>), 7881/tcp, 3478/udp (TURN), 50000-50100/udp.
+name: kx-voice
+
+services:
+  livekit:
+    image: ${KX_IMG_LIVEKIT:-livekit/livekit-server:v1.13.11}
+    restart: unless-stopped
+    command: ["--config", "/etc/livekit.yaml", "--node-ip", "${LIVEKIT_NODE_IP:?public IPv4 of the server}"]
+    environment:
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:?}: ${LIVEKIT_API_SECRET:?}"
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7881:7881/tcp"
+      - "3478:3478/udp"
+      - "50000-50100:50000-50100/udp"
+    networks: [kx]
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "3" }
+
+networks:
+  kx:
+    external: true

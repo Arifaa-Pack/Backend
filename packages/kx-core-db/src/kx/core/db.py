@@ -1,13 +1,17 @@
 """One async engine per logical database; sessions with explicit transactions.
 
 Each package uses ONLY its own database:  kx.crm -> CRM, kx.automation -> AUTOMATION, kx.agents -> AGENTS.
-Cross-database work goes through service calls or events (see kx.core.events), never SQL joins.
+Cross-database work goes through service calls or events (see kx.core.events), never SQL joins. Each database
+has
+its own DSN, so any one can move to its own server by changing that DSN (D48, docs/DATABASE.md).
 """
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from typing import Any
 
 import orjson
 from sqlalchemy import MetaData
@@ -38,6 +42,28 @@ def _json_dumps(value: object) -> str:
     return orjson.dumps(value, option=orjson.OPT_NON_STR_KEYS).decode()
 
 
+def connect_args(settings: CoreSettings, db: LogicalDb) -> dict[str, Any]:
+    """asyncpg connect arguments. Direct to Postgres: per-connection `search_path` and `statement_timeout`.
+    Through PgBouncer in transaction mode (D48): those startup parameters are not passed on, and server-side
+    prepared statements would land on another backend, so both caches are off and every statement gets a
+    unique name; `search_path` / `statement_timeout` come from `ALTER ROLE … SET` (db_bootstrap.sh)."""
+    application = f"kx-{settings.company_code}-{db.value}"
+    if settings.db_pgbouncer:
+        return {
+            "statement_cache_size": 0,
+            "prepared_statement_cache_size": 0,
+            "prepared_statement_name_func": lambda: f"__kx_{uuid.uuid4().hex}__",
+            "server_settings": {"application_name": application},
+        }
+    return {
+        "server_settings": {
+            "statement_timeout": str(settings.db_statement_timeout_ms),
+            "application_name": application,
+            "search_path": f"{db.value},public",
+        }
+    }
+
+
 class Databases:
     """Owns the engines. Create once per process (FastAPI lifespan / worker startup)."""
 
@@ -52,13 +78,7 @@ class Databases:
                 pool_pre_ping=True,
                 json_serializer=_json_dumps,
                 json_deserializer=orjson.loads,
-                connect_args={
-                    "server_settings": {
-                        "statement_timeout": str(settings.db_statement_timeout_ms),
-                        "application_name": f"kx-{settings.company_code}-{db.value}",
-                        "search_path": f"{db.value},public",
-                    }
-                },
+                connect_args=connect_args(settings, db),
             )
             self._engines[db] = engine
             self._makers[db] = async_sessionmaker(engine, expire_on_commit=False)

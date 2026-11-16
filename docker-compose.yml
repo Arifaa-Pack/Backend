@@ -1,34 +1,32 @@
-# Local development stack (11 Nov topology, docs/DEPLOYMENT.md).
-#   docker compose up -d postgres redis           # databases only (run the app with `uv run kx api|worker|beat`)
-#   docker compose up --build                     # + migrate, api, Celery worker and the one Celery Beat
-#   docker compose --profile ai up -d embeddings  # Qwen3-Embedding-0.6B on Text Embeddings Inference (CPU)
-#   docker compose --profile aws up -d localstack # optional S3 / SES / SNS / Secrets Manager emulation
-#   docker compose --profile voice up voice       # LiveKit agent worker (needs LIVEKIT_* in .env)
+# Local development stack (16 Nov v2; docs/LOCAL_DEV.md). One profile at a time on a small laptop.
+#   docker compose up -d postgres redis                 # make up: databases only (run the app with `uv run kx …`)
+#   docker compose up --build -d                        # make up-all: + migrate, api, worker, beat
+#   docker compose --profile voice up -d                # make up-voice: LiveKit (dev) + free speech server + voice
+#   docker compose --profile mail up -d stalwart        # make up-mail
+#   docker compose --profile obs up -d                  # make up-obs: Phoenix (AI audit trail)
+#   docker compose --profile embed up -d embeddings     # make up-embed: TEI (Qwen3 by default: smaller than BGE-M3)
+#   docker compose --profile pgbouncer up -d pgbouncer  # run the tests through PgBouncer (port 6432)
 #
-# Postgres init (first start of the volume): roles + databases (cms, crm, automation, agents, phoenix) +
-# extensions via the same infra/scripts/db_bootstrap.sh used on RDS, then db/ddl applied as each owning role.
-# Redis runs with maxmemory-policy noeviction, like ElastiCache: it is also the Celery broker.
-# Reset: docker compose down -v
+# Postgres init (first start of the volume): the same db_bootstrap.sh as the server (prefix pack_), then db/ddl
+# applied as each owning role. Models are cached on D: (KX_MODELS_DIR). Reset: docker compose down -v
 
 x-kx-env: &kx-env
   KX_ENV: local
   KX_COMPANY_CODE: pack
   KX_LOG_JSON: "false"
-  KX_CRM_DSN: postgresql+asyncpg://crm_app:dev@postgres:5432/crm
-  KX_AUTOMATION_DSN: postgresql+asyncpg://automation_app:dev@postgres:5432/automation
-  KX_AGENTS_DSN: postgresql+asyncpg://agents_app:dev@postgres:5432/agents
+  KX_PLATFORM_PLAN: free
+  KX_CRM_DSN: postgresql+asyncpg://pack_crm_app:dev@postgres:5432/pack_crm
+  KX_AUTOMATION_DSN: postgresql+asyncpg://pack_automation_app:dev@postgres:5432/pack_automation
+  KX_AGENTS_DSN: postgresql+asyncpg://pack_agents_app:dev@postgres:5432/pack_agents
   KX_REDIS_URL: redis://redis:6379/0
   KX_APP_CELERY_BROKER_URL: redis://redis:6379/8
+  KX_APP_WORKER_CONCURRENCY: "2"
   KX_APP_EMBEDDING_URL: http://embeddings:80
-  KX_AWS_REGION: me-central-1
-  KX_S3_BUCKET: kx-local
+  KX_APP_SPEECH_URL: http://speech:8100
+  KX_APP_AI_TRACE_ENDPOINT: http://phoenix:6006/v1/traces
+  KX_AUTO_STALWART__URL: http://stalwart:8080
   KX_API_PORT: "8000"
   KX_APP_CHROMIUM_PATH: /usr/bin/chromium
-  # Only used when the `aws` profile (LocalStack) is running.
-  AWS_ENDPOINT_URL: http://localstack:4566
-  AWS_ACCESS_KEY_ID: test
-  AWS_SECRET_ACCESS_KEY: test
-  AWS_REGION: me-central-1
 
 x-kx-app: &kx-app
   build:
@@ -41,6 +39,9 @@ x-kx-app: &kx-app
   read_only: true
   tmpfs:
     - /tmp
+  logging: &logs
+    driver: json-file
+    options: { max-size: "50m", max-file: "3" }
 
 services:
   postgres:
@@ -50,18 +51,35 @@ services:
       POSTGRES_PASSWORD: postgres
       KX_DEV_DB_PASSWORD: dev
       KX_INIT_APPLY_DDL: "1"
+      KX_COMPANY_PREFIX: pack_
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql
       - ./db/ddl:/kx/ddl:ro
-      - ./infra/scripts/db_bootstrap.sh:/kx/db_bootstrap.sh:ro
+      - ./infra/server/postgres/db_bootstrap.sh:/kx/db_bootstrap.sh:ro
       - ./docker/postgres/initdb.sh:/docker-entrypoint-initdb.d/10-kairox.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d agents"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pack_agents"]
       interval: 5s
       timeout: 3s
       retries: 30
+    logging: *logs
+
+  pgbouncer:
+    profiles: ["pgbouncer"]
+    image: edoburu/pgbouncer:v1.24.1-p1
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+      POOL_MODE: transaction
+      AUTH_TYPE: scram-sha-256
+      MAX_DB_CONNECTIONS: "40"
+      IGNORE_STARTUP_PARAMETERS: extra_float_digits,search_path,statement_timeout
+    ports:
+      - "6432:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   redis:
     image: redis:8.2
@@ -75,25 +93,53 @@ services:
       retries: 20
 
   embeddings:
-    profiles: ["ai"]
-    # Same server as the ECS `embeddings` service (infra var.images["embeddings"]); amd64 image.
-    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.7.2
-    command: ["--model-id", "Qwen/Qwen3-Embedding-0.6B", "--port", "80"]
+    profiles: ["embed"]
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.8
+    # Qwen3 (≈ 3.1 GB RAM) fits a small laptop; BGE-M3 (≈ 4.8 GB) is the server default. Set KX_PLATFORM__EMBEDDINGS
+    # to match the model you run here, or search keeps to full-text.
+    command: ["--model-id", "${LOCAL_EMBEDDING_MODEL_ID:-Qwen/Qwen3-Embedding-0.6B}", "--port", "80",
+              "--auto-truncate", "--max-batch-tokens", "1024"]
     ports:
       - "8080:80"
     volumes:
-      - hfcache:/data
+      - ${KX_MODELS_DIR:-D:/kx-models}/tei:/data
 
-  localstack:
-    profiles: ["aws"]
-    # LocalStack images after March 2026 may require LOCALSTACK_AUTH_TOKEN; pin a version you have.
-    image: localstack/localstack:4.9
+  speech:
+    profiles: ["voice"]
+    build:
+      context: services/speech
+    image: kairox/speech:local
     environment:
-      SERVICES: s3,ses,sns,secretsmanager,sts
-      AWS_DEFAULT_REGION: me-central-1
-      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN:-}
+      STT_THREADS: "4"
     ports:
-      - "4566:4566"
+      - "8100:8100"
+    volumes:
+      - ${KX_MODELS_DIR:-D:/kx-models}/speech:/models
+
+  livekit:
+    profiles: ["voice"]
+    image: livekit/livekit-server:v1.13.11
+    command: ["--dev", "--bind", "0.0.0.0"]  # dev keys: devkey / secret
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-50020:50000-50020/udp"
+
+  stalwart:
+    profiles: ["mail"]
+    image: stalwartlabs/stalwart:v0.14
+    ports:
+      - "2525:25"
+      - "8090:8080"   # web admin + JMAP: finish the setup wizard once, create the sales@ account
+    volumes:
+      - stalwart-etc:/etc/stalwart
+      - stalwart:/var/lib/stalwart
+
+  phoenix:
+    profiles: ["obs"]
+    image: arizephoenix/phoenix:version-12.9.0
+    ports:
+      - "6006:6006"
 
   migrate:
     <<: *kx-app
@@ -112,6 +158,7 @@ services:
     environment:
       <<: *kx-env
       KX_PROCESS: api
+      KX_APP_FORWARDED_ALLOW_IPS: "*"
     ports:
       - "8000:8000"
     depends_on:
@@ -152,10 +199,18 @@ services:
     environment:
       <<: *kx-env
       KX_PROCESS: voice
+      LIVEKIT_URL: ws://livekit:7880
+      LIVEKIT_API_KEY: devkey
+      LIVEKIT_API_SECRET: secret
+      KX_APP_LIVEKIT_URL: ws://livekit:7880
+      KX_APP_LIVEKIT_API_KEY: devkey
+      KX_APP_LIVEKIT_API_SECRET: secret
+      KX_APP_VOICE_IDLE_PROCESSES: "1"
     depends_on:
       migrate:
         condition: service_completed_successfully
 
 volumes:
   pgdata:
-  hfcache:
+  stalwart-etc:
+  stalwart:

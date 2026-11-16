@@ -1,8 +1,9 @@
-"""D33 email field: SES -> Postmark (Gmail API slot off, OPEN_QUESTIONS #54), behind one `send()`.
+"""D44 email field: Stalwart (JMAP, relaying through SES) -> the SES v2 API, behind one `send()`.
 
 `OutboundService` and the staff-code mailer call this like a single sender. The order is the field's vendor
-order (Parameter Store, D30); a vendor whose breaker is open is skipped; each switch writes the
-`Kairox/VendorSwitch` metric. When every vendor fails, the last error is raised as a `ChannelError` so the
+order (`kx.core.platform`, D41); a vendor whose breaker is open is skipped; each switch writes the
+`VendorSwitch` metric and alerts ops. When every vendor fails, the last error is raised as a `ChannelError`
+so the
 delivery job keeps its retry / give-up rules (and the CRM's own fallbacks take over: WhatsApp, the task).
 """
 

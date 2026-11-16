@@ -10,9 +10,18 @@ dependencies = [
     "kx-agent-framework[voice]",
     "uvicorn[standard]==0.54.0",
     "alembic==1.20.1",
-    "sentry-sdk==2.73.0",
     "pyyaml==6.0.3",
     "celery[redis]==5.7.0",
+    # D52 voice plug-ins (16 Nov, approved with the v2 plan): paid engines + the OpenAI-compatible client that
+    # reaches our free speech server, and Silero VAD (end of turn = VAD; the turn-detector plug-in is
+    # deprecated and its replacement calls LiveKit Cloud)
+    "livekit-plugins-deepgram==1.8.10",
+    "livekit-plugins-elevenlabs==1.8.10",
+    "livekit-plugins-openai==1.8.10",
+    "livekit-plugins-silero==1.8.10",
+    # D46 telemetry: SDK + OTLP exporter (kx.core uses only the API)
+    "opentelemetry-sdk==1.45.2",
+    "opentelemetry-exporter-otlp-proto-http==1.45.2",
 ]
 
 [project.scripts]

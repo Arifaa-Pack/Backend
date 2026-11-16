@@ -1,20 +1,94 @@
 # v1 change plan
 
-Two plans live in this file:
+Three plans live in this file:
 
-1. **11 Nov plan (current):** bring the code in line with the updated SRS and the 11 Nov platform decisions. Work packages WP13–WP29.
-2. **5 Nov plan (done 6 Nov):** WP1–WP12, kept below for history. Log: `docs/V1_PROGRESS.md`.
+1. **16 Nov v2 platform plan (current):** move the platform to the *Accounts & Server Plan v2* (one dedicated server, a free/paid switch per field, database tiers). Work packages WP-V2-01 … WP-V2-14, decisions D41–D53.
+2. **11 Nov plan (done 12 Nov except WP26):** bring the code in line with the updated SRS and the 11 Nov platform decisions. WP13–WP29.
+3. **5 Nov plan (done 6 Nov):** WP1–WP12, kept below for history. Log: `docs/V1_PROGRESS.md`.
 
-**Sources of truth (read-only; never edit them):**
+**Sources of truth:**
 
 | Short name | File | What it decides |
 |---|---|---|
-| **SRS** | `docs/Arifaa Pack — Detailed Business Flow v1 (SRS basis) (2).md` | Business rules. "§" numbers below refer to it |
-| **Platform docs** | `docs/Arifaa Platform — Platforms, Pricing & Fallbacks/` (`Recommendation.md`, `Fallback plan.md`, `Options by field.md`, `Platform contest.md`, `Official sources.md`) | Vendors, fallbacks, monthly cost, the 11 Nov platform changes |
+| **SRS** | `docs/Arifaa Pack — Detailed Business Flow v1 (SRS basis) (2).md` | Business rules. "§" numbers below refer to it. Read-only, except the §4 / §22 hosting lines updated on 16 Nov (flagged for Arifa's approval) |
+| **Server plan v2** | `docs/Arifaa Platform — Platforms, Pricing & Fallbacks/Arifaa Platform — Accounts & Server Plan (for Arifa IT) v2.docx` | **The platform per field (§2), paid version cost (§3), free version cost (§4), the server (§5).** Wins over every other platform file |
+| **Platform docs** | same folder: `Recommendation.md`, `Fallback plan.md`, `Options by field.md` (+ `Options by field — alternatives and usage.docx`), `Platform contest.md`, `Official sources.md` | Vendors, fallbacks, costs and measurements. Updated to v2 on 16 Nov; edit them only to follow the server plan |
 
 When this plan and those files disagree, those files win. Where they are silent, the build takes the option that blocks, alerts or hands over to a person (never the one that sends, discounts or promises) and records the choice in `docs/OPEN_QUESTIONS.md`.
 
 Keep the rules in `CONTRACTS.md`: packages never import each other; shared helpers come from `kx.core`; money is Decimal; every state change writes audit + timeline + outbox in one transaction (`kx.crm.services.journal.record`).
+
+---
+
+## 16 Nov v2 platform plan
+
+### Why
+
+The *Accounts & Server Plan v2* (16 Nov) replaces the AWS stack with **one Namecheap dedicated server** (Intel Xeon E-2236, 6 cores / 12 threads, 64 GB RAM, 2 × 960 GB SSD RAID 1, Ubuntu 24.04, managed with Coolify) plus a few online services on Arifa's accounts. Every paid platform that has an open-source alternative gets that alternative on our server, and each field can run in the **paid version** (§3, ≈ US$232 / 819 / 2,459 a month at Light / Normal / Heavy) or the **free version** (§4, ≈ US$171 / 575 / 1,739). The resource-usage bench (14 Nov, `resource-usage-bench/`) also found go-live bugs that are fixed here.
+
+### What changed (11 Nov → 16 Nov)
+
+| Field | 11 Nov | 16 Nov v2 (main → free alternative) |
+|---|---|---|
+| Server | ECS Fargate, 2 zones, AWS me-central-1 | **Namecheap dedicated server + Coolify** (Phoenix, AZ, USA: Arifa must approve the location, OPEN #69) |
+| Database | RDS Multi-AZ | **PostgreSQL 18 + pgvector** on the server, PgBouncer, WAL-G backups to R2, three tiers (D48) |
+| Cache + broker | ElastiCache Redis, 2 nodes | **Redis** on the server (`noeviction`, AOF) |
+| AI | Claude Sonnet 5.5 / Haiku 5.5; Gemini backups off | same; **Gemini 3.8 Flash standby** (paid, only when used). No free model |
+| Speech-to-text | Deepgram → Soniox | **Deepgram Nova-3 → faster-whisper Small** (free, CPU) |
+| Text-to-speech | ElevenLabs → Google Chirp | **ElevenLabs Flash → Piper** (free; en, ar, hi, zh) |
+| Live voice | LiveKit Cloud | **LiveKit self-hosted** |
+| Staff alert calls | Telnyx (not built) → Twilio | **Telnyx** (TeXML); later Asterisk + UAE SIP line |
+| WhatsApp | Meta Cloud API | same |
+| Email | SES → Postmark → Gmail API | **Stalwart mail server** (send + buyer replies) relaying through **Amazon SES**; SES API as app backup |
+| Website + CRM hosting | Vercel Pro | **Vercel Pro → self-hosted** on the server |
+| Knowledge search | Qwen3-Embedding-0.6B | **BGE-M3 → Qwen3-Embedding-0.6B**, both on TEI `cpu-1.8` |
+| AI audit trail | Phoenix | **Phoenix → Langfuse** |
+| Monitoring | Better Stack (Sentry SDK) + CloudWatch | **SigNoz (OpenTelemetry) + UptimeRobot** → Grafana stack |
+| Firewall + bots | AWS WAF + Turnstile | **SafeLine WAF + CrowdSec + Turnstile** |
+| DNS + files | client DNS, S3 + KMS | **Cloudflare DNS + R2** |
+| Secrets / vendor order | Secrets Manager, Parameter Store | Coolify encrypted env vars; **vendor order from `KX_PLATFORM_*` env vars** |
+| Staff login | in-house + TOTP | same |
+
+### Decisions (16 Nov)
+
+D1–D40 still hold unless a row here replaces them. D29, D30 (order source), D31, D33, D36, D39 and D40 are replaced.
+
+| # | Decision | Source |
+|---|---|---|
+| D41 | **Free / paid switch per field = environment variables.** `KX_PLATFORM_PLAN=paid\|free` sets every field; `KX_PLATFORM__<FIELD>=paid\|free` overrides one field (a change = redeploy). **Paid** runs the paid platform first and the free alternative as the automatic fallback, then the last resort; **free** runs only the free platform. Fields with no free platform (`llm`, `calls`, `whatsapp`) refuse `free` at start-up. The resolved matrix is logged at start and shown by `kx platform show`; every switch is logged, counted (`VendorSwitch`) and alerted. Table: `docs/PLATFORM_MODES.md`. Replaces the Parameter Store part of D30 (breaker, triggers and safety gates of D30 stay) | Server plan v2 §2–§4; Hamthan 16 Nov |
+| D42 | **Only the v2 §2 platforms stay in the code.** Removed: Twilio, Postmark, Gmail API, Soniox, Google Chirp, Gemini 3.5 Flash-Lite, Better Stack, Sentry SDK, Parameter Store, SNS, LocalStack, S3 KMS, CloudWatch metrics, all Terraform | Server plan v2 §2; Hamthan 16 Nov |
+| D43 | **Staff alert calls and buyer call-backs: Telnyx TeXML** (TwiML-compatible). Each attempt stores its script; Telnyx fetches the TeXML from a signed per-attempt URL; status callbacks are form posts checked by the signed token and, when configured, the Ed25519 signature. Last resort: WhatsApp alert + next person on the ladder. An Asterisk + UAE operator SIP adapter can join later behind the same `Caller` protocol (`KX_PLATFORM__CALLS=free`) | Server plan v2 §2; replaces D31 |
+| D44 | **Email: Stalwart (JMAP) → SES v2 API.** The app sends through Stalwart's JMAP API; Stalwart relays outbound mail through SES SMTP (inbox reputation). Buyer replies and SES bounce/complaint reports land in Stalwart mailboxes and are read by a Beat job (`Email/changes`) every 30 s. If Stalwart is down the app sends through the SES API directly. Last resort: WhatsApp → salesperson told | Server plan v2 §2; replaces D33 |
+| D45 | **Files on Cloudflare R2** (S3 API, `endpoint_url`): quote PDFs, inbound media, raw inbound mail, archives, database backups. No KMS parameters (R2 encrypts at rest) | Server plan v2 §2 |
+| D46 | **Monitoring: OpenTelemetry → SigNoz** (metrics, traces, logs) on the server + **UptimeRobot** from outside (`/healthz`, `/healthz/beat`). The Beat heartbeat is a Redis timestamp. AI traces go to Phoenix (or Langfuse) over OTLP. PII stays masked in logs | Server plan v2 §2; replaces D29 |
+| D47 | **Knowledge search: BGE-M3** on TEI `cpu-1.8` (1,024 dimensions, no query instruction); Qwen3-Embedding-0.6B is the alternative (`KX_PLATFORM__EMBEDDINGS`). A model change means `kx reindex`; search only reads chunks of the configured model. Query timeout 2 s → full-text; indexing timeout 120 s | Server plan v2 §2; Options by field §13; updates D28 |
+| D48 | **Database in three tiers by growth** (`docs/DATABASE.md`): *Business* (`crm`, `cms`) kept forever; *Interactions* (`agents`, `automation`) with monthly partitions on append-only logs, nightly batched pruning of plumbing tables and archives to R2; *Telemetry* (Phoenix, SigNoz) on their own stores with 30–90 day retention. Each logical database keeps its own DSN, so any one can move to its own server by changing one setting. PgBouncer (transaction mode) in front; pools 5 + 5, worker concurrency 3, `max_connections` 200 | Server plan v2 §2, Options by field §10; Hamthan 16 Nov |
+| D49 | **Hosting: one dedicated server with Coolify.** Compose stacks in `infra/server/`; image `linux/amd64`; Cloudflare → SafeLine → Coolify proxy → services; WAL-G + R2 off-site backups and a monthly restore test. Terraform and the AWS workflows are deleted | Server plan v2 §2, §5; Hamthan 16 Nov |
+| D50 | **Eight similar projects later: design only now** (`docs/MULTI_PROJECT.md`): shared heavy services (speech, embeddings, LiveKit, Postgres, monitoring) once per server, one app stack per project, versioned `kx-*` packages. Built now: one project, but database names already carry the company prefix (`pack_crm` …) | Hamthan 16 Nov |
+| D51 | **Claude request parameters:** no `temperature` / `top_p` / `top_k` (Sonnet 5.5 and Haiku 5.5 reject non-default values with HTTP 400); effort and token limits set per tier. A refusal (`stop_reason=refusal`) gives the safe reply + hand-over; server-side refusal fallbacks stay off (a fallback model has not passed the negotiation suite, D27) | Claude API docs; bench R1 |
+| D52 | **Voice by mode:** paid = Deepgram → faster-whisper and ElevenLabs → Piper inside one call (LiveKit fallback adapters); free = faster-whisper + Piper. Tamil uses ElevenLabs (also in free mode, when its key is set), else text chat; Sinhala is always text chat. Free-mode calls at once are capped (default 3), above the cap the visitor gets chat. The speech server is its own image (`services/speech/`) | Server plan v2 §2; Options by field §2–§3; Hamthan 16 Nov; replaces D36 |
+| D53 | **Firewall and bots:** Cloudflare (DNS, proxy) → SafeLine WAF → app; CrowdSec bans from logs (Cloudflare bouncer for proxied traffic, firewall bouncer for direct ports); Turnstile on website chat; webhook paths (Meta, Telnyx) are allow-listed but rate limited and signature-checked; the client IP comes from `CF-Connecting-IP` only when configured | Server plan v2 §2; Options by field §17; replaces D39 |
+
+### Work packages (16 Nov)
+
+Docs first, then code. One commit series per WP, with the § / D reference.
+
+| WP | What | Main files |
+|---|---|---|
+| WP-V2-01 | Decision documents (this section, OPEN_QUESTIONS, platform masters, SRS §4/§22 hosting lines, CLAUDE.md, CONTRACTS.md) | `docs/`, `CLAUDE.md`, `CONTRACTS.md` |
+| WP-V2-02 | Reference documents: `ARCHITECTURE.md`, `DATABASE.md`, `PLATFORM_MODES.md`, `MULTI_PROJECT.md`, `LOCAL_DEV.md`, `infra/server/README.md`; README, DEPLOYMENT, REUSE_CATALOGUE, HANDOFF_CONTEXT, DELIVERY | `docs/` |
+| WP-V2-03 | Go-live fixes from the bench: Claude parameters (D51), WhatsApp 500 on a bad number, BGE-M3 + model filter + timeouts (D47), pool sizes | `kx/agents/models.py`, `kx/automation/channels/whatsapp.py`, `arifaa_pack/adapters.py`, `kx/agents/knowledge.py` |
+| WP-V2-04 | Platform modes core (D41), ops alerts on switches, `kx platform show`; Parameter Store removed | `kx/core/platform.py`, `kx/core/settings.py`, `arifaa_pack/container.py` |
+| WP-V2-05 | R2 storage (D45) | `kx/automation/media.py`, `kx/crm/pdf.py` |
+| WP-V2-06 | Email: Stalwart JMAP + SES backup + bounce reports (D44); Postmark, SNS removed | `kx/automation/channels/stalwart.py`, `feedback.py`, `jobs.py` |
+| WP-V2-07 | Calls: Telnyx TeXML (D43); Twilio removed | `kx/automation/channels/calls.py`, `alerts.py`, `webhooks.py` |
+| WP-V2-08 | Voice: platform-mode plugins, free speech server, voice-worker fixes (D52) | `services/speech/`, `arifaa_pack/voice_worker.py`, `kx/agents/voice.py` |
+| WP-V2-09 | Monitoring: OpenTelemetry metrics, SigNoz, heartbeat (D46); Sentry / Better Stack / CloudWatch removed | `kx/core/metrics.py`, `arifaa_pack/telemetry.py`, `arifaa_pack/api.py` |
+| WP-V2-10 | Database tiers (D48): PgBouncer mode, prefixes, partitions, pruning, archive | `kx/core/db.py`, `kx/core/retention.py`, migrations |
+| WP-V2-11 | Server stacks and runbooks (D49, D53) | `infra/server/` |
+| WP-V2-12 | Local development compose with profiles (7 GB laptop) | `docker-compose.yml`, `docs/LOCAL_DEV.md` |
+| WP-V2-13 | Remove AWS Terraform and workflows; amd64 image | `infra/`, `.github/workflows/`, `Dockerfile` |
+| WP-V2-14 | `.env.example`, frontend docs, removed-vendor guard test, full lint + test | `.env.example`, `tests/` |
 
 ---
 

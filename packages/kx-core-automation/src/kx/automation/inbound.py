@@ -19,7 +19,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.automation import optout
 from kx.automation.channels import whatsapp as wa
-from kx.automation.channels.email import InboundEmail, SesEvent
+from kx.automation.channels.email import InboundEmail
+from kx.automation.channels.feedback import MailFeedback, candidate_ids
 from kx.automation.models import ChannelAccount, InboundMessage, OutboundMessage, OutboundStatus, Thread
 from kx.automation.outbox import emit
 from kx.automation.repo import (
@@ -255,7 +256,7 @@ async def media_id_of(s: AsyncSession, inbound_id: uuid.UUID) -> tuple[str, str 
     return (str(media["id"]), media.get("mime_type")) if isinstance(media, dict) else None
 
 
-# ---------------------------------------------------------------- statuses (WhatsApp + SES)
+# ---------------------------------------------------------------- statuses (WhatsApp + email reports)
 async def advance_status(
     s: AsyncSession, provider_message_id: str, status: EventStatus, *, at: datetime, error: str | None = None
 ) -> None:
@@ -312,20 +313,24 @@ async def advance_status(
         )
 
 
-async def record_ses_event(s: AsyncSession, event: SesEvent) -> None:
-    match event.kind:
-        case "delivery":
-            await advance_status(s, event.provider_message_id, "delivered", at=event.at)
-        case "bounce" if event.permanent:
-            await _suppress_emails(s, event.recipients, "bounce")
-            await advance_status(s, event.provider_message_id, "bounced", at=event.at, error=event.detail)
-        case "complaint":
-            await _suppress_emails(s, event.recipients, "complaint")
-            await advance_status(s, event.provider_message_id, "complained", at=event.at, error=event.detail)
-        case "reject":
-            await advance_status(s, event.provider_message_id, "failed", at=event.at, error="ses_reject")
-        case _:
-            return
+async def record_mail_event(s: AsyncSession, fb: MailFeedback) -> None:
+    """D44: a bounce or complaint report read from the mailbox. A permanent bounce or any complaint
+    suppresses the address on the email channel (§8.1 list) and marks the outbound row it refers to."""
+    reason = "bounce" if fb.kind == "bounce" else "complaint"
+    if fb.permanent or fb.kind == "complaint":
+        await _suppress_emails(s, fb.recipients, reason)
+    if fb.original_message_id is None:
+        return
+    provider_id = (
+        await s.execute(
+            select(OutboundMessage.provider_message_id)
+            .where(OutboundMessage.provider_message_id.in_(candidate_ids(fb.original_message_id)))
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if provider_id is not None:
+        status: EventStatus = "bounced" if fb.kind == "bounce" else "complained"
+        await advance_status(s, provider_id, status, at=fb.at, error=fb.detail)
 
 
 async def _suppress_emails(s: AsyncSession, addresses: Iterable[str], reason: str) -> None:
@@ -340,7 +345,7 @@ async def record_email(
     *,
     s3_key: str | None,
     attachment_keys: tuple[str, ...],
-    provider: str = "ses",
+    provider: str = "stalwart",
 ) -> None:
     if not await first_receipt(s, provider, mail.message_id):
         return

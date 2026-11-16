@@ -1,4 +1,4 @@
-"""HTTP API (ECS `api` service): CRM routes under /v1, channel webhooks, health check."""
+"""HTTP API (Coolify `api` service): CRM routes under /v1, channel webhooks, health checks."""
 
 from __future__ import annotations
 
@@ -6,12 +6,13 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, Request
+import orjson
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from arifaa_pack.config import app_settings
 from arifaa_pack.container import build
-from arifaa_pack.observability import init_error_tracking
+from arifaa_pack.telemetry import beat_health, init_telemetry
 from kx.agents.website import build_router as website_router
 from kx.automation.admin_api import build_router as channels_admin_router
 from kx.automation.cms import build_router as cms_router
@@ -26,7 +27,7 @@ from kx.crm.api import build_router as crm_router
 def create_app() -> FastAPI:
     core = get_settings()
     configure_logging(core.log_level, core.log_json)
-    init_error_tracking(app_settings(), core.env.value, "api")  # D29 Better Stack (Sentry SDK)
+    init_telemetry(app_settings(), component="api", company=core.company_code, environment=core.env.value)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -54,6 +55,15 @@ def create_app() -> FastAPI:
     @app.get("/healthz", include_in_schema=False)
     async def healthz() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/healthz/beat", include_in_schema=False)
+    async def healthz_beat(request: Request) -> Response:
+        """D46: UptimeRobot checks this from outside; 503 = Beat, the broker or the workers stopped (or the
+        oldest due job is waiting too long)."""
+        c = request.app.state.container
+        ok, detail = await beat_health(c.redis, c.core.company_code, c.app.beat_max_lag_seconds)
+        body = {"status": "ok" if ok else "stale", **detail}
+        return Response(orjson.dumps(body), status_code=200 if ok else 503, media_type="application/json")
 
     @app.get("/.well-known/jwks.json", tags=["auth"])
     async def jwks(request: Request) -> dict[str, Any]:

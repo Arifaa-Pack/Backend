@@ -28,10 +28,12 @@ from sqlalchemy import select
 from kx.automation import inbound
 from kx.automation.alerts import ApprovalLadder, LadderTicket, PauseAlerts
 from kx.automation.channels.email import parse_inbound
+from kx.automation.channels.feedback import parse_feedback
+from kx.automation.channels.stalwart import MailboxPoller, raw_key
 from kx.automation.handlers import EventHandlers, FollowUps, stop_after_no_answer
 from kx.automation.models import SCHEMA, OutboundMessage
 from kx.automation.outbound import OutboundService, TransientDeliveryError
-from kx.automation.ports import MediaStore, SweepCallback
+from kx.automation.ports import MediaStore, SweepCallback, TaskScheduler
 from kx.automation.scraping import PriceScraper
 from kx.automation.settings import AutomationSettings
 from kx.core.db import Databases
@@ -87,10 +89,12 @@ class AutomationRuntime:
     scraper: PriceScraper
     whatsapp_media: MediaDownloader
     media: MediaStore  # platform bucket (quote PDFs, inbound media)
-    inbound_mail: MediaStore  # raw inbound MIME (SES Mail Manager bucket; Postmark posts JSON instead)
+    inbound_mail: MediaStore  # raw inbound MIME (R2 `inbound-mail/`, written by the mail poller)
     publish: Publisher  # where relayed automation events go (app bus -> other packages)
     approval_sweep: SweepCallback | None = None
     scraping_enabled: Callable[[], Awaitable[bool]] | None = None  # CRM `features.scraping` (D14)
+    mail_poller: MailboxPoller | None = None  # D44 Stalwart inbox; None = email receiving not configured
+    scheduler: TaskScheduler | None = None  # the poller enqueues one ingest job per message
 
 
 def register_jobs(runner: JobRunner, rt: AutomationRuntime) -> None:
@@ -171,11 +175,30 @@ def periodic_jobs(rt: AutomationRuntime) -> dict[str, Periodic]:
         log.info("scrape.done", results=results)
         return results
 
+    async def mail_poll(_: datetime) -> int:
+        return await poll_mailbox(rt)
+
     return {
         "relay.automation": relay,
         "automation.requeue_outbound": requeue,
         "automation.price_scrapes": scrapes,
+        "automation.mail_poll": mail_poll,
     }
+
+
+async def poll_mailbox(rt: AutomationRuntime) -> int:
+    """D44: every new inbox message is stored raw in R2 and gets one ingest job (retried by the job store);
+    the poller marks it handled only after the job is queued (dedup by object key)."""
+    if rt.mail_poller is None or rt.scheduler is None:
+        return 0
+    scheduler = rt.scheduler
+
+    async def handle(_email_id: str, raw: bytes) -> None:
+        key = raw_key(raw)
+        await rt.inbound_mail.put(key, raw, "message/rfc822")
+        await scheduler.enqueue_email_ingest(key)
+
+    return await rt.mail_poller.poll(handle)
 
 
 # ---------------------------------------------------------------- task bodies (plain functions: testable)
@@ -230,7 +253,14 @@ async def _ingest_media(rt: AutomationRuntime, inbound_id: uuid.UUID) -> None:
 
 
 async def _ingest_email(rt: AutomationRuntime, key: str) -> None:
-    mail = parse_inbound(await rt.inbound_mail.get(key), fallback_id=key)
+    """One stored inbox message: a bounce / complaint report (D44) updates suppression and the outbound row;
+    anything else is a buyer email for the deal."""
+    raw = await rt.inbound_mail.get(key)
+    if (feedback := parse_feedback(raw)) is not None:
+        async with rt.databases.transaction(LogicalDb.AUTOMATION) as s:
+            await inbound.record_mail_event(s, feedback)
+        return
+    mail = parse_inbound(raw, fallback_id=key)
     folder = f"email/{sha256_hex(mail.message_id.encode())[:24]}"  # deterministic: retries overwrite
     keys: list[str] = []
     for i, attachment in enumerate(mail.attachments):

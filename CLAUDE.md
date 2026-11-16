@@ -4,23 +4,27 @@ Kairox platform: a reusable B2B sales system (CRM + automation + AI agents). The
 
 ## Read first (in this order, only what the task needs)
 
-1. **The SRS** (business rules, read-only): `docs/Arifaa Pack — Detailed Business Flow v1 (SRS basis) (2).md`. Quote its § numbers in commits. **Never edit it.**
-2. **The platform docs** (vendors, fallbacks, costs, read-only): `docs/Arifaa Platform — Platforms, Pricing & Fallbacks/` — `Recommendation.md` and `Fallback plan.md` first. **Never edit them.**
-3. `docs/V1_CHANGE_PLAN.md`: the 11 Nov work list (WP13–WP29, decisions D17–D40) above the finished 5 Nov plan (WP1–WP12). Log in `docs/V1_PROGRESS.md`; open decisions in `docs/OPEN_QUESTIONS.md`.
+1. **The SRS** (business rules, read-only): `docs/Arifaa Pack — Detailed Business Flow v1 (SRS basis) (2).md`. Quote its § numbers in commits. **Never edit it** (the only exception so far: the §4 / §22 hosting lines of 16 Nov, flagged for Arifa's approval).
+2. **The server plan v2** (platform per field, paid and free version, the server): `docs/Arifaa Platform — Platforms, Pricing & Fallbacks/Arifaa Platform — Accounts & Server Plan (for Arifa IT) v2.docx` §2–§5. It wins over every other platform file. The `.md` files in that folder (`Recommendation.md`, `Fallback plan.md` first) follow it; edit them only to follow it.
+3. `docs/V1_CHANGE_PLAN.md`: the 16 Nov v2 work list (WP-V2-01 … 14, decisions D41–D53) above the 11 Nov (WP13–WP29) and 5 Nov (WP1–WP12) plans. Log in `docs/V1_PROGRESS.md`; open decisions in `docs/OPEN_QUESTIONS.md`.
 4. `CONTRACTS.md`: package boundaries, shared helpers, hard safety rules.
-5. `docs/REUSE_CATALOGUE.md`: where each capability lives. Import, never rewrite.
-6. Background only if needed: `docs/HANDOFF_CONTEXT.md`, `docs/DELIVERY.md`, `docs/DEPLOYMENT.md`, `docs/CONTESTS.md`, `infra/README.md`.
-7. Frontend hand-offs (generated from the code): `docs/frontend/`.
+5. `docs/ARCHITECTURE.md`, `docs/DATABASE.md`, `docs/PLATFORM_MODES.md`: how the system, the databases and the paid / free switch work.
+6. `docs/REUSE_CATALOGUE.md`: where each capability lives. Import, never rewrite.
+7. Background only if needed: `docs/HANDOFF_CONTEXT.md`, `docs/DELIVERY.md`, `docs/DEPLOYMENT.md`, `docs/LOCAL_DEV.md`, `docs/MULTI_PROJECT.md`, `docs/CONTESTS.md`, `infra/server/README.md`.
+8. Frontend hand-offs (generated from the code): `docs/frontend/`.
 
 ## Layout
 
 - `packages/kx-core-db` → `kx.core`: shared core, contracts, price guard, auth tokens, job store, fallback/circuit breaker.
 - `packages/kx-core-crm` → `kx.crm`: the CRM; pricing is in `kx/crm/pricing`; staff login in `kx/crm/services/auth.py`.
-- `packages/kx-core-automation` → `kx.automation`: channels (WhatsApp, SES, Postmark; Twilio for calls), opt-out, outbound gate, jobs. (Telnyx is planned, not built — OPEN #55.)
+- `packages/kx-core-db` → `kx.core` also holds the platform modes (`kx.core.platform`: paid / free order per field) and retention helpers (`kx.core.retention`).
+- `packages/kx-core-automation` → `kx.automation`: channels (WhatsApp Meta, email Stalwart → SES, calls Telnyx), opt-out, outbound gate, jobs.
 - `packages/kx-agent-framework` → `kx.agents`: LangGraph agents, knowledge search, voice, website sessions.
-- `apps/arifaa-pack` → `arifaa_pack`: wiring (`container.py`), Celery app (`celery_app.py`), API, CLI `kx`, Alembic `migrations/`.
+- `apps/arifaa-pack` → `arifaa_pack`: wiring (`container.py`), vendor adapters (`adapters.py`), Celery app (`celery_app.py`), API, CLI `kx`, voice worker, telemetry, Alembic `migrations/`.
+- `services/speech/`: the free speech server (faster-whisper + Piper), its own image (Python 3.12), outside the uv workspace.
 - `db/ddl/0*.sql`: the v1 baseline. **Never edit it.** Schema changes are new Alembic revisions (`migrations/<db>/versions/000N_*.py`).
-- `infra/`: Terraform. `tests/`: root unit, spec, DB and integration tests. Each package also has its own `tests/`.
+- `infra/server/`: the dedicated-server stacks (Coolify compose files, Postgres / PgBouncer, backups, runbooks). No Terraform, no AWS except SES.
+- `tests/`: root unit, spec, DB and integration tests. Each package also has its own `tests/`.
 
 ## Commands
 
@@ -32,6 +36,9 @@ make test                                 # or: uv run pytest packages/kx-core-c
 make lint                                 # ruff, ruff format --check, mypy --strict, lint-imports
 make migrate                              # kx migrate (alembic, every DB)
 kx api | kx worker | kx beat | kx voice   # API, Celery worker, the ONE Celery Beat, LiveKit voice worker
+kx platform show                          # D41: resolved paid / free version per field
+kx reindex                                # D47: re-embed knowledge chunks after an embedding-model switch
+make up-voice | up-mail | up-obs | up-embed   # one local profile at a time (docs/LOCAL_DEV.md, Docker on D:)
 uv run pytest tests/spec -m bench --benchmark-enable   # speed checks
 ```
 
@@ -47,7 +54,8 @@ uv run pytest tests/spec -m bench --benchmark-enable   # speed checks
 - **Every AI reply** passes `kx.core.price_guard.check_prices` (it fails closed), whichever model or vendor answered. Priced messages go out only through `OutboundService` with a single-use send grant.
 - **Opt-out (§8.1):** one suppression list checked before every message and call; the AI may add a stop, never remove one.
 - **Approvals** use `require_human_mfa` (TOTP factor; an email-code login is not enough).
-- **Vendors:** call a field's adapter (`llm`, `calls`, `email`, `embeddings` …), never a vendor directly; the order comes from Parameter Store; a switch must be logged and alerted.
+- **Vendors:** call a field's adapter (`llm`, `stt`, `tts`, `calls`, `email`, `embeddings` …), never a vendor directly. The order comes from `kx.core.platform.order()` (env `KX_PLATFORM_PLAN` + `KX_PLATFORM__<FIELD>`: paid = paid → free alternative; free = free only); a switch must be logged and alerted. Only the platforms of the server plan v2 §2 belong in the code.
+- **Databases:** each package uses only its own logical database (own DSN); no cross-database SQL. Big append-only tables need a retention rule (`docs/DATABASE.md`).
 - **Style:** `from __future__ import annotations` (but **not** in FastAPI router modules: it breaks dependencies defined inside router factories); `mypy --strict`; ruff line length 110; small functions; docstrings that explain the business reason.
 - **Tests:** pure logic gets spec or unit tests (hypothesis where useful); DB behaviour gets `@pytest.mark.db` tests using the root `databases` fixture.
 - **Dependencies:** don't add any without asking; everything needed is in `uv.lock`. After any `pyproject.toml` change, run `uv lock` and commit the lock.

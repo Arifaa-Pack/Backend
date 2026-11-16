@@ -1,6 +1,37 @@
 # Options by field
 
-Each field has a High (premium), Medium (balanced) and Low (budget or open source) option, with the official unit price and the monthly cost per company at Light, Normal and Heavy usage (US$). **Bold** = recommended pick. Prices re-checked on official pages 7–11 Nov 2026 (*Official sources* tab). Fields 13, 15, 16 and 19 changed on 11 Nov.
+## 16 Nov v2: what is picked per field
+
+The picks below follow *Accounts & Server Plan v2* §2 and win over the "Bold = recommended" rows further down, which keep the 11 Nov price comparison. The free / open-source alternative of every field and its measured server usage (RAM, disk, CPU, network) are in **`Options by field — alternatives and usage.docx`** (16 Nov, bench of 14 Nov). Paid version = the main platform with the free alternative as automatic fallback; free version = the alternative only (`docs/PLATFORM_MODES.md`).
+
+| # | Field | Main platform (paid version) | Free alternative (our server) | Env field |
+| --- | --- | --- | --- | --- |
+| 1 | AI brain | Claude Sonnet 5.5 (money turns) + Haiku 5.5 | none (Gemini 3.8 Flash = paid standby) | `llm` (paid only) |
+| 2 | Speech-to-text | Deepgram Nova-3 Multilingual | faster-whisper Small INT8, CPU | `stt` |
+| 3 | Text-to-speech | ElevenLabs Flash | Piper (en, ar, hi, zh); Tamil via ElevenLabs, Sinhala text only | `tts` |
+| 4 | Real-time voice | LiveKit self-hosted | (it is the free option) | infra |
+| 5 | Staff alert calls, call-backs | Telnyx | later: Asterisk + UAE SIP trunk | `calls` (paid only) |
+| 6 | WhatsApp | Meta Cloud API direct | none | `whatsapp` (paid only) |
+| 7 | SMS (v1.5) | not in v1 | none | — |
+| 8 | Email | Stalwart (self-hosted) relaying through Amazon SES | (it is the free option; SES API is the app backup) | `email` |
+| 9 | Servers | Namecheap dedicated server (E-2236, 64 GB) + Coolify | — | infra |
+| 10 | Database | PostgreSQL 18 + pgvector on the server (WAL-G to R2) | — | infra |
+| 11 | Cache and job broker | Redis on the server (`noeviction`, AOF) | — | infra |
+| 12 | Website and CRM screens | Vercel Pro | self-hosted on the server | infra |
+| 13 | Knowledge search | BGE-M3 on TEI `cpu-1.8` | Qwen3-Embedding-0.6B | `embeddings` |
+| 14 | AI tracing | Arize Phoenix self-hosted | Langfuse | `ai_trace` |
+| 15 | Monitoring | SigNoz + UptimeRobot (outside) | Grafana stack | infra |
+| 16 | Staff login + MFA | In-house password + TOTP | (already free) | — |
+| 17 | Firewall and bots | SafeLine WAF + CrowdSec + Cloudflare Turnstile | (already free) | infra |
+| 18 | Secrets | Coolify encrypted environment variables | — | infra |
+| 19 | Background jobs | Celery 5.7 + Celery Beat, Redis broker | (already free) | — |
+| — | DNS, files | Cloudflare DNS + R2 | — | infra |
+
+Removed in v2: Twilio, Postmark, Gmail API, Soniox, Google Chirp, Gemini 3.5 Flash-Lite, Better Stack, Sentry, every AWS service except SES.
+
+## 11 Nov price comparison (kept for reference)
+
+Each field has a High (premium), Medium (balanced) and Low (budget or open source) option, with the official unit price and the monthly cost per company at Light, Normal and Heavy usage (US$). **Bold** = the 11 Nov pick (superseded by the v2 table above). Prices re-checked on official pages 7–11 Nov 2026 (*Official sources* tab). Fields 13, 15, 16 and 19 changed on 11 Nov.
 
 ## 1. AI brain (LLM)
 

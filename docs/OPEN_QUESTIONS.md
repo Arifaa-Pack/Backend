@@ -6,8 +6,26 @@ sends, discounts or promises. Decide or ask the client, then change the setting 
 column.
 
 Sources: the SRS (`docs/Arifaa Pack — Detailed Business Flow v1 (SRS basis) (2).md`) and the platform docs
-(`docs/Arifaa Platform — Platforms, Pricing & Fallbacks/`). Rows 1–39 come from the 5 Nov build; rows 40 on
-from the 11 Nov plan (`docs/V1_CHANGE_PLAN.md` WP13–WP29).
+(`docs/Arifaa Platform — Platforms, Pricing & Fallbacks/`). Rows 1–39 come from the 5 Nov build; rows 40–68
+from the 11 Nov plan (`docs/V1_CHANGE_PLAN.md` WP13–WP29); rows 69 on from the 16 Nov v2 platform plan
+(WP-V2-01 … 14, D41–D53).
+
+## 16 Nov (server plan v2)
+
+Closed by v2: **#53** (TEI now serves BGE-M3, D47), **#54** (Gmail API dropped, D42/D44), **#55** (Telnyx built
+on TeXML, D43), **#65** (Gemini 3.8 Flash standby: see #74), **#68** (LiveKit plug-ins added, D52).
+
+| # | WP | Question | What I chose for now | Where |
+|---|---|---|---|---|
+| 69 | WP-V2-01 | **Data location.** SRS §4 / §22 promised "all data in the UAE (AWS me-central-1)". Every Namecheap dedicated server is in Phoenix, Arizona (USA), and R2 has no UAE region. Voice audio also travels UAE ↔ USA (~250 ms). | Built for the v2 server. SRS §4 / §22 now say "Namecheap dedicated server (USA) — Arifa must approve in writing", and the consent / processor list must name the USA location. If Arifa refuses, the same stacks run on any UAE dedicated server: only DNS and the server change. | SRS §4, §22; `infra/server/README.md` |
+| 70 | WP-V2-07 | Telnyx caller ID for UAE mobiles (du / e&) and whether TeXML `<Say>` offers Arabic voices. | Caller ID = `KX_AUTO_TELNYX__FROM_NUMBER`; `<Say>` uses `KX_AUTO_TELNYX__VOICE` / `LANGUAGE` (default `en-US`). Make live test calls to du and e& before go-live. | `kx/automation/channels/calls.py` |
+| 71 | WP-V2-06 | SES feedback (bounces, complaints) must reach the sending mailbox in Stalwart (SES email feedback forwarding) and Stalwart's default send limits (25 messages an hour per domain + recipient) must be raised. Not testable locally. | Bounce (DSN) and complaint (ARF) reports are read from the sending account's inbox by the same poller as buyer replies (`parse_feedback`); prove it in staging. If forwarding is unreliable, add back a small SNS webhook. | `kx/automation/channels/feedback.py`, `infra/server/stacks/compose.mail.yml` |
+| 72 | WP-V2-08 | Free speech-to-text (faster-whisper Small, CPU) was not measured in the bench; large-v3-turbo on CPU took ≈ 13 s per reply. | Free-mode voice calls at once are capped (`KX_APP_VOICE_MAX_CONCURRENT_FREE=3`); above the cap the visitor gets chat. Run `resource-usage-bench/scripts/speech_bench.py` on the real server and set the cap. | `arifaa_pack/config.py`, `kx/agents/website.py` |
+| 73 | WP-V2-10 | Retention values for plumbing rows and AI run logs are not in the documents (§22 covers business data only). | Plumbing (outbox, inbox, webhook receipts, idempotency keys, finished jobs) 30 days; failed jobs 90 days; agent runs 13 months (archived to R2 first); hot partitions 6 months. Confirm. | `kx/core/settings.py` `RetentionSettings` |
+| 74 | WP-V2-04 | Gemini 3.8 Flash standby (v2 §2) needs `langchain-google-genai`, not in `uv.lock`, and the 50-scenario suite (D27). | Standby off by default (`KX_PLATFORM__LLM_STANDBY=none`). The dependency is not added until Hamthan approves it; setting `gemini` without it stops the app at start-up with a clear message. | `kx/core/platform.py`, `arifaa_pack/container.py` |
+| 75 | WP-V2-11 | SigNoz needs 4–8 GB RAM on the same server, and monitoring on the same server goes down with it. | SigNoz on the server with 15–30 day retention, UptimeRobot (free) checks `/healthz` and `/healthz/beat` from outside. Grafana stack is the documented alternative. | `infra/server/stacks/compose.obs.yml` |
+| 76 | WP-V2-03 | Claude effort levels per tier (D51) are not in the documents. | Haiku 5.5 (FAST) `low`, Sonnet 5.5 (SMART, money turns) `medium`, JUDGE `high`; settings `KX_APP_LLM_EFFORT_FAST` / `_SMART` / `_JUDGE`. Tune with the eval suite. | `kx/agents/models.py`, `arifaa_pack/config.py` |
+| 77 | WP-V2-05 | R2 bucket location: R2 has location hints (e.g. `weur`, `apac`) but no UAE. | `KX_STORAGE__REGION=auto`; choose the location hint when the bucket is created (closest: `weur` or `apac`). | `kx/core/settings.py` `StorageSettings` |
 
 ## 11 Nov (SRS update + platform decisions)
 

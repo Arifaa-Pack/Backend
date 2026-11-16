@@ -540,3 +540,119 @@ automation 2 (template cap, staff bypass + count), agents 1 (AI budget hand-over
 
 Totals after the audit pass: **665 passed** (root 251, CRM 161, automation 164, agents 89); ruff, ruff format,
 mypy --strict (per package) and import-linter (3 contracts) clean. New migration `crm_0011` (report settings).
+
+---
+
+# 16 Nov v2 platform plan (WP-V2-01 … 14, D41–D53)
+
+Source: *Accounts & Server Plan v2* §2–§5 and *Options by field — alternatives and usage* (16 Nov). Decisions by
+Hamthan (16 Nov): env-var switch per field with the free alternative as the paid version's fallback; remove every
+vendor not in v2 §2; Tamil voice via ElevenLabs also in the free version; database in three tiers; delete the AWS
+Terraform; next projects = design only; docs first.
+
+## WP-V2-01. Decision documents
+
+**Done.** `docs/V1_CHANGE_PLAN.md` (16 Nov section: what changed, D41–D53, WP list); `docs/OPEN_QUESTIONS.md` (#69–#77;
+#53, #54, #55, #65, #68 closed); platform docs `Recommendation.md` (v2 §2–§5, paid / free totals; 11 Nov kept as
+history), `Fallback plan.md` (paid / free chains), `Options by field.md` (v2 pick table on top); SRS §4 and §22
+hosting / data-location lines plus the two §19 vendor names (Telnyx, Stalwart via SES), flagged for Arifa's approval;
+`CLAUDE.md` (source order, layout, vendor and database rules); `CONTRACTS.md` (ownership, `opentelemetry-api` in
+`kx.core`, new helpers, [16 Nov] rules).
+
+## WP-V2-02. Reference documents
+
+**Done.** New: `docs/ARCHITECTURE.md` (supersedes `Architecture-and-System-Design.docx`), `docs/DATABASE.md`,
+`docs/PLATFORM_MODES.md`, `docs/MULTI_PROJECT.md`, `docs/LOCAL_DEV.md`, `infra/server/README.md`. Updated: `README.md`,
+`docs/DEPLOYMENT.md` (rewritten for the server), `docs/REUSE_CATALOGUE.md`, `docs/HANDOFF_CONTEXT.md` (16 Nov block),
+`docs/DELIVERY.md`, `db/README.md`.
+
+## WP-V2-03. Go-live fixes from the bench
+
+**Done.** `kx/agents/models.py`: no `temperature` / `top_p` / `top_k` (Sonnet 5.5 and Haiku 5.5 reject them, bench R1);
+adaptive thinking and `output_config.effort` per tier (FAST low, SMART medium, JUDGE high; `KX_APP_LLM_EFFORT_*`),
+`max_tokens` 2,048 / 4,096 / 8,192. `final_reply` treats `stop_reason=refusal` as no answer (hand-over, D51).
+WhatsApp: `kx.core.identity.try_normalise_phone`; `parse_webhook` skips an unparseable sender / recipient and the
+route answers 200 to a payload it cannot parse (no more 500 + Meta retries). Embeddings: BGE-M3 without a query
+instruction (Qwen3 keeps its instruction), query timeout 2 s, indexing timeout 120 s, batch 8; the vector leg of
+search only reads chunks of the configured model; `KnowledgeIndexer.reembed_stale` + `kx reindex`.
+Tests: payload test on the real `ChatAnthropic` request (no sampling keys, effort set), refusal test, bad-sender
+webhook test (DB), phone parsing cases.
+
+## WP-V2-04. Platform modes core (D41)
+
+**Done.** `kx/core/platform.py` (Field, Plan, VENDORS, `resolve_modes`, `order`, `resolved`, `summary`);
+`CoreSettings.platform_plan` + `PlatformModes` (`KX_PLATFORM_PLAN`, `KX_PLATFORM__<FIELD>`), `CoreSettings.modes()`;
+`kx platform show`; container builds every chain from `order()` and logs `platform.resolved` /
+`platform.paid_vendor_missing` at start. `OpsNotifier` (app) is the `FallbackChain.alert` hook: log + one email per
+field per 15 min (Redis NX). Parameter Store `VendorOrder` and the SSM client are gone. Settings now ignore empty env
+values (`env_ignore_empty`), so blank Coolify variables mean "default". Tests: `tests/spec/test_spec_platform_modes.py`
+(hypothesis over preset × overrides × keys × language).
+
+## WP-V2-05. R2 storage (D45)
+
+**Done.** One aioboto3 S3 client with `endpoint_url` (`KX_STORAGE__*`), one bucket with prefixes (`media/`,
+`inbound-mail/`, quotes, `archive/`); no SSE / KMS parameters; LocalStack removed.
+
+## WP-V2-06. Email: Stalwart + SES (D44)
+
+**Done.** `channels/stalwart.py` (JMAP client, `StalwartSender`: upload → `Email/import` → `EmailSubmission/set`,
+returns the Message-ID; `MailboxPoller`), `channels/feedback.py` (DSN bounces, ARF complaints, `candidate_ids` to match
+both Stalwart and SES message ids), `inbound.record_mail_event`, Beat job `automation.mail_poll` → one
+`ingest_inbound_email` job per stored message. **Different from the plan:** no `mailbox_cursors` table: a JMAP
+keyword (`$kxdone`) set after the job is queued is the cursor, and `first_receipt` dedupes a repeat. Bounce reports
+arrive in the sending mailbox itself (no separate `bounces@`). Removed: Postmark, SNS, the `/webhooks/ses` and
+`/webhooks/postmark/inbound` routes. Migration `automation_0006` (provider `stalwart`).
+
+## WP-V2-07. Calls: Telnyx TeXML (D43)
+
+**Done.** `channels/calls.py` (stdlib TeXML builders, `TelnyxCaller` over httpx, `CallbackUrls` with a signed
+per-attempt token, Ed25519 `verify_signature`); routes `/webhooks/telnyx/{gather,status}/{attempt}`. **Different from
+the plan:** the TeXML goes inline in the call request (the TeXML Calls API accepts `Texml`), so no `call_attempts.script`
+column and no TeXML fetch route were needed. Twilio removed (dependency too).
+
+## WP-V2-08. Voice (D52)
+
+**Done.** `services/speech/` (faster-whisper Small INT8 + Piper, OpenAI-compatible, own Python 3.12 image, models
+downloaded into a volume on first start); `arifaa_pack/voice_worker.py` (module-level `entry` + `prewarm`, process
+executor, container built once per process); `kx.agents.voice.voice_routes` from the platform modes, `graph_llm()`
+on the session; `PlatformVoicePlugins` (Deepgram, ElevenLabs, OpenAI-compatible → speech server, LiveKit fallback
+adapters report switches to `OpsNotifier`); `VoiceSlots` free-version call cap at the token endpoint.
+Dependencies added: `livekit-plugins-deepgram`, `-elevenlabs`, `-openai`, `-silero` 1.8.10. **Different from the
+plan:** the turn-detector plug-in is not used (deprecated; its replacement calls LiveKit Cloud): end of turn = Silero
+VAD. **Not verified live:** a real call through LiveKit + the speech server (needs Docker; see WP-V2-12).
+
+## WP-V2-09. Monitoring (D46)
+
+**Done.** `kx/core/metrics.py` on the OpenTelemetry API (counters / gauges; nothing on stdout, so the Celery
+`sys.stdout.buffer` crash is gone); `arifaa_pack/telemetry.py` (OTLP/HTTP to SigNoz, `service.namespace` = company;
+Redis heartbeat; `/healthz/beat`); the AI audit trail takes an endpoint + headers (Phoenix or Langfuse). Removed:
+Sentry SDK, Better Stack heartbeat, CloudWatch EMF. Note: OpenTelemetry stores metric names lowercase
+(`vendorswitch`).
+
+## WP-V2-10. Database tiers (D48)
+
+**Done.** `KX_DB_PGBOUNCER` connect arguments (no statement caches, unique statement names, settings per role);
+checkpointer pool 3 and `prepare_threshold=None` behind PgBouncer, its tables created by `kx migrate`;
+`kx/core/retention.py` (batched prune, month partitions, archive as gzipped CSV + manifest to R2); per-package rules
+(`kx.crm.services.retention.plumbing_rules`, `kx.automation.retention`, `kx.agents.retention`); Beat job
+`app.retention`; migrations `agents_0004` (partitioned `tool_calls` / `guard_events`, `tool_calls(run_id)` index),
+`automation_0007`, `crm_0012` (pruning indexes, autovacuum); `db_bootstrap.sh` moved to `infra/server/postgres/`
+(company prefix, per-role `search_path` / `statement_timeout`, Phoenix out of the app cluster); local init uses the
+`pack_` prefix. **Not verified yet:** the migrations and the retention jobs against Postgres (DB tests need Docker).
+
+## WP-V2-11 / 12 / 13. Server stacks, local compose, AWS removed
+
+**Done.** `infra/server/` (postgres image with WAL-G, `postgresql.conf`, `pgbouncer.ini`, seven compose stacks,
+`env/pack.env.example`, LiveKit and CrowdSec config, volume backup script, five runbooks); root `docker-compose.yml`
+with profiles (`voice`, `mail`, `obs`, `embed`, `pgbouncer`) and models on `D:/kx-models`; Makefile targets
+(`up-voice`, `up-mail`, `up-obs`, `up-embed`, `platform`, `stacks-check`, `image-speech`). Deleted: all Terraform
+(`infra/bootstrap|org|envs|modules|scripts`), `deploy.yml`, `terraform.yml`, `_terraform-apply.yml`. New
+`release.yml` (GHCR images → Coolify deploy webhook); `ci.yml` builds amd64 + the speech image and checks every
+compose stack, shell scripts and Dockerfiles. Third-party image tags are pinned defaults to confirm at first deploy.
+
+## WP-V2-14. Sweep
+
+**Done.** `.env.example` rewritten by field (every `KX_*` key checked against the settings classes); frontend docs
+regenerated (no API change); `tests/unit/test_no_removed_vendors.py` guards D42. `resource-usage-bench/` is excluded
+from ruff (measurement scripts). Gate on Windows, no database: `ruff` clean, `mypy --strict` clean (182 files),
+import-linter 3/3 kept, **434 passed, 264 skipped** (DB / Redis / WeasyPrint tests need the containers).

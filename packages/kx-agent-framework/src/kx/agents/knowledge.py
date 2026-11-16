@@ -33,7 +33,8 @@ EMBEDDING_DIM: Final = 1024
 
 @runtime_checkable
 class Embedder(Protocol):
-    """1024-dim embeddings (D28: Qwen3-Embedding-0.6B in our UAE container; the app wires the adapter)."""
+    """1024-dim embeddings (D47: BGE-M3 on TEI, Qwen3-Embedding-0.6B the alternative; the app wires the
+    adapter). `model` is stored on every chunk: vectors of two models are never compared."""
 
     model: str
 
@@ -69,6 +70,7 @@ vec AS (
     SELECT c.id, 1 - (c.embedding <=> :qv) AS sim,
            row_number() OVER (ORDER BY c.embedding <=> :qv) AS r
     FROM kb_chunks c JOIN docs d ON d.id = c.document_id
+    WHERE c.embedding_model = :model
     ORDER BY c.embedding <=> :qv LIMIT :n),
 fts AS (
     SELECT c.id, row_number() OVER (ORDER BY ts_rank_cd(c.tsv, q) DESC) AS r
@@ -128,7 +130,9 @@ class KnowledgeBase:
         self._query_timeout = query_timeout_seconds
 
     async def _query_vector(self, query: str) -> list[float] | None:
-        """D28: the embedding, or None when the call fails or takes longer than 2 s (then full-text only)."""
+        """D28 / D47: the embedding, or None when the call fails or takes longer than 2 s (then full-text
+        only). Only chunks of the same model take part in the vector leg (a model switch mid re-index is
+        safe: chunks not yet re-embedded are found by full-text)."""
         try:
             return await asyncio.wait_for(self._embedder.embed_query(query), self._query_timeout)
         except Exception as exc:
@@ -142,7 +146,7 @@ class KnowledgeBase:
             if qv is None:
                 rows = (await s.execute(_LEXICAL_SQL, params)).all()
             else:
-                rows = (await s.execute(_RRF_SQL, {**params, "qv": qv})).all()
+                rows = (await s.execute(_RRF_SQL, {**params, "qv": qv, "model": self._embedder.model})).all()
         hits = tuple(KbHit(r.id, r.text, r.title, r.url_path, float(r.score), float(r.sim)) for r in rows)
         weak = not rows or (float(rows[0].sim) < self._min_sim and not rows[0].lexical)
         return KbResult(hits, weak)
@@ -279,3 +283,31 @@ class KnowledgeIndexer:
                 for i, (t, v) in enumerate(zip(pieces, vectors, strict=True))
             )
         return len(pieces)
+
+    async def reembed_stale(self, batch: int = 32) -> int:
+        """`kx reindex` after a model switch (D47): re-embed every chunk whose vectors came from another
+        model,
+        from the chunk text already stored (no CMS round trip). Runs in batches, each in its own short
+        transaction, so search keeps working (full-text) while it runs. Returns the number of chunks."""
+        done = 0
+        while True:
+            async with self._db.transaction(LogicalDb.AGENTS) as s:
+                rows = (
+                    await s.execute(
+                        select(KbChunk.id, KbChunk.text)
+                        .where(KbChunk.embedding_model != self._embedder.model)
+                        .order_by(KbChunk.id)
+                        .limit(batch)
+                    )
+                ).all()
+            if not rows:
+                return done
+            vectors = await self._embedder.embed_documents([r.text for r in rows])
+            async with self._db.transaction(LogicalDb.AGENTS) as s:
+                for row, vector in zip(rows, vectors, strict=True):
+                    chunk = await s.get(KbChunk, row.id)
+                    if chunk is not None:
+                        chunk.embedding = vector
+                        chunk.embedding_model = self._embedder.model
+            done += len(rows)
+            log.info("kb.reembedded", chunks=done, model=self._embedder.model)

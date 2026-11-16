@@ -47,19 +47,23 @@ async def test_chain_switches_vendor_and_reports_the_last_resort() -> None:
     chain: FallbackChain[str] = FallbackChain("email", "pack", alert=alert)
 
     async def send(vendor: str) -> str:
-        if vendor == "ses":
+        if vendor == "stalwart":
             raise ConnectionError("down")
         return f"sent by {vendor}"
 
-    assert await chain.run(["ses", "postmark"], send) == ("postmark", "sent by postmark")
-    assert switches == [("email", "ses", "postmark")]
+    assert await chain.run(["stalwart", "ses"], send) == ("ses", "sent by ses")
+    assert switches == [("email", "stalwart", "ses")]
 
     async def nothing_works(vendor: str) -> str:
         raise TimeoutError(vendor)
 
     with pytest.raises(AllVendorsFailed) as err:
-        await chain.run(["ses", "postmark"], nothing_works)
-    assert set(err.value.errors) == {"ses", "postmark"} and switches[-1] == ("email", "ses", "last_resort")
+        await chain.run(["stalwart", "ses"], nothing_works)
+    assert set(err.value.errors) == {"stalwart", "ses"} and switches[-1] == (
+        "email",
+        "stalwart",
+        "last_resort",
+    )
 
 
 def test_costs_follow_the_official_price_table() -> None:

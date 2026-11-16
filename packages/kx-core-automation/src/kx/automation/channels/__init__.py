@@ -1,4 +1,5 @@
-"""Channel adapters (WhatsApp Cloud API, SES email, Twilio IVR) and their shared HTTP retry policy.
+"""Channel adapters (WhatsApp Cloud API, Stalwart + SES email, Telnyx TeXML calls) and their shared HTTP
+retry policy.
 
 Retries are for transport problems only (429, 5xx, timeouts, connection errors). A 4xx means the
 request itself is wrong; repeating it would only repeat the error, so it fails at once.

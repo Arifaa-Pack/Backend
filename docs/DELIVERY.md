@@ -1,5 +1,10 @@
 # Delivery — Kairox platform v1 (Arifaa Pack)
 
+> **Update 16 Nov 2026: v2 platform plan in progress** (`docs/V1_CHANGE_PLAN.md` WP-V2-01 … 14, D41–D53): one dedicated
+> server (Coolify) instead of AWS, a paid / free version per field (`docs/PLATFORM_MODES.md`), Telnyx calls, Stalwart
+> email, free speech server, SigNoz, R2, database tiers (`docs/DATABASE.md`). Status per WP and test totals:
+> `docs/V1_PROGRESS.md`. The 12 Nov state (WP13–WP29 done except WP26, 665 tests) is the starting point.
+
 > **Update 6 Nov 2026: the code now follows the 5 Nov business flow** (the SRS; `BUSINESS_FLOW_V1.md` was later renamed to the current SRS file). All twelve work
 > packages of `docs/V1_CHANGE_PLAN.md` are done (one commit each, `WP1` ... `WP12`), plus end-to-end tests of the ten
 > §23 scenarios. **502 tests pass, 0 skipped** (309 before), `make lint` clean. Decisions and gaps for the client or

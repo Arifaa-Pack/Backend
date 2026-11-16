@@ -478,27 +478,21 @@ def weasyprint_available() -> bool:
 
 @runtime_checkable
 class PdfUploader(Protocol):
-    """Stores a rendered PDF under `key`. The app injects S3PdfUploader; tests inject a fake."""
+    """Stores a rendered PDF under `key`. The app injects S3PdfUploader (R2); tests inject a fake."""
 
     async def upload(self, key: str, data: bytes, *, content_type: str = "application/pdf") -> None: ...
 
 
 class S3PdfUploader:
-    """aioboto3 upload with KMS encryption and jittered retries for transient S3 errors."""
+    """Upload over the S3 API (D45: Cloudflare R2; it encrypts at rest, so no SSE / KMS parameters) with
+    jittered retries for transient errors. `s3` is the app's shared aioboto3 client."""
 
-    def __init__(
-        self, session: Any, bucket: str, region: str, kms_key_id: str | None = None, attempts: int = 4
-    ) -> None:
-        self._session = session  # aioboto3.Session (untyped library)
+    def __init__(self, s3: Any, bucket: str, attempts: int = 4) -> None:
+        self._s3 = s3  # aioboto3 client (untyped library)
         self._bucket = bucket
-        self._region = region
-        self._kms_key_id = kms_key_id
         self._attempts = attempts
 
     async def upload(self, key: str, data: bytes, *, content_type: str = "application/pdf") -> None:
-        extra: dict[str, str] = {"ServerSideEncryption": "aws:kms"}
-        if self._kms_key_id:
-            extra["SSEKMSKeyId"] = self._kms_key_id
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(self._attempts),
             wait=wait_exponential_jitter(initial=0.5, max=8),
@@ -506,10 +500,7 @@ class S3PdfUploader:
             reraise=True,
         ):
             with attempt:
-                async with self._session.client("s3", region_name=self._region) as s3:
-                    await s3.put_object(
-                        Bucket=self._bucket, Key=key, Body=data, ContentType=content_type, **extra
-                    )
+                await self._s3.put_object(Bucket=self._bucket, Key=key, Body=data, ContentType=content_type)
 
 
 def pdf_key(company_code: str, quote_number: str, version_no: int, pdf_sha256: str) -> str:

@@ -21,7 +21,7 @@ from kx.core.settings import LogicalDb
 pytestmark = pytest.mark.db
 STAFF, BUYER = "+971501110003", "+971509876543"
 SETTINGS = AutomationSettings.model_validate(
-    {"company_name": "Arifaa Pack", "twilio": {"from_number": "+97165550000"}}
+    {"company_name": "Arifaa Pack", "telnyx": {"from_number": "+97165550000"}}
 )
 
 
@@ -29,8 +29,8 @@ class Caller:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str, str]] = []
 
-    async def place_call(self, to_e164: str, twiml: str, status_callback_url: str) -> str:
-        self.calls.append((to_e164, twiml, status_callback_url))
+    async def place_call(self, to_e164: str, texml: str, status_callback_url: str) -> str:
+        self.calls.append((to_e164, texml, status_callback_url))
         return f"CA{uuid.uuid4().hex[:8]}"
 
 
@@ -50,7 +50,7 @@ async def test_rings_the_salesperson_then_dials_the_buyer_from_the_company_numbe
     assert first == again and len(caller.calls) == 1  # a double click rings once
     to, twiml, callback = caller.calls[0]
     assert to == STAFF and f"<Number>{BUYER}</Number>" in twiml
-    assert 'callerId="+97165550000"' in twiml and f"attempt_id={first}" in callback
+    assert 'callerId="+97165550000"' in twiml and f"/webhooks/telnyx/status/{first}?t=" in callback
     async with auto_db.transaction(LogicalDb.AUTOMATION) as s:
         row = await s.get(CallAttempt, first)
     assert row is not None and row.purpose == "click_to_call" and row.deal_ref == deal

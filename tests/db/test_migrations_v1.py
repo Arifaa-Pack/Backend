@@ -217,7 +217,7 @@ def test_automation_constraints(upgraded: dict[str, str]) -> None:
     ref = uuid.uuid4()
     call = (
         "INSERT INTO automation.call_attempts (purpose, approval_ref, to_e164, provider, attempt_no) "
-        f"VALUES ('change_request_alert', '{ref}', '+971500000000', 'twilio', 1)"
+        f"VALUES ('change_request_alert', '{ref}', '+971500000000', 'telnyx', 1)"
     )
     assert not _fails(auto, call)
     assert _fails(auto, call)  # UNIQUE (approval_ref, attempt_no)

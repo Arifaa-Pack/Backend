@@ -2,8 +2,6 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-TF_ENVS   := staging pack-prod auto-prod
-TF_STACKS := bootstrap org $(addprefix envs/,$(TF_ENVS))
 IMAGE     ?= kairox/app:dev
 
 .PHONY: help
@@ -54,38 +52,50 @@ beat: ## run the one Celery Beat locally (D25)
 	uv run kx beat
 
 .PHONY: up
-up: ## Start postgres + redis
+up: ## Start postgres + redis (local DBs are prefixed pack_, like the server)
 	docker compose up -d postgres redis
 
 .PHONY: up-all
-up-all: ## Build and start migrate + api + worker as well
+up-all: ## Build and start migrate + api + worker + beat as well
 	docker compose up --build -d
+
+.PHONY: up-voice
+up-voice: ## LiveKit (dev) + the free speech server + the voice worker (free version)
+	docker compose --profile voice up --build -d livekit speech voice
+
+.PHONY: up-mail
+up-mail: ## Stalwart mail server (finish its web setup once on :8090)
+	docker compose --profile mail up -d stalwart
+
+.PHONY: up-obs
+up-obs: ## Phoenix (AI audit trail) on :6006
+	docker compose --profile obs up -d phoenix
+
+.PHONY: up-embed
+up-embed: ## Text Embeddings Inference (Qwen3 locally; run alone on a small laptop)
+	docker compose --profile embed up -d embeddings
+
+.PHONY: platform
+platform: ## Show the resolved paid / free version per field (D41)
+	uv run kx platform show
+
+.PHONY: stacks-check
+stacks-check: ## docker compose config of every server stack (dummy env)
+	cd infra/server/stacks && for f in compose.*.yml; do echo "== $$f"; docker compose -f $$f config -q || exit 1; done
 
 .PHONY: down
 down: ## Stop the stack and DROP local data
 	docker compose down -v
 
 .PHONY: image
-image: ## Build the arm64 image locally (buildx)
-	docker buildx build --platform linux/arm64 -t $(IMAGE) --load .
+image: ## Build the amd64 app image (the dedicated server is x86_64)
+	docker buildx build --platform linux/amd64 -t $(IMAGE) --load .
 
-.PHONY: tf-fmt
-tf-fmt: ## terraform fmt (writes)
-	terraform -chdir=infra fmt -recursive
-
-.PHONY: tf-validate
-tf-validate: ## terraform init -backend=false + validate for every stack
-	@set -e; for s in $(TF_STACKS); do \
-	  echo "== $$s"; \
-	  terraform -chdir=infra/$$s init -backend=false -input=false -no-color >/dev/null; \
-	  terraform -chdir=infra/$$s validate -no-color; \
-	done
-
-.PHONY: tf-scan
-tf-scan: ## checkov static scan of infra/
-	uvx --from checkov==3.4.3 checkov -d infra --framework terraform --quiet --compact
+.PHONY: image-speech
+image-speech: ## Build the free speech server image
+	docker buildx build --platform linux/amd64 -t kairox/speech:dev --load services/speech
 
 .PHONY: lint-ci
 lint-ci: ## actionlint + hadolint
 	uvx --from actionlint-py actionlint
-	uvx --from hadolint-bin hadolint Dockerfile
+	uvx --from hadolint-bin hadolint Dockerfile services/speech/Dockerfile infra/server/postgres/Dockerfile

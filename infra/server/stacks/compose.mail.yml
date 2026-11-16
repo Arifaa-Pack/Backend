@@ -1,0 +1,28 @@
+# Email (D44): Stalwart mail server. MX on :25 (public); JMAP / admin on :8080 (internal + SSH tunnel only).
+# Outbound relays through Amazon SES SMTP (set in Stalwart's admin: Settings -> SMTP -> Outbound -> Relay host
+# email-smtp.<region>.amazonaws.com:587, SES SMTP credentials). Raise the default throttle (25 messages an hour
+# per sender domain + recipient) before go-live (OPEN_QUESTIONS #71). First start is in setup mode: open the
+# web admin (tunnel to :8080) and finish the wizard (domain, DKIM, the sending account the app logs in as).
+name: kx-mail
+
+services:
+  stalwart:
+    image: ${KX_IMG_STALWART:-stalwartlabs/stalwart:v0.14}
+    restart: unless-stopped
+    ports:
+      - "25:25"
+    volumes:
+      - stalwart-etc:/etc/stalwart
+      - stalwart-data:/var/lib/stalwart
+    networks: [kx]
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "3" }
+
+volumes:
+  stalwart-etc:
+  stalwart-data:
+
+networks:
+  kx:
+    external: true

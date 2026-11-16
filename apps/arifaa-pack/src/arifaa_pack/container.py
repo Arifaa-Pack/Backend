@@ -8,11 +8,13 @@ de-duplicates with its inbox). Celery itself lives in `arifaa_pack.jobqueue` / `
 
 from __future__ import annotations
 
+import asyncio
+import os
 import pathlib
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Collection
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import partial
 from typing import Any, Final
 
@@ -21,31 +23,35 @@ import httpx
 from redis.asyncio import Redis
 
 from arifaa_pack.adapters import (
+    EMBEDDING_MODELS,
     HttpEmbedder,
+    OpsNotifier,
     PayloadContentSource,
     PublicLimiter,
     StaffCodeMailer,
     ThreadAddressBook,
     TurnstileVerifier,
-    VendorOrder,
+    VoiceSlots,
 )
 from arifaa_pack.config import AppSettings, app_settings, company
 from arifaa_pack.jobqueue import CeleryKicker
-from arifaa_pack.observability import heartbeat
+from arifaa_pack.telemetry import heartbeat
+from kx.agents import retention as agents_retention
 from kx.agents.handlers import AgentHandlers
 from kx.agents.knowledge import KnowledgeBase, KnowledgeIndexer
 from kx.agents.memory import open_checkpointer
-from kx.agents.models import AnthropicApiProvider, ModelRouter
+from kx.agents.models import AnthropicApiProvider, ModelProvider, ModelRouter, tier_options
 from kx.agents.service import AgentService
 from kx.agents.tracing import Tracer
+from kx.agents.voice import VoiceRoute, VoiceRouter, voice_routes
 from kx.agents.website import LiveKitConfig, WebsiteDeps
 from kx.automation import jobs as auto_jobs
+from kx.automation import retention as automation_retention
 from kx.automation.alerts import ApprovalLadder, CallBridge, PauseAlerts, VoiceAlerts
+from kx.automation.channels.calls import TelnyxCaller
 from kx.automation.channels.email import EmailSender
 from kx.automation.channels.email_chain import EmailChain, EmailVendor
-from kx.automation.channels.postmark import PostmarkSender
-from kx.automation.channels.sns import SnsVerifier
-from kx.automation.channels.voice_ivr import TwilioCaller
+from kx.automation.channels.stalwart import JmapClient, MailboxPoller, StalwartSender
 from kx.automation.channels.whatsapp import WhatsAppClient
 from kx.automation.handlers import EventHandlers, FollowUps
 from kx.automation.jobs import AutomationRuntime, JobScheduler
@@ -64,12 +70,15 @@ from kx.core.fallback import FallbackChain
 from kx.core.jobs import Job, JobRunner, JobSpec, JobStore, Kicker
 from kx.core.logging import get_logger
 from kx.core.passwords import SeedBox
+from kx.core.platform import Field, Modes, order, resolved
+from kx.core.retention import prune_batches
 from kx.core.settings import CoreSettings, Environment, LogicalDb, get_settings
 from kx.core.spend import SpendCaps, SpendMeter
 from kx.crm import jobs as crm_jobs
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import ApprovalStatusReaderImpl, CrmGatewayImpl, GrantConsumerImpl
 from kx.crm.pdf import ChromiumEngine, Letterhead, PdfEngine, QuoteRenderer, S3PdfUploader, WeasyPrintEngine
+from kx.crm.services import retention as crm_retention
 from kx.crm.services.settings import SettingsService
 
 EventFn = Callable[[Event], Awaitable[Any]]
@@ -117,15 +126,60 @@ class Container:
     agent_service: AgentService
     website_deps: WebsiteDeps
     spend: SpendMeter
+    redis: Any
+    modes: Modes
+    knowledge_indexer: KnowledgeIndexer
+    voice_routes: dict[str, VoiceRoute]
+    voice_switch: Callable[[str, str, str], None]  # LiveKit fallback adapters report switches here
 
 
-def _model_router(s: AppSettings) -> ModelRouter:
-    """D27: Claude Sonnet 5.5 on money turns, Haiku 5.5 on the rest, directly through the Claude API (Bedrock
-    dropped). The Gemini backups stay off until they pass the 50-scenario suite and Arifa agrees
-    (OPEN_QUESTIONS #51); when every Claude call fails the agents give the safe reply and hand over."""
-    if s.gemini_fallback_enabled:
-        log.warning("gemini_fallback_requested", detail="no Gemini adapter is installed; Claude only")
-    return ModelRouter([AnthropicApiProvider(s.anthropic_api_key)])
+def configured_vendors(
+    core: CoreSettings, s: AppSettings | None = None, auto: AutomationSettings | None = None
+) -> frozenset[str]:
+    """D41: the vendors whose key or URL is set; `kx.core.platform.order` leaves the others out."""
+    s = s or app_settings()
+    auto = auto or AutomationSettings()
+    have = {
+        "claude": s.anthropic_api_key is not None,
+        "gemini": s.gemini_api_key is not None,
+        "deepgram": bool(os.environ.get("DEEPGRAM_API_KEY")),
+        "elevenlabs": bool(os.environ.get("ELEVEN_API_KEY") or os.environ.get("ELEVENLABS_API_KEY")),
+        "whisper": bool(s.speech_url),
+        "piper": bool(s.speech_url),
+        "telnyx": auto.telnyx.enabled,
+        "meta": bool(auto.whatsapp.phone_number_id),
+        "stalwart": auto.stalwart.enabled,
+        "ses": True,  # credentials come from the AWS default chain (env); a failure is a normal send error
+    }
+    return frozenset(v for v, ok in have.items() if ok)
+
+
+def _log_platform(modes: Modes, configured: Collection[str]) -> None:
+    """Start-up: the resolved paid / free matrix once, and a warning per field that lost its paid vendor."""
+    rows = resolved(modes, configured)
+    log.info(
+        "platform.resolved", plan=modes.plan, **{r.field.value: f"{r.mode}:{'>'.join(r.order)}" for r in rows}
+    )
+    for r in rows:
+        if r.lost_paid:
+            log.warning("platform.paid_vendor_missing", field=r.field.value, missing=",".join(r.missing))
+
+
+def _model_router(s: AppSettings, modes: Modes, configured: Collection[str]) -> ModelRouter:
+    """D27 / D51: Claude Sonnet 5.5 on money turns, Haiku 5.5 on the rest, directly through the Claude API.
+    Gemini 3.8 Flash joins only with KX_PLATFORM__LLM_STANDBY=gemini (D27 suite + Arifa's yes; OPEN #74);
+    when every model fails the agents give the safe reply and hand over."""
+    providers: list[ModelProvider] = []
+    for vendor in order(Field.LLM, modes, configured) or ("claude",):
+        if vendor == "claude":
+            providers.append(AnthropicApiProvider(s.anthropic_api_key))
+        elif vendor == "gemini":
+            raise RuntimeError(
+                "KX_PLATFORM__LLM_STANDBY=gemini needs langchain-google-genai "
+                "(not installed, OPEN_QUESTIONS #74)"
+            )
+    options = tier_options(s.llm_effort_fast, s.llm_effort_smart, s.llm_effort_judge)
+    return ModelRouter(providers, options)
 
 
 def _wire_events(
@@ -162,6 +216,9 @@ class _PeriodicDeps:
     http: httpx.AsyncClient
     settings: AppSettings
     company_code: str
+    redis: Any
+    core: CoreSettings
+    archive: S3MediaStore | None
 
 
 def _periodic(d: _PeriodicDeps) -> dict[str, Periodic]:
@@ -175,19 +232,36 @@ def _periodic(d: _PeriodicDeps) -> dict[str, Periodic]:
             return await relay_once(session, "agents", d.bus.publish)
 
     async def beat_heartbeat(_: datetime) -> None:
-        await heartbeat(d.http, d.settings, d.company_code, await d.store.lag_seconds())
+        await heartbeat(d.redis, d.company_code, await d.store.lag_seconds())
+
+    async def retention_plumbing(now: datetime) -> dict[str, int]:
+        """D48 nightly: prune plumbing in every database, keep partitions ahead, archive and drop old ones."""
+        r = d.core.retention
+        out: dict[str, int] = {}
+        for db, rules in (
+            (LogicalDb.CRM, crm_retention.plumbing_rules(r)),
+            (LogicalDb.AUTOMATION, automation_retention.plumbing_rules(r)),
+        ):
+            for rule in rules:
+                out[f"{db.value}.{rule.table}"] = await prune_batches(d.databases, db, rule, batch=r.batch)
+        agents = await agents_retention.run_retention(
+            d.databases, r, today=now.astimezone(UTC).date(), store=d.archive, company=d.company_code
+        )
+        out.update({f"agents.{k}": v for k, v in agents.items()})
+        return out
 
     return {
         "jobs.dispatch_due": dispatch_due,
         "relay.agents": relay_agents,
         "app.heartbeat": beat_heartbeat,
+        "app.retention": retention_plumbing,
         **auto_jobs.periodic_jobs(d.automation),
         **crm_jobs.periodic_jobs(d.crm),
     }
 
 
 @asynccontextmanager
-async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:
+async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # noqa: PLR0915 - composition root
     """Every process builds the same container. `kicker` defaults to Celery (API, worker, voice)."""
     core, s, co = get_settings(), app_settings(), company()
     async with AsyncExitStack() as stack:
@@ -198,10 +272,20 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:
         )
         redis = Redis.from_url(str(core.redis_url))
         stack.push_async_callback(redis.aclose)
-        session = aioboto3.Session(region_name=core.aws_region)
-        s3 = await stack.enter_async_context(session.client("s3"))
-        ses = await stack.enter_async_context(session.client("sesv2"))
-        ssm = await stack.enter_async_context(session.client("ssm"))
+        modes = core.modes()  # D41: raises at start-up on an impossible paid / free setting
+        session = aioboto3.Session()
+        st = core.storage  # D45: Cloudflare R2 through the S3 API
+        s3 = await stack.enter_async_context(
+            session.client(
+                "s3",
+                endpoint_url=st.endpoint_url,
+                region_name=st.region,
+                aws_access_key_id=st.access_key_id.get_secret_value() if st.access_key_id else None,
+                aws_secret_access_key=st.secret_access_key.get_secret_value()
+                if st.secret_access_key
+                else None,
+            )
+        )
 
         # ---- job store (D25) + automation
         store = JobStore(dbs, kicker=kicker if kicker is not None else CeleryKicker())
@@ -221,15 +305,20 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:
         unsubscribe_links = UnsubscribeLinks(
             core.service_token_secret.get_secret_value(), auto_s.public_base_url
         )
+        ses = await stack.enter_async_context(session.client("sesv2", region_name=auto_s.ses.region))
+        configured = configured_vendors(core, s, auto_s)
+        _log_platform(modes, configured)
 
         async def scraping_enabled() -> bool:  # D14: v2 features are CRM settings
             async with dbs.transaction(LogicalDb.CRM) as crm_session:
                 return (await crm_settings.get(crm_session)).feature_scraping
 
-        vendors = VendorOrder(ssm, s.vendor_order_ssm_prefix, VENDOR_DEFAULTS)  # D30
-        email_sender = _email_chain(ses, http, auto_s, vendors, co.code)
+        jmap = JmapClient(http, auto_s.stalwart)
+        direct_mail = _email_chain(ses, jmap, auto_s, modes, configured, co.code, alert=None)
+        ops = OpsNotifier(redis, co.code, direct_mail, s.ops_alert_emails)  # D41 switch alerts
+        email_sender = _email_chain(ses, jmap, auto_s, modes, configured, co.code, alert=ops)
         crm_deps = CrmDeps(
-            uploader=S3PdfUploader(session, s.media_bucket, core.aws_region, s.s3_kms_key_id),
+            uploader=S3PdfUploader(s3, st.bucket),  # D45 R2
             letterhead=Letterhead(**co.letterhead),
             renderer=_pdf_renderer(s, co.code),  # D37 Chromium -> WeasyPrint
             company_code=co.code,
@@ -239,9 +328,9 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:
             mailer=StaffCodeMailer([email_sender]),
             auth=core.auth,
         )
-        media = S3MediaStore(s3, s.media_bucket)
+        media = S3MediaStore(s3, st.bucket, prefix="media/")
         whatsapp = WhatsAppClient(http, auto_s.whatsapp)
-        twilio = TwilioCaller(http, auto_s.twilio)
+        telnyx = TelnyxCaller(http, auto_s.telnyx)  # D43
         limiter = TokenBucketLimiter(redis, co.code)
         spend = SpendMeter(  # D34 daily caps (OPEN_QUESTIONS #52)
             redis,
@@ -267,11 +356,11 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:
         crm_deps = replace(
             crm_deps,
             sender=outbound,
-            caller=CallBridge(dbs, auto_s, twilio, kill_switch),
+            caller=CallBridge(dbs, auto_s, telnyx, kill_switch),
             kill_switch=kill_switch,  # D35 ladder, set from the CRM admin screen
         )
         gateway = CrmGatewayImpl(dbs, crm_deps)
-        voice = VoiceAlerts(dbs, auto_s, twilio)
+        voice = VoiceAlerts(dbs, auto_s, telnyx)
         ladder = ApprovalLadder(
             databases=dbs,
             settings=auto_s,
@@ -286,33 +375,41 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:
         bus = EventBus(store)
 
         # ---- AI agents
-        embedder = HttpEmbedder(  # D28 Qwen3-Embedding-0.6B (OPEN_QUESTIONS #53)
+        model_id, instruction = EMBEDDING_MODELS[modes.embeddings]  # D47 BGE-M3 (or Qwen3)
+        embedder = HttpEmbedder(
             http,
             s.embedding_url or "http://embeddings:80",
-            s.embedding_model,
+            model_id,
             api_key=s.embedding_api_key.get_secret_value() if s.embedding_api_key else None,
+            timeout_seconds=s.embedding_index_timeout_seconds,
+            query_instruction=instruction,
         )
-        checkpointer = await stack.enter_async_context(open_checkpointer(core.agents_dsn))
+        checkpointer = await stack.enter_async_context(
+            open_checkpointer(core.agents_dsn, setup=not core.db_pgbouncer, pgbouncer=core.db_pgbouncer)
+        )
 
         agent_service = AgentService(
             databases=dbs,
             gateway=gateway,
-            models=_model_router(s),
-            knowledge=KnowledgeBase(dbs, embedder, query_timeout_seconds=s.embedding_timeout_seconds),
+            models=_model_router(s, modes, configured),
+            knowledge=KnowledgeBase(dbs, embedder, query_timeout_seconds=s.embedding_query_timeout_seconds),
             checkpointer=checkpointer,
-            tracer=Tracer(s.phoenix_collector_endpoint, s.phoenix_project, core.env.value),  # D29
+            tracer=Tracer(  # D46 AI audit trail: Phoenix (or Langfuse)
+                s.ai_trace_endpoint, s.phoenix_project, core.env.value, headers=s.ai_trace_headers or None
+            ),
             live_minutes=business.optout_live_minutes,
             company=co.code,
             on_spend=partial(spend.add, "ai_usd"),  # D34 daily AI cap
             budget_left=partial(spend.left, "ai_usd"),
         )
         cms_key = s.cms_api_key.get_secret_value() if s.cms_api_key else None
+        indexer = KnowledgeIndexer(dbs, embedder, PayloadContentSource(http, s.cms_url, cms_key))
         agent_handlers = AgentHandlers(
             databases=dbs,
             service=agent_service,
             sender=outbound,
             addresses=ThreadAddressBook(dbs),
-            indexer=KnowledgeIndexer(dbs, embedder, PayloadContentSource(http, s.cms_url, cms_key)),
+            indexer=indexer,
             checkpointer=checkpointer,
         ).handlers()
 
@@ -333,20 +430,28 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:
             ),
             whatsapp_media=whatsapp,
             media=media,
-            inbound_mail=S3MediaStore(s3, s.inbound_mail_bucket),
+            inbound_mail=S3MediaStore(s3, st.bucket),  # keys carry their `inbound-mail/` prefix
             publish=bus.publish,
             scraping_enabled=scraping_enabled,
+            mail_poller=MailboxPoller(jmap, auto_s.stalwart.poll_batch) if auto_s.stalwart.enabled else None,
+            scheduler=scheduler,
         )
         auto_jobs.register_jobs(runner, auto_rt)
         webhook_deps = WebhookDeps(
-            databases=dbs,
-            settings=auto_s,
-            scheduler=scheduler,
-            voice=voice,
-            sns=SnsVerifier(http, auto_s.ses.sns_topic_arns),
-            media=media,  # Postmark inbound attachments
+            databases=dbs, settings=auto_s, scheduler=scheduler, voice=voice, media=media
         )
-        periodic = _periodic(_PeriodicDeps(store, dbs, bus, auto_rt, crm_rt, http, s, co.code))
+        archive = S3MediaStore(s3, st.bucket) if core.retention.archive else None
+        periodic = _periodic(
+            _PeriodicDeps(store, dbs, bus, auto_rt, crm_rt, http, s, co.code, redis, core, archive)
+        )
+        routes = voice_routes(modes, configured)
+        slots = VoiceSlots(redis, co.code, s.voice_max_concurrent_free)
+
+        def voice_switch(field: str, from_vendor: str, to_vendor: str) -> None:
+            task = asyncio.get_running_loop().create_task(ops(field, from_vendor, to_vendor))
+            _BACKGROUND.add(task)
+            task.add_done_callback(_BACKGROUND.discard)
+
         yield Container(
             core=core,
             app=s,
@@ -372,8 +477,15 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:
                 spend=spend,
                 limiter=limiter,
                 kill_switch=kill_switch,
+                routes=routes,
+                slots=slots,
             ),
             spend=spend,
+            redis=redis,
+            modes=modes,
+            knowledge_indexer=indexer,
+            voice_routes=routes,
+            voice_switch=voice_switch,
         )
 
 
@@ -397,8 +509,7 @@ def _token_issuer(core: CoreSettings) -> TokenIssuer:
     return TokenIssuer.from_settings(core)
 
 
-# D30 default vendor orders (Fallback plan); Parameter Store overrides them without a deploy
-VENDOR_DEFAULTS: dict[str, tuple[str, ...]] = {"email": ("ses", "postmark"), "calls": ("twilio",)}
+_BACKGROUND: set[asyncio.Task[None]] = set()  # alert tasks started from LiveKit callbacks (kept referenced)
 PUBLIC_BUCKETS = {"ip": Bucket(30, 30), "session": Bucket(12, 12)}  # OPEN_QUESTIONS #61
 
 
@@ -413,8 +524,11 @@ def _website(
     spend: SpendMeter,
     limiter: TokenBucketLimiter,
     kill_switch: KillSwitch,
+    routes: dict[str, VoiceRoute],
+    slots: VoiceSlots,
 ) -> WebsiteDeps:
-    """§6 public website API (D39): Turnstile + per-IP/per-session limits + the daily AI spend cap."""
+    """§6 public website API (D53): Turnstile + per-IP/per-session limits + the daily AI spend cap; voice also
+    needs the voice-minute cap, the kill switch below `text_only` and a free-version call slot (D52)."""
     if s.turnstile_secret_key is None and core.env in {Environment.STAGING, Environment.PRODUCTION}:
         raise RuntimeError("KX_APP_TURNSTILE_SECRET_KEY is required outside local and test")
     livekit = (
@@ -426,8 +540,12 @@ def _website(
     async def ai_budget_left() -> bool:
         return await spend.left("ai_usd")
 
-    async def voice_allowed() -> bool:  # D34 voice-minute cap, D35 kill switch at `text_only`
-        return await spend.left("voice_minutes") and not await kill_switch.engaged("voice")
+    async def voice_allowed() -> bool:  # D34 voice-minute cap, D35 kill switch at `text_only`, D52 slots
+        return (
+            await spend.left("voice_minutes")
+            and not await kill_switch.engaged("voice")
+            and await slots.available()
+        )
 
     return WebsiteDeps(
         databases=dbs,
@@ -442,22 +560,32 @@ def _website(
         limits=PublicLimiter(limiter, PUBLIC_BUCKETS),
         ai_budget_left=ai_budget_left,
         voice_allowed=voice_allowed,
+        voice=VoiceRouter(routes),
         livekit=livekit,
+        trusted_ip_header=core.trusted_client_ip_header,
     )
 
 
-def _email_chain(
-    ses: Any, http: httpx.AsyncClient, auto_s: AutomationSettings, vendors: VendorOrder, company_code: str
+def _email_chain(  # noqa: PLR0917 - one call site; every argument is a different service
+    ses: Any,
+    jmap: JmapClient,
+    auto_s: AutomationSettings,
+    modes: Modes,
+    configured: Collection[str],
+    company_code: str,
+    *,
+    alert: Callable[[str, str, str], Awaitable[None]] | None,
 ) -> EmailChain:
-    """D33 email field: SES -> Postmark (when its token is set), in the Parameter Store order."""
-    email_vendors: dict[str, EmailVendor] = {"ses": EmailSender(ses, auto_s.ses)}
-    if auto_s.postmark.enabled:
-        email_vendors["postmark"] = PostmarkSender(http, auto_s.postmark, auto_s.ses.from_address)
+    """D44 email field: Stalwart (JMAP, relaying through SES) -> the SES v2 API, in the platform order."""
+    vendors: dict[str, EmailVendor] = {"ses": EmailSender(ses, auto_s.ses)}
+    if auto_s.stalwart.enabled:
+        vendors["stalwart"] = StalwartSender(jmap, auto_s.ses)
+    email_order = order(Field.EMAIL, modes, configured)
 
-    async def order() -> tuple[str, ...]:
-        return await vendors.order("email")
+    async def current_order() -> tuple[str, ...]:
+        return email_order
 
-    return EmailChain(email_vendors, FallbackChain("email", company_code), order)
+    return EmailChain(vendors, FallbackChain("email", company_code, alert=alert), current_order)
 
 
 def _pdf_renderer(s: AppSettings, company_code: str) -> QuoteRenderer:

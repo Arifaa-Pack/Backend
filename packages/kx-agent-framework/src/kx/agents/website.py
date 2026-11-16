@@ -80,6 +80,7 @@ class WebsiteDeps:
     voice_allowed: Callable[[], Awaitable[bool]] | None = None
     voice: VoiceRouter = field(default_factory=VoiceRouter)
     livekit: LiveKitConfig | None = None
+    trusted_ip_header: str | None = None  # D53: "CF-Connecting-IP" on the server
     session_hours: int = 2
     clock: Clock = field(default=lambda: datetime.now(UTC))
 
@@ -154,9 +155,13 @@ def livekit_token(
     return jwt.encode(claims, cfg.api_secret, algorithm="HS256"), expires
 
 
-def _ip(request: Request) -> str:
-    """The visitor's address for the per-IP limit (D39). The AWS load balancer appends the address it saw
-    as the LAST X-Forwarded-For entry; earlier entries are whatever the client sent: never trusted."""
+def _ip(request: Request, trusted_header: str | None = None) -> str:
+    """The visitor's address for the per-IP limit (D53). On the server every request comes through
+    Cloudflare, which sets `CF-Connecting-IP` (`KX_TRUSTED_CLIENT_IP_HEADER`); the host firewall only lets
+    Cloudflare reach ports 80 / 443, so the header cannot be forged from outside. Without that setting: the
+    LAST X-Forwarded-For entry (added by our own proxy); earlier entries are whatever the client sent."""
+    if trusted_header and (value := request.headers.get(trusted_header, "").strip()):
+        return value
     forwarded = [
         part.strip() for part in request.headers.get("x-forwarded-for", "").split(",") if part.strip()
     ]
@@ -186,7 +191,7 @@ def build_router(deps: WebsiteDeps) -> APIRouter:  # noqa: PLR0915 - one small h
     @r.post("/sessions", response_model=SessionOut, status_code=201)
     async def start(body: SessionIn, request: Request) -> SessionOut:
         """§6 step 1: start a website conversation (Turnstile-checked)."""
-        ip = _ip(request)
+        ip = _ip(request, deps.trusted_ip_header)
         await limit("ip", ip)
         if deps.human_check is not None and not await deps.human_check.verify(body.turnstile_token, ip):
             raise Forbidden("the human check failed; reload the page")
@@ -226,7 +231,7 @@ def build_router(deps: WebsiteDeps) -> APIRouter:  # noqa: PLR0915 - one small h
     ) -> MessageOut:
         """One chat turn (§6 steps 2-6) through the same agents, guard and router as WhatsApp."""
         claims = claims_for(session_id, authorization)
-        await limit("ip", _ip(request))
+        await limit("ip", _ip(request, deps.trusted_ip_header))
         await limit("session", str(session_id))
         if not await deps.ai_budget_left():
             raise Unavailable("the assistant is busy; please continue on WhatsApp")
@@ -258,7 +263,7 @@ def build_router(deps: WebsiteDeps) -> APIRouter:  # noqa: PLR0915 - one small h
     ) -> VoiceOut:
         """A LiveKit room token for live voice (participant metadata: deal_ref, language)."""
         claims = claims_for(session_id, authorization)
-        await limit("ip", _ip(request))
+        await limit("ip", _ip(request, deps.trusted_ip_header))
         await limit("session", str(session_id))
         if not claims.get("vc"):
             raise RuleViolation("press Enter the factory to start voice", reason="no_voice_consent")
@@ -294,7 +299,7 @@ def build_router(deps: WebsiteDeps) -> APIRouter:  # noqa: PLR0915 - one small h
         """§6 step 7: the visitor typed their phone or email; a returning buyer is recognised now, never
         before. The answer does not say whether the buyer was known."""
         claims_for(session_id, authorization)
-        await limit("ip", _ip(request))
+        await limit("ip", _ip(request, deps.trusted_ip_header))
         await limit("session", str(session_id))
         if not (body.phone or body.email):
             raise RuleViolation("give a phone number or an email", reason="empty")

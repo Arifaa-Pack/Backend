@@ -1,13 +1,10 @@
-"""Email over Amazon SES v2: MIME building + raw send, inbound MIME parsing, SES event parsing.
-
-Inbound mail is written to S3 by SES Mail Manager (UAE region); an S3 -> SNS notification tells us
-the object key, and a job parses the stored MIME with `parse_inbound`.
-"""
+"""Email building blocks: MIME building, the Amazon SES v2 API sender (D44: the app's backup route when
+Stalwart is down) and inbound MIME parsing (buyer replies read from Stalwart's inbox by `mail_poll`)."""
 
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from email import message_from_bytes, policy
@@ -20,8 +17,7 @@ from email.utils import (
     parseaddr,
     parsedate_to_datetime,
 )
-from typing import Any, Final, Literal, Protocol
-from urllib.parse import unquote_plus
+from typing import Any, Final, Protocol
 
 from selectolax.lexbor import LexborHTMLParser
 
@@ -111,7 +107,8 @@ class EmailSender:
         list_unsubscribe: str | None = None,
         from_name: str | None = None,
     ) -> str:
-        """Send a raw MIME message; returns the SES MessageId (later events reference it)."""
+        """Send a raw MIME message; returns the SES MessageId. SES rewrites the Message-ID header to
+        `<MessageId@….amazonses.com>`, so a bounce report quotes it back (`feedback.candidate_ids`)."""
         msg = build_mime(
             from_address=self._settings.from_address,
             to_address=to_address,
@@ -227,81 +224,3 @@ def strip_quoted(text: str) -> str:
         if not stripped.startswith(">"):
             kept.append(line.rstrip())
     return "\n".join(kept).strip()
-
-
-# ---------------------------------------------------------------- SES events (via SNS)
-SesEventKind = Literal["delivery", "bounce", "complaint", "send", "reject", "other"]
-_SES_KINDS: Final[dict[str, SesEventKind]] = {
-    "delivery": "delivery",
-    "bounce": "bounce",
-    "complaint": "complaint",
-    "send": "send",
-    "reject": "reject",
-}
-
-
-@dataclass(frozen=True, slots=True)
-class SesEvent:
-    kind: SesEventKind
-    provider_message_id: str
-    recipients: tuple[str, ...]
-    permanent: bool  # permanent bounce -> suppress the address
-    detail: str | None
-    at: datetime
-
-
-def parse_ses_event(message: dict[str, Any]) -> SesEvent | None:
-    """Configuration-set event publishing uses `eventType`; identity notifications `notificationType`."""
-    raw_kind = str(message.get("eventType") or message.get("notificationType") or "").lower()
-    mail = message.get("mail")
-    if not raw_kind or not isinstance(mail, dict):
-        return None
-    kind = _SES_KINDS.get(raw_kind, "other")
-    section: dict[str, Any] = message.get(raw_kind) or {}
-    recipients, permanent, detail = _event_details(kind, section, mail)
-    stamp = section.get("timestamp") or mail.get("timestamp")
-    return SesEvent(
-        kind=kind,
-        provider_message_id=str(mail["messageId"]),
-        recipients=recipients,
-        permanent=permanent,
-        detail=detail,
-        at=datetime.fromisoformat(stamp) if stamp else datetime.now(UTC),
-    )
-
-
-def _event_details(
-    kind: SesEventKind, section: dict[str, Any], mail: dict[str, Any]
-) -> tuple[tuple[str, ...], bool, str | None]:
-    match kind:
-        case "bounce":
-            rows = section.get("bouncedRecipients", [])
-            permanent = section.get("bounceType") == "Permanent"
-            return _emails(r.get("emailAddress") for r in rows), permanent, section.get("bounceSubType")
-        case "complaint":
-            rows = section.get("complainedRecipients", [])
-            return _emails(r.get("emailAddress") for r in rows), True, section.get("complaintFeedbackType")
-        case "delivery":
-            return _emails(section.get("recipients", [])), False, None
-        case _:
-            return _emails(mail.get("destination", [])), False, None
-
-
-def _emails(values: Iterable[Any]) -> tuple[str, ...]:
-    out: list[str] = []
-    for value in values:
-        try:
-            out.append(normalise_email(parseaddr(str(value))[1]))
-        except ValueError:
-            continue
-    return tuple(out)
-
-
-def s3_objects(message: dict[str, Any]) -> tuple[tuple[str, str], ...]:
-    """(bucket, key) pairs from an S3 event notification (keys arrive URL-encoded with '+')."""
-    out: list[tuple[str, str]] = []
-    for record in message.get("Records", []):
-        s3 = record.get("s3") if isinstance(record, dict) else None
-        if isinstance(s3, dict) and str(record.get("eventName", "")).startswith("ObjectCreated"):
-            out.append((str(s3["bucket"]["name"]), unquote_plus(str(s3["object"]["key"]))))
-    return tuple(out)

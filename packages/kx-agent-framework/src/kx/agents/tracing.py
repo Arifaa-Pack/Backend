@@ -1,10 +1,10 @@
-"""AI traces to Phoenix in the UAE (D29), over OpenTelemetry (OTLP/HTTP). No-op when not configured.
+"""AI audit trail (D46): Phoenix on our server (Langfuse the alternative), over OpenTelemetry (OTLP/HTTP).
 
 Every model call becomes one span named after the run, with the OpenInference attribute names Phoenix
 understands (`openinference.span.kind`, `llm.model_name`, `llm.token_count.*`, `input.value`,
 `output.value`) plus the deal, role, graph and run ids. Buyer phones and emails are masked with
-`kx.core.logging.mask_pii` before a span leaves the process (UAE PDPL), even though Phoenix runs in our own
-UAE account. Replaces Langfuse (11 Nov).
+`kx.core.logging.mask_pii` before a span leaves the process (UAE PDPL), even though the trail runs on our own
+server. No-op when not configured.
 """
 
 from __future__ import annotations
@@ -94,8 +94,11 @@ class Tracer:
         endpoint: str | None = None,
         project: str = "kairox",
         environment: str | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
-        """`endpoint`: Phoenix's OTLP/HTTP traces URL, e.g. http://phoenix.<ns>:6006/v1/traces."""
+        """`endpoint`: the AI audit trail's OTLP/HTTP traces URL (D46). Phoenix (main):
+        http://phoenix:6006/v1/traces, no headers. Langfuse (alternative): http://langfuse:3000/api/public/otel/v1/traces
+        with `headers={"Authorization": "Basic <base64 public:secret key>"}`."""
         self.enabled = bool(endpoint)
         self._handler: BaseCallbackHandler | None = None
         if not self.enabled:
@@ -116,10 +119,10 @@ class Tracer:
             }
         )
         provider = TracerProvider(resource=resource)
-        provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint)))
+        provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint, headers=headers)))
         self._provider = provider
         self._handler = _SpanHandler(provider.get_tracer("kx.agents"))
-        log.info("tracing.phoenix", endpoint=endpoint, project=project)
+        log.info("tracing.ai_trail", endpoint=endpoint, project=project)
 
     def callbacks(self) -> list[BaseCallbackHandler]:
         return [self._handler] if self._handler is not None else []

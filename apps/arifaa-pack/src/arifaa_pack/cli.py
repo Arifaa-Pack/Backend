@@ -1,13 +1,9 @@
-"""`kx` entrypoint: api | worker | beat | voice | migrate | create-user (one image; ECS services api,
-worker, beat (exactly one), voice, plus the one-off migrate task)."""
+"""`kx` entrypoint: api | worker | beat | voice | migrate | reindex | platform show | create-user (one image;
+Coolify services api, worker, beat (exactly one), voice, plus the one-off migrate job)."""
 
 from __future__ import annotations
 
 import argparse
-import sys
-from contextlib import AsyncExitStack
-from functools import partial
-from typing import Any
 
 from kx.core.settings import LogicalDb
 
@@ -23,7 +19,7 @@ def _api(_: argparse.Namespace) -> None:
         host="0.0.0.0",  # noqa: S104 - container port
         port=app_settings().api_port,
         proxy_headers=True,
-        forwarded_allow_ips="*",
+        forwarded_allow_ips=app_settings().forwarded_allow_ips,  # the Coolify proxy only (D53)
         log_config=None,
     )
 
@@ -50,38 +46,50 @@ def _beat(_: argparse.Namespace) -> None:
 
 
 def _voice(_: argparse.Namespace) -> None:
-    from livekit.agents import WorkerOptions, cli  # noqa: PLC0415 - optional voice extra
+    """LiveKit voice worker (D52); the entry and prewarm functions live in `arifaa_pack.voice_worker`."""
+    from arifaa_pack.voice_worker import run  # noqa: PLC0415 - optional voice extra
 
-    from arifaa_pack.adapters import LiveKitPlugins, write_google_credentials  # noqa: PLC0415
-    from arifaa_pack.config import app_settings  # noqa: PLC0415
+    run()
+
+
+def _platform(_: argparse.Namespace) -> None:
+    """D41: print the resolved paid / free version per field and the vendor order (no secrets)."""
+    from arifaa_pack.container import configured_vendors  # noqa: PLC0415
+    from kx.core.platform import summary  # noqa: PLC0415
+    from kx.core.settings import get_settings  # noqa: PLC0415
+
+    core = get_settings()
+    rows = summary(core.modes(), configured_vendors(core))
+    print(f"KX_PLATFORM_PLAN={core.platform_plan}")
+    print(f"{'field':<12} {'mode':<9} {'order':<28} missing")
+    for r in rows:
+        print(f"{r['field']:<12} {r['mode']:<9} {r['order']:<28} {r['missing']}")
+
+
+def _reindex(args: argparse.Namespace) -> None:
+    """D47: re-embed every knowledge chunk whose vectors came from another model (after switching
+    KX_PLATFORM__EMBEDDINGS). Search keeps working on full-text while it runs."""
+    import asyncio  # noqa: PLC0415
+
     from arifaa_pack.container import build  # noqa: PLC0415
-    from kx.agents.voice import make_livekit_entrypoint  # noqa: PLC0415
 
-    creds = app_settings().google_credentials_json
-    write_google_credentials(creds.get_secret_value() if creds else None)  # Chirp backup (D36)
-    state: dict[str, Any] = {}
+    async def run() -> None:
+        async with build() as c:
+            done = await c.knowledge_indexer.reembed_stale(batch=args.batch)
+        print(f"re-embedded {done} chunks with KX_PLATFORM__EMBEDDINGS={c.modes.embeddings}")
 
-    async def entry(ctx: Any) -> None:
-        if "fn" not in state:  # build once per worker process, inside LiveKit's event loop
-            stack = AsyncExitStack()
-            c = await stack.enter_async_context(build())
-            minutes = partial(c.spend.add, "voice_minutes")  # D34 daily voice-minute cap
-            state.update(
-                stack=stack, fn=make_livekit_entrypoint(c.agent_service, LiveKitPlugins(), on_minutes=minutes)
-            )
-        await state["fn"](ctx)
-
-    sys.argv = [sys.argv[0], "start"]
-    cli.run_app(WorkerOptions(entrypoint_fnc=entry))
+    asyncio.run(run())
 
 
 def _migrate(args: argparse.Namespace) -> None:
     """Alembic for every database (idempotent). The job queue is a table in the automation revisions now
     (automation_0003), so there is no separate queue schema to apply."""
-    from arifaa_pack.migrations import upgrade  # noqa: PLC0415
+    from arifaa_pack.migrations import setup_checkpointer, upgrade  # noqa: PLC0415
 
     dbs = [LogicalDb(d) for d in args.db] if args.db else list(LogicalDb)
     upgrade(dbs, args.revision)
+    if LogicalDb.AGENTS in dbs and args.revision == "head":
+        setup_checkpointer()  # D48: DDL never runs from app processes behind PgBouncer
 
 
 def _create_user(args: argparse.Namespace) -> None:
@@ -121,6 +129,12 @@ def main(argv: list[str] | None = None) -> None:
     w.set_defaults(fn=_worker)
     sub.add_parser("beat").set_defaults(fn=_beat)
     sub.add_parser("voice").set_defaults(fn=_voice)
+    pl = sub.add_parser("platform", help="D41 paid / free version per field")
+    pl.add_argument("action", choices=["show"])
+    pl.set_defaults(fn=_platform)
+    r = sub.add_parser("reindex", help="D47 re-embed knowledge chunks of another model")
+    r.add_argument("--batch", type=int, default=16)
+    r.set_defaults(fn=_reindex)
     m = sub.add_parser("migrate")
     m.add_argument("--db", nargs="*", choices=[d.value for d in LogicalDb])
     m.add_argument("--revision", default="head")

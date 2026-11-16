@@ -18,6 +18,8 @@ from kx.core import events as ev
 from kx.core.contracts import DealStage
 from kx.core.event_payloads import ContactAnonymised
 from kx.core.identity import recipient_hash
+from kx.core.retention import PruneRule
+from kx.core.settings import RetentionSettings
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Company, Contact, Deal, TimelineEvent
 from kx.crm.rules import OPEN_STAGES
@@ -156,3 +158,14 @@ async def run_retention(session: AsyncSession, deps: CrmDeps) -> dict[str, int]:
 
 
 __all__ = ["anonymise_contact", "contact_hashes", "months_ago", "run_retention"]
+
+
+def plumbing_rules(r: RetentionSettings) -> tuple[PruneRule, ...]:
+    """D48: the only rows the nightly job deletes from the crm database (Business tier): published outbox,
+    handled inbox and old idempotency keys. Deals, quotes, audit and timeline are never deleted; the policies
+    above anonymise (§22)."""
+    return (
+        PruneRule("crm", "outbox_events", "published_at", r.plumbing_days),
+        PruneRule("crm", "inbox_events", "processed_at", r.plumbing_days),
+        PruneRule("crm", "idempotency_keys", "created_at", r.plumbing_days),
+    )

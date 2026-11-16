@@ -107,13 +107,13 @@ The buyer reaches us through the channels. The AI drafts in the CRM, staff appro
 
 | Part | Built with | Job |
 | --- | --- | --- |
-| **Website** | Next.js + 3D, on Vercel | "Enter the factory" experience, product pages, AI voice and chat, Requirement Summary |
-| **CMS** | Payload CMS, in the UAE | The website's admin panel: text, photos, videos, products, 3D labels, SEO, AEO and GEO. It also feeds the AI's knowledge |
-| **CRM** | FastAPI + PostgreSQL in the UAE; screens in Next.js | Deals, contacts, catalogue, price list, quotes, approvals, change requests, orders, dashboards |
+| **Website** | Next.js + 3D, on Vercel (or our own server) | "Enter the factory" experience, product pages, AI voice and chat, Requirement Summary |
+| **CMS** | Payload CMS, on our dedicated server | The website's admin panel: text, photos, videos, products, 3D labels, SEO, AEO and GEO. It also feeds the AI's knowledge |
+| **CRM** | FastAPI + PostgreSQL on our dedicated server; screens in Next.js | Deals, contacts, catalogue, price list, quotes, approvals, change requests, orders, dashboards |
 | **AI agents** | LangGraph + Claude | Conversation, qualification, quote drafting, price negotiation, follow-up, alerts |
-| **Automation** | WhatsApp Cloud API, Amazon SES email, Twilio alert calls, job scheduler | Sends and receives messages, alerts staff, runs follow-ups and reminders |
+| **Automation** | WhatsApp Cloud API, Stalwart email (sent through Amazon SES), Telnyx alert calls, job scheduler | Sends and receives messages, alerts staff, runs follow-ups and reminders |
 
-All data is stored in the UAE (AWS me-central-1).
+*(Updated 16 Nov, Accounts & Server Plan v2.)* All data is stored on one dedicated server that Kairox manages (Namecheap, Phoenix, Arizona, USA), with encrypted off-site backups on Cloudflare R2. **⚠ Arifa must approve this location in writing**; until then the earlier promise "all data in the UAE" is open (OPEN_QUESTIONS #69), and the same system can run on a UAE dedicated server instead.
 
 ## 5. End-to-end flow
 
@@ -781,9 +781,9 @@ Each follow-up has a reason, e.g. "any questions on the quotation?", the quote e
 | Channel | v1 behaviour |
 | --- | --- |
 | **WhatsApp** (Meta Cloud API) | **One number per region** (list to confirm with the client). Inbound messages create or continue deals. Free-form replies within 24 hours of the buyer's last message; after that, approved templates only (follow-up, quote reminder, order update). Read receipts and delivery status are stored |
-| **Email** (Amazon SES) | One company sending address. Quote PDFs attached. Buyer replies are captured into the deal. Bounces and complaints stop email to that address |
+| **Email** (Stalwart mail server, sent through Amazon SES) | One company sending address. Quote PDFs attached. Buyer replies are captured into the deal. Bounces and complaints stop email to that address |
 | **Website voice and chat** | Live AI conversation; continues on WhatsApp after qualification |
-| **Staff alert calls** (Twilio) | Scripted reminder calls to staff only (approvals, change requests, below-minimum). Never to buyers |
+| **Staff alert calls** (Telnyx) | Scripted reminder calls to staff only (approvals, change requests, below-minimum). Never to buyers |
 | **AI calls to buyers** | Only calls the buyer starts or asks for. **No cold AI calls**: UAE rules require approval and a licensed line |
 
 **International channels (summary).**
@@ -871,7 +871,7 @@ Full table by region, with how to build each channel and the laws: [Arifaa Pack 
 
 ## 22. Data, consent, security and retention
 
-- **Where the data lives:** all in the UAE (AWS me-central-1). Pack data is separate from any other Arifa company. An encrypted backup copy abroad is made only with written client consent.
+- **Where the data lives** *(updated 16 Nov)*: on one dedicated server managed by Kairox (Namecheap, Phoenix, Arizona, USA), with encrypted backups on Cloudflare R2. **⚠ Arifa must approve this location in writing** (it replaces "all in the UAE, AWS me-central-1"; OPEN_QUESTIONS #69). Pack data is separate from any other Arifa company (its own databases). Any further copy abroad is made only with written client consent.
 - **Consent:**
   - the system only contacts buyers who contacted Arifa Pack first;
   - every opt-out is honoured on all channels;

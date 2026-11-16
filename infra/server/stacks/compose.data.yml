@@ -1,0 +1,54 @@
+# Data tier (D48): PostgreSQL 18 + pgvector with WAL-G to R2, and PgBouncer in front of it.
+# Coolify: Docker Compose resource, base directory infra/server/stacks. Network `kx` is external (docker network create kx).
+# Telemetry has its own Postgres (compose.obs.yml); Redis belongs to each project's app stack (compose.app.yml).
+name: kx-data
+
+services:
+  postgres:
+    build:
+      context: ../postgres
+    image: kairox/postgres:18
+    restart: unless-stopped
+    shm_size: 1g
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in Coolify}
+      # WAL-G -> Cloudflare R2 (S3 API)
+      WALG_S3_PREFIX: s3://${R2_BUCKET:?}/backups/postgres
+      AWS_ENDPOINT: ${R2_ENDPOINT_URL:?}
+      AWS_REGION: auto
+      AWS_S3_FORCE_PATH_STYLE: "true"
+      AWS_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:?}
+      AWS_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:?}
+      WALG_COMPRESSION_METHOD: zstd
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [kx]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    logging: &logs
+      driver: json-file
+      options: { max-size: "50m", max-file: "3" }
+
+  pgbouncer:
+    image: ${KX_IMG_PGBOUNCER:-edoburu/pgbouncer:v1.24.1-p1}
+    restart: unless-stopped
+    volumes:
+      - ../postgres/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ${PGBOUNCER_USERLIST:-./secrets/userlist.txt}:/etc/pgbouncer/userlist.txt:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [kx]
+    logging: *logs
+
+volumes:
+  pgdata:
+
+networks:
+  kx:
+    external: true

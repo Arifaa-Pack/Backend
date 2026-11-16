@@ -9,8 +9,6 @@
 **/.hypothesis
 **/.benchmarks
 **/node_modules
-**/.terraform
-**/*.tfstate*
 **/.env
 **/.env.*
 .github
@@ -19,9 +17,12 @@ tests
 **/tests
 db/tests
 
-# infra is not part of the image, except the db-bootstrap script
+# infra is not part of the image, except the db-bootstrap script; the speech server and the bench have
+# their own images / tooling
 infra/**
-!infra/scripts/db_bootstrap.sh
+!infra/server/postgres/db_bootstrap.sh
+services
+resource-usage-bench
 
 docker-compose*.yml
 Makefile

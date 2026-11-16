@@ -15,15 +15,16 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.automation.channels import ChannelError
-from kx.automation.channels.voice_ivr import (
+from kx.automation.channels.calls import (
     CALL_STATUS,
     PROVIDER,
     TERMINAL_STATUSES,
     AlertScript,
+    CallbackUrls,
     Digit,
-    alert_twiml,
+    alert_texml,
     approval_alert_script,
-    bridge_twiml,
+    bridge_texml,
     change_request_script,
     escalation_script,
     negotiation_paused_script,
@@ -45,7 +46,16 @@ _REQUESTED_BY: Final = "system:alerts"
 
 
 class Caller(Protocol):
-    async def place_call(self, to_e164: str, twiml: str, status_callback_url: str) -> str: ...
+    """D43: Telnyx TeXML today; an Asterisk adapter can implement the same call later."""
+
+    async def place_call(self, to_e164: str, texml: str, status_callback_url: str) -> str: ...
+
+
+def callback_urls(settings: AutomationSettings) -> CallbackUrls:
+    t = settings.telnyx
+    return CallbackUrls(
+        settings.public_base_url, t.callback_secret.get_secret_value(), t.callback_ttl_seconds
+    )
 
 
 class KillSwitchReader(Protocol):
@@ -57,7 +67,7 @@ class CallBridge:
     rings first ("Connecting you to the buyer for deal D-..."), then the buyer is dialled with the company
     number as caller ID. The buyer's call stop (§8.1 step 2: one suppression list, checked before every
     call) and the calls kill switch (D35) are checked before anything rings. One ring per click
-    (`idempotency_key`). The attempt row is the call log; Twilio status callbacks keep it current."""
+    (`idempotency_key`). The attempt row is the call log; Telnyx status callbacks keep it current."""
 
     def __init__(
         self,
@@ -104,13 +114,12 @@ class CallBridge:
             s.add(attempt)
             await s.flush()
             attempt_id = attempt.id
-        base = self._settings.twilio.status_callback_base_url.rstrip("/")
         intro = f"Connecting you to the buyer for {self._settings.company_name or 'the company'}."
         try:
             sid = await self._caller.place_call(
                 staff,
-                bridge_twiml(intro, buyer, self._settings.twilio),
-                f"{base}/webhooks/twilio/status?attempt_id={attempt_id}",
+                bridge_texml(intro, buyer, self._settings.telnyx),
+                callback_urls(self._settings).status(attempt_id),
             )
         except ChannelError as exc:
             log.warning("click_to_call.failed", attempt_id=str(attempt_id), error=exc.detail)
@@ -129,7 +138,7 @@ class CallBridge:
 
 
 class VoiceAlerts:
-    """Places scripted alert calls and keeps `call_attempts` current from Twilio callbacks."""
+    """Places scripted alert calls and keeps `call_attempts` current from Telnyx callbacks."""
 
     def __init__(
         self, databases: Databases, settings: AutomationSettings, caller: Caller, clock: Clock = utc_now
@@ -165,12 +174,10 @@ class VoiceAlerts:
             s.add(attempt)
             await s.flush()
             attempt_id = attempt.id
-        base = self._settings.twilio.status_callback_base_url.rstrip("/")
-        twiml = alert_twiml(script, f"{base}/webhooks/twilio/voice/{attempt_id}", self._settings.twilio)
+        urls = callback_urls(self._settings)
+        texml = alert_texml(script, urls.gather(attempt_id), self._settings.telnyx)
         try:
-            sid = await self._caller.place_call(
-                to_e164, twiml, f"{base}/webhooks/twilio/status?attempt_id={attempt_id}"
-            )
+            sid = await self._caller.place_call(to_e164, texml, urls.status(attempt_id))
         except ChannelError as exc:
             log.warning("ivr.call_failed", attempt_id=str(attempt_id), error=exc.detail)
             await self._update(attempt_id, status="failed", ended_at=self._now())
@@ -209,9 +216,9 @@ class VoiceAlerts:
         return approval_ref if digits == Digit.ESCALATE.value else None
 
     async def record_status(
-        self, s: AsyncSession, attempt_id: uuid.UUID, call_sid: str, twilio_status: str
+        self, s: AsyncSession, attempt_id: uuid.UUID, call_sid: str, call_status: str
     ) -> None:
-        status = CALL_STATUS.get(twilio_status)
+        status = CALL_STATUS.get(call_status)
         if status is None:
             return
         now = self._now()

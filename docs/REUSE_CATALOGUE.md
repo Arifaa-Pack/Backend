@@ -22,12 +22,15 @@ owning package (and this file), not to your app. Enforced by import-linter (pack
 | Cross-package contracts | `kx.core.contracts`: `CrmGateway`, `GrantConsumer`, `MessageSender`, `ClickToCall`, `StaffMailer`, DTOs | no cost/markup fields, ever |
 | Staff login (D26) | `kx.core.passwords` (Argon2id, TOTP, `SeedBox`), `kx.core.auth.TokenIssuer` (RS256, JWKS) | in-house, no Cognito |
 | Background jobs (D25) | `kx.core.jobs`: `JobStore`, `JobRunner`, `JobSpec` (PostgreSQL schedule table; Celery only in the app) | |
-| Vendor fallback (D30) | `kx.core.fallback`: `CircuitBreaker`, `FallbackChain`, `AllVendorsFailed` | switch metric `Kairox/VendorSwitch` |
+| Paid / free order per field (D41) | `kx.core.platform`: `Field`, `Plan`, `order`, `resolved`, `summary` | env `KX_PLATFORM_PLAN`, `KX_PLATFORM__<FIELD>`; `docs/PLATFORM_MODES.md` |
+| Vendor fallback (D30) | `kx.core.fallback`: `CircuitBreaker`, `FallbackChain`, `AllVendorsFailed` | switch metric `VendorSwitch`; `alert` hook = app `OpsNotifier` |
+| Retention, partitions, archive (D48) | `kx.core.retention`: `prune_batches`, `ensure_month_partitions`, `drop_old_partitions`, `archive_query`; `kx.core.contracts.BlobStore` | `docs/DATABASE.md` |
 | Spend caps (D34) | `kx.core.spend`: `SpendMeter`, `SpendCaps` | integers in Redis, 80 % / 100 % alerts |
 | Kill-switch ladder (D35) | `kx.core.killswitch`: `KillSwitchLadder`, `KillLevel`, `engaged_at` | |
 | STOP rules (§8.1) | `kx.core.optout`: `match`, `match_voice`, `confirmation_text` | |
 | Signed public tokens | `kx.core.signed`: `sign`, `verify` | website sessions |
-| CloudWatch metrics | `kx.core.metrics`: `emit_metric` (EMF) | |
+| Metrics (D46) | `kx.core.metrics`: `emit_metric` (OpenTelemetry API; no-op until the app installs a provider) | exported to SigNoz |
+| Phone parsing without exceptions | `kx.core.identity.try_normalise_phone` | webhooks must never 500 on a bad number |
 
 ## Planned in docs/V1_CHANGE_PLAN.md (do not build twice; add them here when done)
 
@@ -75,16 +78,16 @@ owning package (and this file), not to your app. Enforced by import-linter (pack
 | The only way out | `kx.automation.outbound.OutboundService` (grant, kill switch, suppression, rate limit, 2/week cap, buyer hours) |
 | Which number sends (buyer's thread → regional `countries` → default; email = company address) | `kx.automation.repo.channel_account(..., address=, country=)` |
 | WhatsApp Cloud API | `kx.automation.channels.whatsapp.WhatsAppClient` (+ signature verify, webhook parsing, media download) |
-| Email (SES v2) + inbound MIME | `kx.automation.channels.email.EmailSender`, parsing helpers |
-| SNS verification | `kx.automation.channels.sns.SnsVerifier` |
-| Staff alert calls (Twilio) | `kx.automation.channels.voice_ivr.TwilioCaller`, `kx.automation.alerts.VoiceAlerts`, `PauseAlerts` |
+| Email (D44): Stalwart JMAP send + mailbox poll; SES v2 API backup; inbound MIME | `kx.automation.channels.stalwart` (`JmapClient`, `StalwartSender`, `MailboxPoller`), `kx.automation.channels.email.EmailSender` (SES), parsing helpers |
+| Bounce / complaint reports (DSN, ARF) | `kx.automation.channels.feedback.parse_feedback` |
+| Staff alert calls (Telnyx TeXML, D43) | `kx.automation.channels.calls` (`TelnyxCaller`, TeXML builders, signature check), `kx.automation.alerts.VoiceAlerts`, `PauseAlerts` |
 | §16 reminder ladder (approvals and change requests) | `kx.automation.alerts.ApprovalLadder` over `LadderTicket.for_approval` / `.for_change` |
 | Staff notices (§17 "notified", alert hours) | `kx.automation.alerts.notify_staff` |
 | §17 notifications matrix (event → recipients) | `kx.automation.handlers.EventHandlers.registry()`; table test `kx-core-automation/tests/test_notifications_matrix_db.py` |
 | Webhooks router | `kx.automation.webhooks.build_router(WebhookDeps)` |
 | Jobs | `kx.automation.jobs`: `register_jobs`, `periodic_jobs`, `JobScheduler`, `AutomationRuntime` (scraper only with `features.scraping`, D14) |
 | Kill switch / rate limits | `kx.automation.killswitch.KillSwitch` (= `kx.core.killswitch.KillSwitchLadder`), `kx.automation.ratelimit.TokenBucketLimiter` |
-| Email chain SES -> Postmark (D33) | `kx.automation.channels.email_chain.EmailChain`, `kx.automation.channels.postmark` (`PostmarkSender`, `parse_inbound`) |
+| Email chain Stalwart -> SES (D44) | `kx.automation.channels.email_chain.EmailChain` (order from `kx.core.platform`) |
 | Click-to-call (§14) | `kx.automation.alerts.CallBridge` |
 | CMS publish webhook (§7) | `kx.automation.cms.build_router` |
 | STOP flow, unsubscribe link | `kx.automation.optout`, `kx.automation.unsubscribe` |
@@ -95,14 +98,14 @@ owning package (and this file), not to your app. Enforced by import-linter (pack
 | Capability | Import |
 |---|---|
 | 12 roles, prompts (`AgentSpec.enabled`; repeat sales off in v1) | `kx.agents.registry`: `AgentRegistry` (`disabled()`), `AgentSpec`, `PromptStore`, `DefaultPromptStore`, `ModelTier` |
-| Models + fallback | `kx.agents.models`: `ModelRouter`, `AnthropicApiProvider` (Claude API direct, D27); safe reply + breaker in `AgentService` |
+| Models + fallback | `kx.agents.models`: `ModelRouter`, `AnthropicApiProvider` (Claude API direct, D27; no sampling parameters, effort per tier, D51); safe reply + breaker in `AgentService` |
 | Routing (no LLM; agreement wording and post-quote change topics → deal graph; payment topics → deal graph in every stage; handed-over deals silent or the after-hours acknowledgement) | `kx.agents.orchestrator` (`PAYMENT_TOPIC`) |
 | Reply guard | `kx.agents.guard` (prices, cost wording, injection, length) |
 | Graphs | `kx.agents.graphs.conversation` / `quotation` (interrupt/resume) / `deal` |
 | Memory, checkpointer | `kx.agents.memory`: `open_checkpointer`, turn store |
 | Hybrid KB search | `kx.agents.knowledge`: `KnowledgeBase`, `KnowledgeIndexer`, `Embedder`, `ContentSource` |
-| Voice | `kx.agents.voice`: `VoiceRouter`, `make_livekit_entrypoint` |
-| Tracing | `kx.agents.tracing.Tracer` (Phoenix over OpenTelemetry, PII-masked, D29) |
+| Voice (D52) | `kx.agents.voice`: `VoiceRouter`, `voice_routes`, `make_livekit_entrypoint`; worker entry `arifaa_pack.voice_worker` |
+| AI audit trail | `kx.agents.tracing.Tracer` (Phoenix or Langfuse over OTLP, PII-masked, D46) |
 | Website conversation API (§6) | `kx.agents.website.build_router(WebsiteDeps)` |
 | Run cost table | `kx.agents.runs.PRICES`, `call_cost` |
 | Entry point | `kx.agents.service.AgentService`, `kx.agents.handlers.AgentHandlers` |
@@ -110,9 +113,12 @@ owning package (and this file), not to your app. Enforced by import-linter (pack
 | Change requests from the AI | tool `kx.agents.tools.raise_change_request`; deal graph `intent=change` + `PAYMENT_TOPIC`; phrase `Phrase.CHANGE_REQUEST`, `team_member` |
 
 ## Client app (copy per client) — `apps/arifaa-pack`
-`company.yaml` (identity), `config.py` (`KX_APP_*`), `adapters.py` (address book, `HttpEmbedder` = Qwen3 in our UAE container (D28), Payload CMS
-source, LiveKit plugins), `container.py` (composition root + `EventBus`), `api.py`, `cli.py`
-(`kx api | worker | beat | voice | migrate | create-user`), `migrations/` (Alembic, one script dir per DB).
+`company.yaml` (identity), `config.py` (`KX_APP_*`), `adapters.py` (address book, `HttpEmbedder` = BGE-M3 / Qwen3 on TEI (D47), Payload CMS
+source, `PlatformVoicePlugins`, `R2BlobStore`, `OpsNotifier`), `container.py` (composition root + `EventBus`), `telemetry.py` (OpenTelemetry → SigNoz),
+`voice_worker.py` (LiveKit entry + prewarm), `api.py`, `cli.py`
+(`kx api | worker | beat | voice | migrate | reindex | platform show | create-user`), `migrations/` (Alembic, one script dir per DB).
+Free speech server: `services/speech/` (own image).
 
 **New client (e.g. Arifaa Auto):** copy `apps/arifaa-pack` → `apps/arifaa-auto`, edit `company.yaml`, prompts
-and `crm.settings` seed; add `infra/envs/auto-prod/terraform.tfvars`. No platform code changes.
+and `crm.settings` seed; a new app stack in `infra/server/stacks/` with its own company code and database prefix
+(`docs/MULTI_PROJECT.md`). No platform code changes.

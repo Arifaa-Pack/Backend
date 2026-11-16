@@ -1,15 +1,17 @@
 """Voice: speech vendor routing by language + a LiveKit Agents worker entrypoint.
 
-Routing (11 Nov, D36; platform docs Recommendation + Fallback plan): Deepgram Nova-3 Multilingual STT with
-Soniox as backup, ElevenLabs Flash TTS with Google Chirp 3 HD as backup, for en/ar/hi/ta/zh. "No option
-covers Sinhala in live voice; Sinhala stays text-only" (Platform contest round 1): the website offers chat.
-Last resorts are the website's own: text chat, then WhatsApp click-to-chat.
+Routing (16 Nov, D52; server plan v2 §2): the order per language comes from the platform modes
+(`kx.core.platform`, D41). Paid version: Deepgram Nova-3 -> faster-whisper Small (our speech server) for STT,
+ElevenLabs Flash -> Piper for TTS, inside one call (the app wraps them in LiveKit fallback adapters). Free
+version: faster-whisper + Piper only. Piper has no Tamil voice, so Tamil uses ElevenLabs (both versions, when
+its key is set); Sinhala has no live-voice option and stays text-only (the website offers chat). Last resorts
+are the website's own: text chat, then WhatsApp click-to-chat.
 
 The worker runs the SAME AgentService turn as chat (same graphs, same price guard) and re-checks the reply
 against the deal's allowed prices right before TTS: speech cannot be recalled. The recording notice always
 plays first (§6.1). On a call "stop" means "wait" (§8.1 step 10): the agent goes quiet and listens; it ends
 the call only on a clear request, and only "stop calling me" / "don't call me" stops calls.
-livekit-agents is an optional extra; the vendor plugins are installed with the voice image.
+livekit-agents is an optional extra; the vendor plugins are installed with the app.
 """
 
 from __future__ import annotations
@@ -17,10 +19,10 @@ from __future__ import annotations
 import json
 import time
 import uuid
-from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from collections.abc import AsyncIterator, Awaitable, Callable, Collection, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Final, Literal, Protocol
+from typing import Any, Final, Literal, Protocol, cast
 
 from kx.agents.guard import PriceGuard
 from kx.agents.language import DEFAULT_LANGUAGE, normalise_language
@@ -28,17 +30,19 @@ from kx.agents.registry import Phrase, PromptStore
 from kx.agents.service import AgentService, InboundTurn
 from kx.core.contracts import AiRole, CrmGateway
 from kx.core.optout import match_voice
+from kx.core.platform import Field, Modes, order, resolve_modes
 
-SttVendor = Literal["deepgram", "soniox"]
-TtsVendor = Literal["elevenlabs", "google"]
-STT_ORDER: Final[tuple[SttVendor, ...]] = ("deepgram", "soniox")  # Fallback plan: Deepgram -> Soniox
-TTS_ORDER: Final[tuple[TtsVendor, ...]] = ("elevenlabs", "google")  # ElevenLabs Flash -> Chirp 3 HD
+SttVendor = Literal["deepgram", "whisper"]
+TtsVendor = Literal["elevenlabs", "piper"]
+STT_ORDER: Final[tuple[SttVendor, ...]] = ("deepgram", "whisper")  # paid version: Deepgram -> faster-whisper
+TTS_ORDER: Final[tuple[TtsVendor, ...]] = ("elevenlabs", "piper")  # paid version: ElevenLabs Flash -> Piper
+VOICE_LANGUAGES: Final = ("en", "ar", "hi", "ta", "zh", "si")
 
 
 @dataclass(frozen=True, slots=True)
 class VoiceRoute:
     language: str
-    stt: tuple[SttVendor, ...] = STT_ORDER  # primary first; the app wraps them in a fallback adapter
+    stt: tuple[SttVendor, ...] = STT_ORDER  # first = primary; the app wraps them in a fallback adapter
     tts: tuple[TtsVendor, ...] = TTS_ORDER
     voice_id: str | None = None
     text_only: bool = False  # no live-voice vendor for this language: the website uses chat
@@ -47,11 +51,27 @@ class VoiceRoute:
     def voice_available(self) -> bool:
         return not self.text_only and bool(self.stt) and bool(self.tts)
 
+    @property
+    def free_stt(self) -> bool:
+        """The call runs on our CPU speech-to-text only (counts against the free-version call cap, D52)."""
+        return self.stt == ("whisper",)
 
-DEFAULT_VOICE_MAP: Final[dict[str, VoiceRoute]] = {
-    **{lang: VoiceRoute(lang) for lang in ("en", "ar", "hi", "ta", "zh")},
-    "si": VoiceRoute("si", stt=(), tts=(), text_only=True),
-}
+
+def voice_routes(
+    modes: Modes, configured: Collection[str], languages: Collection[str] = VOICE_LANGUAGES
+) -> dict[str, VoiceRoute]:
+    """One route per language from the paid / free version of the `stt` and `tts` fields."""
+    routes: dict[str, VoiceRoute] = {}
+    for lang in languages:
+        stt = cast("tuple[SttVendor, ...]", order(Field.STT, modes, configured, language=lang))
+        tts = cast("tuple[TtsVendor, ...]", order(Field.TTS, modes, configured, language=lang))
+        routes[lang] = VoiceRoute(lang, stt=stt, tts=tts, text_only=not (stt and tts))
+    return routes
+
+
+DEFAULT_VOICE_MAP: Final[dict[str, VoiceRoute]] = voice_routes(
+    resolve_modes("paid", {}), frozenset({"deepgram", "whisper", "elevenlabs", "piper"})
+)
 
 
 class VoiceRouter:
@@ -109,15 +129,39 @@ class VoicePlugins(Protocol):
     def vad(self) -> Any: ...
 
 
+def graph_llm() -> Any:
+    """An `llm.LLM` the session holds but never calls (bench R2b): livekit-agents skips every reply when the
+    session has no LLM, before `llm_node` runs, so the caller heard only the recording notice. Our agent's
+    `llm_node` answers through the Kairox graphs instead; if anything ever calls this model, it fails
+    loudly."""
+    from livekit import agents as lk  # noqa: PLC0415 - optional extra
+
+    class GraphLLM(lk.llm.LLM):  # type: ignore[type-arg]
+        @property
+        def model(self) -> str:
+            return "kairox-graphs"
+
+        def chat(self, **_: Any) -> Any:
+            raise RuntimeError("the Kairox voice agent answers in llm_node; this model is never called")
+
+    return GraphLLM()
+
+
+CallHook = Callable[["VoiceRoute", bool], Awaitable[object]]  # (route, started): start / end of a call
+
+
 def make_livekit_entrypoint(
     service: AgentService,
     plugins: VoicePlugins,
     router: VoiceRouter | None = None,
     on_minutes: Callable[[Decimal], Awaitable[object]] | None = None,
+    on_call: CallHook | None = None,
 ) -> Callable[[Any], Any]:
     """Entrypoint for `livekit.agents.cli.run_app(WorkerOptions(entrypoint_fnc=...))`.
     Participant metadata must carry `deal_ref` and `language` (set by the token endpoint). `on_minutes`
-    receives each call's length in minutes when the room closes (D34 daily voice-minute cap)."""
+    receives each call's length in minutes when the room closes (D34 daily voice-minute cap); `on_call` is
+    told
+    when a call starts and ends (the app counts free-version calls at once, D52)."""
     from livekit import agents as lk  # noqa: PLC0415 - optional extra: imported only when the voice worker starts
 
     voice_router = router or VoiceRouter()
@@ -168,7 +212,16 @@ def make_livekit_entrypoint(
         if not route.voice_available:  # Sinhala: the token endpoint should not have issued a voice token
             await ctx.room.disconnect()
             return
-        session: Any = lk.AgentSession(stt=plugins.stt(route), tts=plugins.tts(route), vad=plugins.vad())
+        if on_call is not None:
+            await on_call(route, True)
+
+            async def call_ended() -> None:
+                await on_call(route, False)
+
+            ctx.add_shutdown_callback(call_ended)
+        session: Any = lk.AgentSession(
+            stt=plugins.stt(route), tts=plugins.tts(route), vad=plugins.vad(), llm=graph_llm()
+        )
         await session.start(
             room=ctx.room, agent=KairoxVoiceAgent(uuid.UUID(meta["deal_ref"]), route.language, ctx.room.name)
         )

@@ -42,8 +42,12 @@ def build_conversation_agent(
 
 
 def final_reply(messages: Sequence[BaseMessage]) -> str | None:
-    """Last AI message without pending tool calls (what the buyer sees)."""
+    """Last AI message without pending tool calls (what the buyer sees). A Claude refusal
+    (`stop_reason=refusal`, D51) counts as no answer, so the caller hands over instead of sending a partial
+    or declined text; server-side refusal fallbacks to an untested model stay off (D27)."""
     for msg in reversed(messages):
         if isinstance(msg, AIMessage):
+            if msg.response_metadata.get("stop_reason") == "refusal":
+                return None
             return msg.text if not msg.tool_calls and msg.text.strip() else None
     return None

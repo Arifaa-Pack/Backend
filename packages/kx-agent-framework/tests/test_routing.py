@@ -63,11 +63,37 @@ def test_registry_has_all_twelve_roles_and_only_price_roles_quote() -> None:
     )
 
 
-@pytest.mark.parametrize("lang", ["en", "ar-AE", "zh", "hi", "ta", "fr"])
-def test_voice_routing_is_deepgram_and_elevenlabs_with_backups(lang: str) -> None:
-    """D36 (Fallback plan): Deepgram Nova-3 -> Soniox; ElevenLabs Flash -> Google Chirp 3 HD."""
+@pytest.mark.parametrize("lang", ["en", "ar-AE", "zh", "hi", "fr"])
+def test_paid_voice_is_deepgram_and_elevenlabs_with_the_free_engines_as_fallback(lang: str) -> None:
+    """D52 (server plan v2 §2): Deepgram Nova-3 -> faster-whisper; ElevenLabs Flash -> Piper."""
     r = VoiceRouter().route(lang)
-    assert (r.stt, r.tts, r.voice_available) == (("deepgram", "soniox"), ("elevenlabs", "google"), True)
+    assert (r.stt, r.tts, r.voice_available) == (("deepgram", "whisper"), ("elevenlabs", "piper"), True)
+
+
+def test_free_voice_uses_our_speech_server_and_tamil_needs_elevenlabs() -> None:
+    from kx.agents.voice import voice_routes
+    from kx.core.platform import resolve_modes
+
+    free = resolve_modes("free", {})
+    routes = voice_routes(free, {"whisper", "piper", "elevenlabs"})
+    assert (routes["ar"].stt, routes["ar"].tts) == (("whisper",), ("piper",))
+    assert routes["ar"].free_stt
+    assert routes["ta"].tts == ("elevenlabs",)
+    assert not voice_routes(free, {"whisper", "piper"})["ta"].voice_available  # no key: Tamil goes to chat
+    assert not routes["si"].voice_available
+
+
+def test_the_voice_session_gets_an_llm_so_llm_node_runs() -> None:
+    """Bench R2b: without an LLM on the session livekit-agents skipped every reply (only the recording
+    notice was heard). The placeholder must be a real LiveKit LLM that is never called."""
+    from livekit.agents import llm as lk_llm
+
+    from kx.agents.voice import graph_llm
+
+    model = graph_llm()
+    assert isinstance(model, lk_llm.LLM)
+    with pytest.raises(RuntimeError):
+        model.chat(chat_ctx=None)
 
 
 def test_sinhala_is_text_only() -> None:
@@ -124,3 +150,40 @@ def test_repeat_sales_is_v2_and_off() -> None:
     won = make_deal(DealStage.WON)
     assert route_("I want to reorder", won, disabled=registry.disabled()).action == "silent"
     assert route_("I want to reorder", won).role is AiRole.REPEAT_SALES  # v2: switched back on
+
+
+@pytest.mark.parametrize("tier", [ModelTier.FAST, ModelTier.SMART, ModelTier.JUDGE])
+def test_claude_request_has_no_sampling_parameters_and_sets_effort(tier: ModelTier) -> None:
+    """D51 / bench R1: Sonnet 5.5 and Haiku 5.5 return HTTP 400 for a non-default temperature, top_p or top_k,
+    so every Sonnet (money-turn) call used to fail. The real request payload must carry none of them, must
+    keep thinking adaptive and must set the tier's effort."""
+    from langchain_core.messages import HumanMessage
+    from pydantic import SecretStr
+
+    from kx.agents.models import DEFAULT_OPTIONS
+
+    model = ModelRouter([AnthropicApiProvider(SecretStr("test-key"))]).for_tier(tier).primary
+    payload = model._get_request_payload([HumanMessage("hello")])  # type: ignore[attr-defined]
+    assert not {"temperature", "top_p", "top_k"} & set(payload)
+    assert payload["thinking"] == {"type": "adaptive"}
+    assert payload["output_config"]["effort"] == DEFAULT_OPTIONS[tier].effort
+    assert payload["max_tokens"] == DEFAULT_OPTIONS[tier].max_tokens
+
+
+def test_effort_settings_override_one_tier_only() -> None:
+    from kx.agents.models import DEFAULT_OPTIONS, tier_options
+
+    opts = tier_options(smart="high")
+    assert opts[ModelTier.SMART].effort == "high"
+    assert opts[ModelTier.SMART].max_tokens == DEFAULT_OPTIONS[ModelTier.SMART].max_tokens
+    assert opts[ModelTier.FAST] == DEFAULT_OPTIONS[ModelTier.FAST]
+
+
+def test_a_claude_refusal_is_no_answer_so_the_buyer_gets_the_hand_over() -> None:
+    from langchain_core.messages import AIMessage
+
+    from kx.agents.graphs.conversation import final_reply
+
+    declined = AIMessage("I can't help with", response_metadata={"stop_reason": "refusal"})
+    assert final_reply([declined]) is None
+    assert final_reply([AIMessage("Hello!", response_metadata={"stop_reason": "end_turn"})]) == "Hello!"

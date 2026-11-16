@@ -6,7 +6,29 @@ read-only masters, which win over everything:** the SRS (`docs/Arifaa Pack — D
 and the platform docs (`docs/Arifaa Platform — Platforms, Pricing & Fallbacks/`).
 
 ---------------------------------------------------------------------------------------------------------
-## ⚠ 11 Nov changes. These OVERRIDE sections 2, 6b, 7 and 8 below.
+## ⚠ 16 Nov changes (server plan v2). These OVERRIDE the 11 Nov platform block and sections 2, 7 and 8 below.
+- **Source:** `docs/Arifaa Platform — Platforms, Pricing & Fallbacks/Arifaa Platform — Accounts & Server Plan (for Arifa IT) v2.docx`
+  (§2 platforms, §3 paid version, §4 free version, §5 server) + `Options by field — alternatives and usage.docx` (bench 14 Nov).
+- **Hosting:** one **Namecheap dedicated server** (Xeon E-2236, 64 GB, 2 × 960 GB RAID 1, Ubuntu 24.04) managed with
+  **Coolify**; AWS is gone except **SES** (email relay). Terraform and AWS workflows deleted; stacks in `infra/server/`.
+  ⚠ Server is in Phoenix, USA: Arifa must approve (OPEN #69; SRS §4 / §22 flagged).
+- **Paid / free version per field** (D41): `KX_PLATFORM_PLAN=paid|free` + `KX_PLATFORM__<FIELD>` overrides; paid = paid
+  platform → free alternative automatically → last resort; free = free only (`docs/PLATFORM_MODES.md`).
+  Cost ≈ US$232 / 819 / 2,459 (paid) or 171 / 575 / 1,739 (free) a month.
+- **Platforms (v2 §2):** Claude Sonnet 5.5 + Haiku 5.5 (Gemini 3.8 Flash standby); Deepgram Nova-3 → faster-whisper Small;
+  ElevenLabs Flash → Piper (Tamil ElevenLabs, Sinhala text); LiveKit self-hosted; **Telnyx** TeXML calls (Twilio removed);
+  Meta WhatsApp; **Stalwart** email relaying through SES (Postmark and Gmail removed); Vercel Pro → self-hosted web;
+  PostgreSQL + pgvector + PgBouncer; Redis + Celery; **BGE-M3** → Qwen3 on TEI `cpu-1.8`; Phoenix → Langfuse;
+  **SigNoz + UptimeRobot** (Better Stack and Sentry removed); SafeLine + CrowdSec + Turnstile; Cloudflare DNS + **R2**.
+- **Database** (D48, `docs/DATABASE.md`): Business / Interactions / Telemetry tiers; one DSN per logical DB (any can move
+  to its own server); `pack_` prefix; monthly partitions on append-only logs; nightly pruning; archives to R2.
+- **Bench go-live fixes** in WP-V2-03 / 08 / 09 / 10: Claude `temperature` 400, voice worker (picklable entry, prewarm,
+  session LLM), WhatsApp 500 on a bad number, Beat heartbeat, embedding timeouts, connection counts, retention.
+- **Next projects (~8):** design only, `docs/MULTI_PROJECT.md`.
+- **Code impact:** WP-V2-01 … 14 in `docs/V1_CHANGE_PLAN.md` (D41–D53); OPEN #69–#77.
+
+---------------------------------------------------------------------------------------------------------
+## 11 Nov changes. These override sections 2, 6b, 7 and 8 below (platform parts superseded 16 Nov).
 - **SRS updated** (same § numbers, new sections): §7 SEO/AEO/GEO in the CMS and the CMS→CRM product mirror by code;
   §7A the CRM flow per stage and role (AI summary on the deal page, manager reopens LOST, team board, kill switch);
   §8.1 the final STOP flow (stop everywhere, one plain confirmation, reasons only when volunteered, `optout.ask_reason`

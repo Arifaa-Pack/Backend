@@ -15,10 +15,9 @@ from kx.automation.channels.email import (
     build_mime,
     html_to_text,
     parse_inbound,
-    parse_ses_event,
-    s3_objects,
     strip_quoted,
 )
+from kx.automation.channels.feedback import candidate_ids, parse_feedback
 from kx.automation.settings import SesSettings
 
 PDF = Attachment("Q-1045.pdf", "application/pdf", b"%PDF-1.7 quote")
@@ -160,67 +159,97 @@ def test_html_to_text_drops_quotes() -> None:
     assert html_to_text("<div>new</div><blockquote>old</blockquote>") == "new"
 
 
-def test_ses_bounce_complaint_delivery() -> None:
-    mail = {"messageId": "0102-abc", "timestamp": "2026-11-03T06:00:00.000Z", "destination": ["a@b.com"]}
-    bounce = parse_ses_event(
-        {
-            "eventType": "Bounce",
-            "mail": mail,
-            "bounce": {
-                "bounceType": "Permanent",
-                "bounceSubType": "General",
-                "timestamp": "2026-11-03T06:01:00.000Z",
-                "bouncedRecipients": [{"emailAddress": "A@B.com"}],
-            },
-        }
-    )
-    assert (
-        bounce is not None
-        and bounce.kind == "bounce"
-        and bounce.permanent
-        and bounce.recipients == ("a@b.com",)
-    )
-    transient = parse_ses_event(
-        {
-            "notificationType": "Bounce",
-            "mail": mail,
-            "bounce": {"bounceType": "Transient", "bouncedRecipients": []},
-        }
-    )
-    assert transient is not None and not transient.permanent
-    complaint = parse_ses_event(
-        {
-            "eventType": "Complaint",
-            "mail": mail,
-            "complaint": {
-                "complainedRecipients": [{"emailAddress": "a@b.com"}],
-                "complaintFeedbackType": "abuse",
-            },
-        }
-    )
-    assert complaint is not None and complaint.permanent and complaint.detail == "abuse"
-    delivery = parse_ses_event(
-        {"eventType": "Delivery", "mail": mail, "delivery": {"recipients": ["a@b.com"]}}
-    )
-    assert delivery is not None and delivery.kind == "delivery" and delivery.provider_message_id == "0102-abc"
-    assert parse_ses_event({"eventType": "Open", "mail": mail}) is not None
-    assert parse_ses_event({"foo": 1}) is None
+DSN_BOUNCE = b"""From: MAILER-DAEMON@mail.arifapack.com
+To: sales@arifapack.com
+Subject: Undelivered Mail Returned to Sender
+Date: Mon, 16 Nov 2026 06:01:00 +0000
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status; boundary="b1"
+
+--b1
+Content-Type: text/plain
+
+Your message could not be delivered.
+
+--b1
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; mail.arifapack.com
+
+Final-Recipient: rfc822; Ahmed@Buyer.AE
+Action: failed
+Status: 5.1.1
+Diagnostic-Code: smtp; 550 5.1.1 user unknown
+
+--b1
+Content-Type: text/rfc822-headers
+
+Message-ID: <q-1045.v1@arifapack.com>
+To: ahmed@buyer.ae
+Subject: Quotation Q-1045
+
+--b1--
+"""
+
+DSN_DELAYED = DSN_BOUNCE.replace(b"Action: failed", b"Action: delayed").replace(b"5.1.1", b"4.4.1")
+
+ARF_COMPLAINT = b"""From: complaints@email-abuse.amazonses.com
+To: sales@arifapack.com
+Subject: Complaint
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=feedback-report; boundary="b2"
+
+--b2
+Content-Type: text/plain
+
+This is an email abuse report.
+
+--b2
+Content-Type: message/feedback-report
+
+Feedback-Type: abuse
+User-Agent: SomeISP
+Version: 1
+Original-Rcpt-To: buyer@example.com
+
+--b2
+Content-Type: message/rfc822
+
+Message-ID: <0102abc@eu-west-1.amazonses.com>
+Subject: Quotation Q-2001
+
+hello
+--b2--
+"""
 
 
-def test_s3_objects_decodes_keys() -> None:
-    message = {
-        "Records": [
-            {
-                "eventName": "ObjectCreated:Put",
-                "s3": {"bucket": {"name": "kx-mail"}, "object": {"key": "inbound/a+b%40c"}},
-            },
-            {
-                "eventName": "ObjectRemoved:Delete",
-                "s3": {"bucket": {"name": "kx-mail"}, "object": {"key": "x"}},
-            },
-        ]
-    }
-    assert s3_objects(message) == (("kx-mail", "inbound/a b@c"),)
+def test_dsn_permanent_bounce_names_the_address_and_the_original_message() -> None:
+    """D44: a permanent bounce suppresses the address and marks the outbound row it refers to."""
+    fb = parse_feedback(DSN_BOUNCE)
+    assert fb is not None and fb.kind == "bounce" and fb.permanent
+    assert fb.recipients == ("ahmed@buyer.ae",)
+    assert fb.original_message_id == "q-1045.v1@arifapack.com"
+    assert fb.detail == "5.1.1"
+
+
+def test_a_delayed_delivery_report_is_not_a_bounce() -> None:
+    assert parse_feedback(DSN_DELAYED) is None
+
+
+def test_arf_complaint() -> None:
+    fb = parse_feedback(ARF_COMPLAINT)
+    assert fb is not None and fb.kind == "complaint" and fb.recipients == ("buyer@example.com",)
+    assert fb.original_message_id == "0102abc@eu-west-1.amazonses.com"
+
+
+def test_ordinary_mail_is_not_feedback() -> None:
+    assert parse_feedback(RAW_REPLY) is None
+
+
+def test_candidate_ids_match_stalwart_and_ses_ids() -> None:
+    """Stalwart keeps our Message-ID; the SES API rewrites it to <ses-id@….amazonses.com> and stores ses-id."""
+    assert candidate_ids("<q-1@arifapack.com>") == ("q-1@arifapack.com", "q-1")
+    assert candidate_ids("0102abc") == ("0102abc",)
 
 
 def test_from_display_name_keeps_the_company_address() -> None:

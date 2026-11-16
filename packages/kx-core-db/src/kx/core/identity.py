@@ -45,6 +45,16 @@ def normalise_phone(raw: str, default_region: str = "AE") -> str:
     return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
 
 
+def try_normalise_phone(raw: str, default_region: str = "AE") -> str | None:
+    """`normalise_phone` without the exception: None for a number that cannot be parsed or is not valid.
+    Webhook parsers use it so one odd sender id never turns a whole delivery into HTTP 500 (Meta then
+    retries the batch for days; bench R1)."""
+    try:
+        return normalise_phone(raw, default_region)
+    except ValueError:
+        return None
+
+
 PhoneKind = Literal["mobile", "landline", "invalid", "unknown"]
 _MOBILE_TYPES = (phonenumbers.PhoneNumberType.MOBILE, phonenumbers.PhoneNumberType.FIXED_LINE_OR_MOBILE)
 

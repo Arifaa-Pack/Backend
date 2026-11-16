@@ -1,0 +1,16 @@
+# What CrowdSec reads (D53).
+filenames:
+  - /var/log/safeline/*.log
+labels:
+  type: nginx
+---
+filenames:
+  - /var/log/host/auth.log
+labels:
+  type: syslog
+---
+source: docker
+container_name:
+  - kx-mail-stalwart-1
+labels:
+  type: syslog

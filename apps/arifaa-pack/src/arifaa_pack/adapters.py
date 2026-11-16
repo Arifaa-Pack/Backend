@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import time
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from typing import Any, Literal, Protocol, cast
 
@@ -53,15 +52,23 @@ class ThreadAddressBook:
         return await self._one(_DEAL_SQL, deal_ref)
 
 
-# Qwen3-Embedding model card: queries carry a one-line task instruction, documents do not.
+# Qwen3-Embedding model card: queries carry a one-line task instruction, documents do not. BGE-M3 takes plain
+# text on both sides (no prefix, no instruction).
 QWEN3_QUERY_INSTRUCTION = "Given a web search query, retrieve relevant passages that answer the query"
+
+# D47: KX_PLATFORM__EMBEDDINGS -> (Hugging Face model id served by TEI, query instruction)
+EMBEDDING_MODELS: dict[str, tuple[str, str | None]] = {
+    "bge-m3": ("BAAI/bge-m3", None),
+    "qwen3": ("Qwen/Qwen3-Embedding-0.6B", QWEN3_QUERY_INSTRUCTION),
+}
 
 
 class HttpEmbedder:
-    """D28: Qwen3-Embedding-0.6B in our UAE container, over the OpenAI-compatible `POST /v1/embeddings`
-    (OPEN_QUESTIONS #53). 1,024 dimensions (`kb_chunks.vector(1024)` stays); vectors are L2-normalised so
-    pgvector cosine distance == 1 - dot product. The model name is stored on every chunk: a model change
-    means re-indexing."""
+    """D47: BGE-M3 (or Qwen3-Embedding-0.6B) on Hugging Face Text Embeddings Inference, over the
+    OpenAI-compatible `POST /v1/embeddings`. 1,024 dimensions (`kb_chunks.vector(1024)` stays); vectors are
+    L2-normalised so pgvector cosine distance == 1 - dot product. The model name is stored on every chunk: a
+    model change means `kx reindex`. The HTTP timeout is the *indexing* one (CPU re-index requests took ≈ 26 s
+    under load in the bench); the 2 s query cut-off is applied by `KnowledgeBase`."""
 
     dimensions = 1024
 
@@ -72,9 +79,9 @@ class HttpEmbedder:
         model: str,
         *,
         api_key: str | None = None,
-        timeout_seconds: float = 30.0,
-        query_instruction: str = QWEN3_QUERY_INSTRUCTION,
-        batch: int = 32,
+        timeout_seconds: float = 120.0,
+        query_instruction: str | None = None,
+        batch: int = 8,
     ) -> None:
         self._http = http
         self._url = base_url.rstrip("/") + "/v1/embeddings"
@@ -105,7 +112,8 @@ class HttpEmbedder:
         return out
 
     async def embed_query(self, text_: str) -> list[float]:
-        return (await self._embed([f"Instruct: {self._instruction}\nQuery:{text_}"]))[0]
+        query = f"Instruct: {self._instruction}\nQuery:{text_}" if self._instruction else text_
+        return (await self._embed([query]))[0]
 
 
 def _normalise(v: list[float]) -> list[float]:
@@ -146,75 +154,76 @@ class PayloadContentSource:
         )
 
 
-class LiveKitPlugins:
-    """kx.agents VoicePlugins (D36). Each field gets its primary and backup wrapped in LiveKit's fallback
-    adapter, so a vendor outage switches mid-call (Fallback plan: Deepgram -> Soniox when no transcript comes
-    3 s after speech ends; ElevenLabs -> Google Chirp 3 HD when no audio comes 1.5 s after the text). The
-    vendor plugins (livekit-plugins-deepgram / -soniox / -elevenlabs / -google / -silero) are installed in the
-    voice image only and read their keys from the environment (DEEPGRAM_API_KEY, SONIOX_API_KEY,
-    ELEVEN_API_KEY, GOOGLE_APPLICATION_CREDENTIALS). A missing backup plugin is logged and skipped; a missing
-    primary fails the worker at start-up rather than mid-call. Not exercised live yet (DELIVERY.md)."""
+class PlatformVoicePlugins:
+    """kx.agents VoicePlugins (D52). Each route's vendors (from the paid / free version, `kx.core.platform`)
+    are
+    wrapped in LiveKit's fallback adapter, so a vendor outage switches inside a live call: Deepgram ->
+    faster-whisper when no transcript comes, ElevenLabs -> Piper when no audio comes. The free engines are our
+    speech server (`services/speech`, OpenAI-compatible) reached through `livekit-plugins-openai`. Paid
+    plug-ins
+    read their keys from the environment (DEEPGRAM_API_KEY, ELEVEN_API_KEY). A vendor missing from the route
+    is never built; every switch is reported to `on_switch` (logged, counted, ops alerted)."""
+
+    def __init__(
+        self, speech_url: str | None, on_switch: Callable[[str, str, str], None] | None = None
+    ) -> None:
+        self._speech = (speech_url or "http://speech:8100").rstrip("/") + "/v1"
+        self._on_switch = on_switch
 
     def stt(self, route: VoiceRoute) -> Any:
-        from livekit.agents import stt as lk_stt  # noqa: PLC0415 - optional extra
+        from livekit.agents import stt as lk_stt  # noqa: PLC0415 - voice process only
 
-        engines = [e for e in (self._stt(v, route.language) for v in route.stt) if e is not None]
-        return engines[0] if len(engines) == 1 else lk_stt.FallbackAdapter(engines)
+        engines = [self._stt(v, route.language) for v in route.stt]
+        return engines[0] if len(engines) == 1 else self._watch(lk_stt.FallbackAdapter(engines), "stt", route)
 
     def tts(self, route: VoiceRoute) -> Any:
-        from livekit.agents import tts as lk_tts  # noqa: PLC0415 - optional extra
+        from livekit.agents import tts as lk_tts  # noqa: PLC0415 - voice process only
 
-        engines = [e for e in (self._tts(v, route) for v in route.tts) if e is not None]
-        return engines[0] if len(engines) == 1 else lk_tts.FallbackAdapter(engines)
+        engines = [self._tts(v, route) for v in route.tts]
+        return engines[0] if len(engines) == 1 else self._watch(lk_tts.FallbackAdapter(engines), "tts", route)
 
     def vad(self) -> Any:
-        from livekit.plugins import silero  # noqa: PLC0415 - optional extra
+        from livekit.plugins import silero  # noqa: PLC0415
 
         return silero.VAD.load()
 
     def _stt(self, vendor: str, language: str) -> Any:
-        mod = self._plugin(vendor, primary=vendor == "deepgram")
-        if mod is None:
-            return None
         if vendor == "deepgram":  # Nova-3 Multilingual (en, ar, hi, ta, zh; no Sinhala)
-            return mod.STT(model="nova-3", language="multi")
-        return mod.STT()
+            from livekit.plugins import deepgram  # noqa: PLC0415
+
+            return deepgram.STT(model="nova-3", language="multi")
+        from livekit.plugins import openai  # noqa: PLC0415
+
+        # faster-whisper Small on our server; VAD-segmented (non-streaming) recognition
+        return openai.STT(
+            base_url=self._speech, api_key="local", model="small", language=language, use_realtime=False
+        )
 
     def _tts(self, vendor: str, route: VoiceRoute) -> Any:
-        mod = self._plugin(vendor, primary=vendor == "elevenlabs")
-        if mod is None:
-            return None
-        if vendor == "elevenlabs":  # Flash: the low-latency model the Recommendation prices
-            return (
-                mod.TTS(model="eleven_flash_v2_5", voice_id=route.voice_id)
-                if route.voice_id
-                else mod.TTS(model="eleven_flash_v2_5")
-            )
-        return mod.TTS()
+        if vendor == "elevenlabs":  # Flash: the low-latency model the plan prices
+            from livekit.plugins import elevenlabs  # noqa: PLC0415
 
-    @staticmethod
-    def _plugin(vendor: str, *, primary: bool) -> Any:
-        import importlib  # noqa: PLC0415
+            if route.voice_id:
+                return elevenlabs.TTS(model="eleven_flash_v2_5", voice_id=route.voice_id)
+            return elevenlabs.TTS(model="eleven_flash_v2_5")
+        from livekit.plugins import openai  # noqa: PLC0415
 
-        try:
-            return importlib.import_module(f"livekit.plugins.{vendor}")
-        except ImportError:
-            if primary:
-                raise
-            log.warning("voice.backup_plugin_missing", vendor=vendor)
-            return None
+        return openai.TTS(
+            base_url=self._speech, api_key="local", model="piper", voice=route.language, response_format="pcm"
+        )
 
+    def _watch(self, adapter: Any, field: str, route: VoiceRoute) -> Any:
+        """Report a vendor going unavailable mid-call (LiveKit emits `availability_changed`)."""
+        notify = self._on_switch
+        if notify is not None and hasattr(adapter, "on"):
+            vendors = route.stt if field == "stt" else route.tts
 
-def write_google_credentials(raw_json: str | None, path: str = "/tmp/google-credentials.json") -> None:  # noqa: S108
-    """The Chirp backup reads GOOGLE_APPLICATION_CREDENTIALS (a file); infra passes the JSON in
-    KX_APP_GOOGLE_CREDENTIALS_JSON, so the voice worker writes it to /tmp (the writable task volume)."""
-    import os  # noqa: PLC0415
-    import pathlib  # noqa: PLC0415
+            def changed(event: Any) -> None:
+                if not getattr(event, "available", True):
+                    notify(field, vendors[0], vendors[-1])
 
-    if not raw_json or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-        return
-    pathlib.Path(path).write_text(raw_json, encoding="utf-8")
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = path
+            adapter.on("availability_changed", changed)
+        return adapter
 
 
 class PlainMailer(Protocol):
@@ -223,7 +232,8 @@ class PlainMailer(Protocol):
 
 class StaffCodeMailer:
     """kx.core StaffMailer (D26): a sign-in or recovery code to a staff work address, straight through the
-    email field's vendors in order (SES, then Postmark). Never through the buyer outbox, so a code is never
+    email field's vendors in order (Stalwart, then the SES API). Never through the buyer outbox, so a code is
+    never
     stored in a message table. Every vendor failing is a 503 for the login screen ("use your
     authenticator")."""
 
@@ -281,34 +291,78 @@ class PublicLimiter:
         return bool(decision.allowed)
 
 
-class VendorOrder:
-    """D30: each field's vendor order from Parameter Store (`<prefix>/<field>`, a StringList such as
-    "ses,postmark"), cached 60 s so an admin edit takes effect without a deploy. Forcing a vendor off = leave
-    it out of the list. Unreadable or empty -> the documented default order."""
+class OpsNotifier:
+    """D41 / D30 alert hook for `FallbackChain` and the voice fallback adapters: a vendor switch is logged and
+    emailed to the ops address list, at most once per field every 15 minutes (Redis key with TTL), so an
+    outage pages someone without flooding the inbox. The `VendorSwitch` metric is written by the chain itself
+    and SigNoz alerts on it too."""
 
     def __init__(
-        self, ssm: Any, prefix: str | None, defaults: dict[str, tuple[str, ...]], ttl_seconds: float = 60.0
+        self,
+        redis: Any,
+        company: str,
+        mailer: PlainMailer | None,
+        to: tuple[str, ...],
+        quiet_seconds: int = 900,
     ) -> None:
-        self._ssm = ssm
-        self._prefix = (prefix or "").rstrip("/")
-        self._defaults = defaults
-        self._ttl = ttl_seconds
-        self._cache: dict[str, tuple[float, tuple[str, ...]]] = {}
+        self._redis = redis
+        self._company = company
+        self._mailer = mailer
+        self._to = to
+        self._quiet = quiet_seconds
 
-    async def order(self, field: str) -> tuple[str, ...]:
-        default = self._defaults.get(field, ())
-        if not self._prefix:
-            return default
-        cached = self._cache.get(field)
-        now = time.monotonic()
-        if cached is not None and now - cached[0] < self._ttl:
-            return cached[1]
+    async def __call__(self, field: str, from_vendor: str, to_vendor: str) -> None:
+        log.warning("vendor_switch", field=field, from_vendor=from_vendor, to_vendor=to_vendor)
+        if self._mailer is None or not self._to:
+            return
         try:
-            resp = await self._ssm.get_parameter(Name=f"{self._prefix}/{field}")
-            value = tuple(v.strip() for v in str(resp["Parameter"]["Value"]).split(",") if v.strip())
+            first = await self._redis.set(
+                f"kx:{self._company}:ops:switch:{field}", "1", nx=True, ex=self._quiet
+            )
         except Exception:
-            log.warning("vendor_order.unreadable", field=field)
-            value = ()
-        result = value or default
-        self._cache[field] = (now, result)
-        return result
+            log.warning("ops_alert.redis_unavailable", field=field)
+            first = True
+        if not first:
+            return
+        subject = f"[{self._company}] {field}: switched from {from_vendor} to {to_vendor}"
+        body = (
+            f"The {field} field of {self._company} switched from {from_vendor} to {to_vendor} at "
+            f"{datetime.now(UTC).isoformat(timespec='seconds')}.\n"
+            "Check the vendor's status page and SigNoz (VendorSwitch). Further switches of this field are "
+            "not emailed for 15 minutes."
+        )
+        for address in self._to:
+            try:
+                await self._mailer.send(to_address=address, subject=subject, body=body)
+            except Exception:
+                log.warning("ops_alert.mail_failed", field=field)
+
+
+class VoiceSlots:
+    """D52: free-version voice calls at once (CPU speech-to-text) are capped. A Redis counter is raised when a
+    call starts and lowered when it ends (the key expires after an hour, so a crashed worker cannot hold
+    slots forever); the token endpoint refuses voice when the cap is reached and the visitor gets chat."""
+
+    def __init__(self, redis: Any, company: str, cap: int) -> None:
+        self._redis = redis
+        self._key = f"kx:{company}:voice:free_calls"
+        self._cap = cap
+
+    async def available(self) -> bool:
+        try:
+            current = int(await self._redis.get(self._key) or 0)
+        except Exception:
+            return True  # the cap protects CPU, not money: never block voice on a Redis hiccup
+        return current < self._cap
+
+    async def on_call(self, route: VoiceRoute, started: bool) -> None:
+        if not route.free_stt:
+            return
+        try:
+            if started:
+                await self._redis.incr(self._key)
+                await self._redis.expire(self._key, 3600)
+            elif int(await self._redis.decr(self._key)) < 0:
+                await self._redis.set(self._key, 0)
+        except Exception:
+            log.warning("voice_slots.redis_unavailable")

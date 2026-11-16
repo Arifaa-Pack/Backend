@@ -2,17 +2,18 @@
 
 Read this before writing code in any package. It answers three questions: **who owns what**, **what each package may import**, and **which shared helper already does what you are about to write**.
 
-Business rules come from the SRS (`docs/Arifaa Pack — Detailed Business Flow v1 (SRS basis) (2).md`); vendors and fallbacks from `docs/Arifaa Platform — Platforms, Pricing & Fallbacks/`. Both are read-only.
+Business rules come from the SRS (`docs/Arifaa Pack — Detailed Business Flow v1 (SRS basis) (2).md`); platforms, the paid / free version and fallbacks from the server plan v2 and the files next to it in `docs/Arifaa Platform — Platforms, Pricing & Fallbacks/` (`docs/PLATFORM_MODES.md` maps them to code).
 
 ## 1. Packages and ownership
 
 | Package (dist name → import) | Owns | May import | Must never |
 |---|---|---|---|
-| `kx-core-db` → `kx.core` | settings, DB engines/sessions, money, ids, time windows, events/outbox/inbox, **job store**, errors, **auth (token issue + verify)**, logging, metrics, **fallback/circuit breaker**, spend caps, **contracts** (DTOs + Protocols), price guard | stdlib, pydantic, sqlalchemy, fastapi, structlog, orjson, phonenumbers, pyjwt, cryptography, redis | import any other `kx.*` package |
+| `kx-core-db` → `kx.core` | settings, DB engines/sessions, money, ids, time windows, events/outbox/inbox, **job store**, errors, **auth (token issue + verify)**, logging, metrics, **fallback/circuit breaker**, spend caps, **contracts** (DTOs + Protocols), price guard, **platform modes** (paid / free order per field), **retention helpers** (prune, partitions, archive) | stdlib, pydantic, sqlalchemy, fastapi, structlog, orjson, phonenumbers, pyjwt, cryptography, redis, opentelemetry-api | import any other `kx.*` package |
 | `kx-core-crm` → `kx.crm` | `crm` DB: deals, quotes, approvals, send grants, pricing engine, settings, price proposals, orders, stock, retention, **staff users + login**, catalogue mirror, Requirement Summary | `kx.core` | import `kx.automation` / `kx.agents` |
-| `kx-core-automation` → `kx.automation` | `automation` DB: channels (WhatsApp, SES, Postmark; Twilio for calls; Telnyx planned, OPEN #55), OutboundService, **opt-out**, webhooks, job bodies + the schedule table, scrapers | `kx.core` | import `kx.crm` / `kx.agents` |
+| `kx-core-automation` → `kx.automation` | `automation` DB: channels (WhatsApp Meta; email Stalwart JMAP → SES API; calls Telnyx TeXML), OutboundService, **opt-out**, webhooks, job bodies + the schedule table, scrapers | `kx.core` | import `kx.crm` / `kx.agents` |
 | `kx-agent-framework` → `kx.agents` | `agents` DB: AgentSpec registry, orchestrator, graphs, tools, guard middleware, memory, KB search, voice routing, **website sessions** | `kx.core` | import `kx.crm` / `kx.automation` |
-| `arifaa-pack` → `arifaa_pack` | client wiring: api / worker / beat / voice entrypoints, **the Celery app**, vendor adapters, `company.yaml`, prompts, migrations | everything | be imported by platform packages |
+| `arifaa-pack` → `arifaa_pack` | client wiring: api / worker / beat / voice entrypoints, **the Celery app**, vendor adapters (LiveKit plug-ins, embeddings, R2), telemetry (OpenTelemetry → SigNoz), `company.yaml`, prompts, migrations | everything | be imported by platform packages |
+| `services/speech` (own image, not a Python package of the workspace) | the free speech server: faster-whisper Small + Piper behind an OpenAI-compatible HTTP API | its own `requirements.txt` | be imported by anything; it is reached over HTTP only |
 
 Enforced by import-linter (`uv run lint-imports`). Packages talk to each other only through:
 1. **Protocols in `kx.core.contracts`** (`CrmGateway`, `GrantConsumer`, `MessageSender`, `StaffMailer`, …): implemented by one package, injected by the app.
@@ -32,9 +33,11 @@ No cross-database foreign keys: reference other DBs with `*_ref uuid` columns. *
 | Business hours, approval timer | `kx.core.timewindow.Window` (`contains`, `next_open`, `add_open_minutes`) |
 | Events | `Event`, `Outbox.add`, `relay_once`, `inbox_once`, `InMemoryBus`, event-name constants |
 | Background work, timers | `kx.core.jobs`: `JobStore` (`enqueue`, `replace`, `pull_forward`, `cancel`, `claim`, `finish`, `fail`, `due`, `recover`), `JobSpec`, `Kicker` protocol (the app's Celery sender) |
-| Vendor fallback | `kx.core.fallback`: `CircuitBreaker`, `FallbackChain`, the bare `VendorSwitch` metric; the Parameter Store order is `arifaa_pack.adapters.VendorOrder` (the app owns Parameter Store) |
+| Vendor order, paid / free | `kx.core.platform`: `Field`, `Plan`, `order(field, language=..., configured=...)`, `summary()`; settings `CoreSettings.platform` (`KX_PLATFORM_PLAN`, `KX_PLATFORM__<FIELD>`) |
+| Vendor fallback | `kx.core.fallback`: `CircuitBreaker`, `FallbackChain` (its `alert` hook is the app's `OpsNotifier`), the `VendorSwitch` metric |
+| Retention, partitions, archive | `kx.core.retention`: `prune_batches`, `ensure_month_partitions`, `drop_old_partitions`, `archive_query`; `BlobStore` protocol in `kx.core.contracts` (R2) |
 | Daily spend caps | `kx.core.spend.SpendMeter` (Redis counters; 80 % alert, 100 % degrade) |
-| Metrics | `kx.core.metrics.emit_metric` (CloudWatch Embedded Metric Format log line) |
+| Metrics | `kx.core.metrics.emit_metric` (OpenTelemetry counters / gauges; a no-op until the app installs a meter provider; exported to SigNoz) |
 | Errors → HTTP | `DomainError` subclasses (`NotFound`, `Conflict`, `Forbidden`, `Unauthorized`, `RuleViolation`, `TooManyRequests`) + `install_problem_handlers(app)` |
 | Auth | `current_principal`, `require_role(...)`, `require_human_mfa(...)` (approvals), `Role`, `Principal`, `TokenIssuer` (RS256 access tokens), `TokenIssuer.jwks()` (served at `/.well-known/jwks.json`) |
 | Passwords, one-time codes | `kx.core.passwords`: `hash_password` / `verify_password` (Argon2id), `totp_now` / `verify_totp` (RFC 6238), `new_numeric_code` |
@@ -47,7 +50,7 @@ No cross-database foreign keys: reference other DBs with `*_ref uuid` columns. *
 
 ## 3. Hard rules (business safety)
 
-**Status (11 Nov):** the 5 Nov rules below are built (WP1–WP12). The 11 Nov rules (marked **[11 Nov]**) are the WP13–WP29 work list in `docs/V1_CHANGE_PLAN.md`. The 4 Nov cost-based pricing remains as v2 behind `pricing.mode='cost'`.
+**Status (16 Nov):** the 5 Nov rules (WP1–WP12) and the 11 Nov rules (marked **[11 Nov]**, WP13–WP29) are built. The 16 Nov rules (marked **[16 Nov]**) are the WP-V2 work list in `docs/V1_CHANGE_PLAN.md`. The 4 Nov cost-based pricing remains as v2 behind `pricing.mode='cost'`.
 
 - **Nothing reaching the AI may contain cost, markup, the minimum price, the ladder steps or other customers' data.** `kx.core.contracts` DTOs are the only shapes agents see.
 - **[11 Nov] The backend builds every quote** (§11.1, D17): tier, list price, FX, VAT, specs, delivery time, terms, version number and PDF come from fixed rules over the catalogue and price list. The AI collects the inputs and writes only the covering message. A line the system cannot price stays empty and becomes a Pricing-needed task.
@@ -77,6 +80,8 @@ No cross-database foreign keys: reference other DBs with `*_ref uuid` columns. *
   - stop on reply or opt-out;
   - text only: no calls to buyers unless they asked (§16); **no cold AI calls**, ever.
 - **Handover:** after final approval, the salesperson is alerted and the manager notified, and the AI stops replying on that deal. **[11 Nov]** The salesperson continues on the same company number from the CRM inbox (D21).
+- **[16 Nov] Platforms (D41, D42):** only the server plan v2 §2 platforms are in the code; the order per field comes from `kx.core.platform` (paid = paid → free alternative → last resort; free = free only). Every switch is logged, counted and alerted.
+- **[16 Nov] Databases (D48):** each package uses only its own logical database and DSN (so any database can move to its own server); plumbing tables are pruned nightly, append-only logs are partitioned by month and archived to R2; nothing in the Business tier (`crm`) is deleted except by the §22 retention rules.
 - **[11 Nov] Fallbacks (D30):** call a field's adapter, never a vendor. The price guard, approval gate, consent and quiet hours run after every switch. A price turn falls back only to a model that passed the negotiation suite (none yet: D27). No job runs twice with effect: every task checks an idempotency key before sending a message or placing a call. Spend caps per company per day (D34). Kill-switch ladder (D35).
 
 **Counter-offer verdicts (WP2):** `CounterVerdictKind.REQUOTE` (§12.2 rule 5: the quantity moved into another tier; the CRM drafts a revised quote for the salesperson and the AI gets no price, `offer_unit_price=None`) and `CHANGE_REQUEST` (quantity below the MOQ or outside the tiers, or a hand-priced item: a human answers); `CounterVerdict.requires_approval`. `DealContext.allowed_prices` = the issued quote plus the ladder steps actually offered; steps not yet offered and the minimum never reach the AI.
@@ -105,4 +110,4 @@ No cross-database foreign keys: reference other DBs with `*_ref uuid` columns. *
 - Async everywhere on I/O paths (SQLAlchemy 2.1 async + asyncpg; psycopg 3 only for migrations and the LangGraph checkpointer). Celery tasks are sync shells that run one coroutine on the worker process's own event loop.
 - Pure logic in plain functions over frozen dataclasses / pydantic models; I/O in services; FastAPI routers thin.
 - Tests: `tests/` inside each package, `pytest` + `hypothesis`; DB tests marked `@pytest.mark.db` use the root `databases` fixture.
-- Do not add dependencies without the lead: everything allowed is already in `uv.lock`.
+- Do not add dependencies without the lead: everything allowed is already in `uv.lock` (16 Nov approved additions: the LiveKit plug-ins and `opentelemetry-api` in `kx.core`; the speech image has its own pinned `requirements.txt`).

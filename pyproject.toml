@@ -43,6 +43,8 @@ markers = ["db: needs PostgreSQL (KX_TEST_PG_DSN)", "bench: performance benchmar
 target-version = "py314"
 line-length = 110
 src = ["packages/*/src", "apps/*/src"]
+# measurement scripts of the 14 Nov resource bench (not platform code; they run in their own containers)
+extend-exclude = ["resource-usage-bench"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "ASYNC", "S", "PERF", "PL", "TRY", "DTZ", "N"]
@@ -80,7 +82,7 @@ module = ["arifaa_pack.celery_app"]
 disallow_untyped_decorators = false
 
 [[tool.mypy.overrides]]
-module = ["celery.*", "kombu.*", "pywa.*", "twilio.*", "aioboto3.*", "phonenumbers.*", "livekit.*"]
+module = ["celery.*", "kombu.*", "pywa.*", "aioboto3.*", "phonenumbers.*", "livekit.*"]
 ignore_missing_imports = true
 
 # Module boundaries: a package may not import another package's internals

@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 # =============================================================================================
 # Kairox platform image: one image, modes `kx api | worker | beat | voice | migrate | create-user`
-# (worker = Celery worker, beat = the ONE Celery Beat) plus the db-bootstrap script.
-# Built for linux/arm64 (Graviton Fargate).
+# (worker = Celery worker, beat = the ONE Celery Beat, voice = LiveKit agent) plus the db-bootstrap script.
+# Built for linux/amd64 (16 Nov, D49: the Namecheap Xeon dedicated server; Coolify runs it).
 #
-#   docker buildx build --platform linux/arm64 -t kairox/app:dev .
+#   docker buildx build --platform linux/amd64 -t kairox/app:dev .
 #   docker run --rm kairox/app:dev api
 # =============================================================================================
 ARG PYTHON_IMAGE=python:3.14-slim-trixie
@@ -75,10 +75,10 @@ WORKDIR /app
 
 COPY --from=builder --chown=root:root /app/.venv /app/.venv
 COPY --chown=root:root db/ddl /app/db/ddl
-COPY --chown=root:root --chmod=0755 infra/scripts/db_bootstrap.sh /app/scripts/db_bootstrap.sh
+COPY --chown=root:root --chmod=0755 infra/server/postgres/db_bootstrap.sh /app/scripts/db_bootstrap.sh
 COPY --chown=root:root docker/healthcheck.py /app/healthcheck.py
 
-# The root filesystem is read-only on ECS; /tmp is a writable task volume.
+# The root filesystem is read-only (compose `read_only: true`); /tmp is a writable tmpfs.
 ENV PATH="/app/.venv/bin:${PATH}" \
     KX_DDL_DIR=/app/db/ddl \
     PYTHONUNBUFFERED=1 \

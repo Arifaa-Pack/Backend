@@ -1,4 +1,6 @@
-"""Webhook routes end to end (ASGI) against Postgres: signatures, dedupe, outbox events, statuses."""
+"""Webhook routes end to end (ASGI) against Postgres: signatures, dedupe, outbox events, statuses.
+
+16 Nov: Telnyx TeXML callbacks (D43) replace Twilio; email has no webhook (D44, Stalwart is polled)."""
 
 from __future__ import annotations
 
@@ -14,10 +16,10 @@ from automation_fakes import FakeScheduler
 from fastapi import FastAPI
 from sqlalchemy import text
 from test_auto_whatsapp import meta_payload, text_message
-from twilio.request_validator import RequestValidator
 
-from kx.automation.alerts import VoiceAlerts
-from kx.automation.channels.sns import SnsEnvelope, SnsVerifier
+from kx.automation.alerts import VoiceAlerts, callback_urls
+from kx.automation.channels.feedback import parse_feedback
+from kx.automation.inbound import record_mail_event
 from kx.automation.settings import AutomationSettings
 from kx.automation.webhooks import WebhookDeps, build_router
 from kx.core.errors import install_problem_handlers
@@ -30,22 +32,15 @@ BASE = "https://api.arifapack.com"
 SETTINGS = AutomationSettings.model_validate(
     {
         "whatsapp": {"app_secret": SECRET, "verify_token": "vt"},
-        "twilio": {"auth_token": "tw-token", "status_callback_base_url": BASE},
-        "ses": {"sns_topic_arns": ["arn:topic"], "inbound_bucket": "kx-mail"},
+        "telnyx": {"callback_secret": "cb-secret"},
+        "public_base_url": BASE,
     }
 )
 
 
 class FakeCaller:
-    async def place_call(self, to_e164: str, twiml: str, status_callback_url: str) -> str:
+    async def place_call(self, to_e164: str, texml: str, status_callback_url: str) -> str:
         return "CA1"
-
-
-class TrustingSns(SnsVerifier):
-    """Signature maths is covered in test_auto_sns; here only routing matters."""
-
-    async def verify(self, env: SnsEnvelope) -> bool:
-        return env.TopicArn == "arn:topic"
 
 
 @dataclass
@@ -70,17 +65,7 @@ async def hook(auto_db: Any) -> AsyncIterator[Hook]:
     app = FastAPI()
     install_problem_handlers(app)
     voice = VoiceAlerts(auto_db, SETTINGS, FakeCaller())
-    app.include_router(
-        build_router(
-            WebhookDeps(
-                auto_db,
-                SETTINGS,
-                scheduler,
-                voice,
-                TrustingSns(httpx.AsyncClient(), frozenset({"arn:topic"})),
-            )
-        )
-    )
+    app.include_router(build_router(WebhookDeps(auto_db, SETTINGS, scheduler, voice)))
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url=BASE) as http:
         yield Hook(http, auto_db, scheduler)
 
@@ -174,85 +159,84 @@ async def test_statuses_move_forward_only(hook: Hook) -> None:
     assert events == [("read",)]
 
 
-def twilio_headers(path: str, form: dict[str, str]) -> dict[str, str]:
-    return {"X-Twilio-Signature": RequestValidator("tw-token").compute_signature(f"{BASE}{path}", form)}
+async def test_an_unparseable_sender_never_returns_500(hook: Hook) -> None:
+    """Bench R1: a sender id that is not a phone number used to raise -> HTTP 500 -> Meta retried for days.
+    Now that item is skipped and logged, the rest of the batch is stored, and Meta gets its 200."""
+    bad = text_message(wamid="wamid.BAD") | {"from": "not-a-number"}
+    good = text_message(wamid="wamid.OK")
+    assert (await hook.whatsapp(meta_payload([bad, good]))).status_code == 200
+    assert await hook.sql("SELECT provider_message_id FROM inbound_messages") == [("wamid.OK",)]
+    garbage = b'{"object": "whatsapp_business_account", "entry": "nope"}'
+    sig = "sha256=" + hmac_sha256_hex(SECRET.encode(), garbage)
+    response = await hook.http.post(
+        "/webhooks/whatsapp", content=garbage, headers={"X-Hub-Signature-256": sig}
+    )
+    assert response.status_code == 200
 
 
-async def test_twilio_gather_press_2_pulls_ladder_forward(hook: Hook) -> None:
+def signed(path_kind: str, attempt_id: uuid.UUID) -> str:
+    urls = callback_urls(SETTINGS)
+    url = urls.gather(attempt_id) if path_kind == "gather" else urls.status(attempt_id)
+    return url.removeprefix(BASE)
+
+
+async def test_telnyx_gather_press_2_pulls_ladder_forward(hook: Hook) -> None:
     approval = uuid.uuid4()
     (row,) = await hook.sql(
         "INSERT INTO call_attempts (purpose, approval_ref, to_e164, provider) "
-        "VALUES ('approval_alert', :a, '+971501111111', 'twilio') RETURNING id",
+        "VALUES ('approval_alert', :a, '+971501111111', 'telnyx') RETURNING id",
         a=approval,
     )
-    path = f"/webhooks/twilio/voice/{row[0]}"
-    form = {"CallSid": "CA1", "Digits": "2"}
-    unsigned = await hook.http.post(path, data=form)
+    form = {"CallSid": "v3:1", "Digits": "2"}
+    unsigned = await hook.http.post(f"/webhooks/telnyx/gather/{row[0]}", data=form)
     assert unsigned.status_code == 401
-    response = await hook.http.post(path, data=form, headers=twilio_headers(path, form))
+    other = await hook.http.post(signed("gather", uuid.uuid4()).replace(str(uuid.uuid4()), ""), data=form)
+    assert other.status_code in {401, 404, 422}
+    response = await hook.http.post(signed("gather", row[0]), data=form)
     assert response.status_code == 200 and "manager is being alerted" in response.text
     assert hook.scheduler.named("pull") == [{"approval_ref": approval}]
     assert await hook.sql("SELECT digits_pressed, status FROM call_attempts") == [("2", "answered")]
 
 
-async def test_twilio_status_never_regresses(hook: Hook) -> None:
+async def test_a_token_for_another_attempt_is_refused(hook: Hook) -> None:
     (row,) = await hook.sql(
         "INSERT INTO call_attempts (purpose, to_e164, provider) "
-        "VALUES ('below_range_alert', '+971501111111', 'twilio') RETURNING id"
+        "VALUES ('below_range_alert', '+971501111111', 'telnyx') RETURNING id"
     )
-    path = f"/webhooks/twilio/status?attempt_id={row[0]}"
+    token = signed("status", uuid.uuid4()).partition("?t=")[2]
+    response = await hook.http.post(
+        f"/webhooks/telnyx/status/{row[0]}?t={token}", data={"CallStatus": "busy"}
+    )
+    assert response.status_code == 401
+
+
+async def test_telnyx_status_never_regresses(hook: Hook) -> None:
+    (row,) = await hook.sql(
+        "INSERT INTO call_attempts (purpose, to_e164, provider) "
+        "VALUES ('below_range_alert', '+971501111111', 'telnyx') RETURNING id"
+    )
+    path = signed("status", row[0])
     for status in ("completed", "ringing"):
-        form = {"CallSid": "CA7", "CallStatus": status}
-        assert (await hook.http.post(path, data=form, headers=twilio_headers(path, form))).status_code == 204
+        form = {"CallSid": "v3:7", "CallStatus": status}
+        assert (await hook.http.post(path, data=form)).status_code == 204
     assert await hook.sql("SELECT status, provider_call_id, ended_at IS NOT NULL FROM call_attempts") == [
-        ("completed", "CA7", True)
+        ("completed", "v3:7", True)
     ]
 
 
-def sns(message: dict[str, Any], topic: str = "arn:topic", message_id: str = "sns-1") -> dict[str, Any]:
-    return {
-        "Type": "Notification",
-        "MessageId": message_id,
-        "TopicArn": topic,
-        "Message": json.dumps(message),
-        "Timestamp": "2026-11-03T06:00:00Z",
-        "SignatureVersion": "2",
-        "Signature": "x",
-        "SigningCertURL": "https://sns.me-central-1.amazonaws.com/c.pem",
-    }
+async def test_a_mailbox_bounce_report_suppresses_and_fails(hook: Hook) -> None:
+    """D44: the DSN read from Stalwart's inbox does what the SES SNS event used to do."""
+    from test_auto_email import DSN_BOUNCE
 
-
-async def test_ses_bounce_suppresses_and_fails(hook: Hook) -> None:
     await hook.sql(
         "INSERT INTO outbound_messages (channel_account_id, to_address, kind, requested_by, idempotency_key, status, "
-        "provider_message_id) SELECT id, 'a@b.com', 'reply', 'ai', 'k1', 'sent', '0102-x' "
+        "provider_message_id) SELECT id, 'ahmed@buyer.ae', 'reply', 'ai', 'k1', 'sent', 'q-1045.v1@arifapack.com' "
         "FROM channel_accounts WHERE channel = 'email' RETURNING id"
     )
-    bounce = {
-        "eventType": "Bounce",
-        "mail": {"messageId": "0102-x", "timestamp": "2026-11-03T06:00:00Z"},
-        "bounce": {"bounceType": "Permanent", "bouncedRecipients": [{"emailAddress": "a@b.com"}]},
-    }
-    for _ in range(2):
-        assert (await hook.http.post("/webhooks/ses", json=sns(bounce))).status_code == 200
+    feedback = parse_feedback(DSN_BOUNCE)
+    assert feedback is not None
+    async with hook.db.transaction(LogicalDb.AUTOMATION) as s:
+        await record_mail_event(s, feedback)
     assert await hook.sql("SELECT status FROM outbound_messages") == [("failed",)]
     assert await hook.sql("SELECT channel, reason FROM suppressions") == [("email", "bounce")]
     assert await hook.sql("SELECT payload->>'status' FROM outbox_events") == [("bounced",)]
-    assert (await hook.http.post("/webhooks/ses", json=sns(bounce, topic="arn:evil"))).status_code == 401
-
-
-async def test_ses_inbound_mail_enqueues_only_our_bucket(hook: Hook) -> None:
-    records = {
-        "Records": [
-            {
-                "eventName": "ObjectCreated:Put",
-                "s3": {"bucket": {"name": "kx-mail"}, "object": {"key": "in/1"}},
-            },
-            {
-                "eventName": "ObjectCreated:Put",
-                "s3": {"bucket": {"name": "other"}, "object": {"key": "in/2"}},
-            },
-        ]
-    }
-    await hook.http.post("/webhooks/ses", json=sns(records))
-    assert hook.scheduler.named("email") == [{"key": "in/1"}]

@@ -1,9 +1,8 @@
-"""12 Nov audit fixes with no database: D27 model tiers, the X-Forwarded-For spoof guard, D30 VendorOrder,
-and the metric names the CloudWatch alarms (infra/modules/observability) page on."""
+"""12 Nov audit fixes with no database: D27 model tiers, the client-IP spoof guard (D53: CF-Connecting-IP),
+and the metric names the SigNoz alert rules watch (D46)."""
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Any
 
@@ -52,8 +51,11 @@ def test_every_price_role_runs_on_the_smart_tier() -> None:
             assert spec.tier == ModelTier.SMART, role
 
 
-def _request(xff: str | None, client: str | None = "10.0.0.9") -> Request:
+def _request(
+    xff: str | None, client: str | None = "10.0.0.9", extra: dict[str, str] | None = None
+) -> Request:
     headers = [(b"x-forwarded-for", xff.encode())] if xff is not None else []
+    headers += [(k.encode(), v.encode()) for k, v in (extra or {}).items()]
     scope: dict[str, Any] = {
         "type": "http",
         "headers": headers,
@@ -70,53 +72,20 @@ def test_x_forwarded_for_uses_the_last_entry_not_the_spoofable_first() -> None:
     assert _ip(_request("", client=None)) == "unknown"
 
 
-class _FakeSSM:
-    def __init__(self, value: str | Exception) -> None:
-        self.value = value
-        self.calls = 0
-
-    async def get_parameter(self, Name: str) -> dict[str, Any]:  # noqa: N803 - boto3 param name
-        self.calls += 1
-        if isinstance(self.value, Exception):
-            raise self.value
-        return {"Parameter": {"Value": self.value}}
+def test_trusted_client_ip_header_wins_only_when_configured() -> None:
+    """D53: behind Cloudflare the visitor's address is CF-Connecting-IP; without the setting it is ignored."""
+    req = _request("10.1.1.1", extra={"cf-connecting-ip": "198.51.100.4"})
+    assert _ip(req, "CF-Connecting-IP") == "198.51.100.4"
+    assert _ip(req) == "10.1.1.1"
 
 
-async def test_vendor_order_reads_parameter_store_and_caches() -> None:
-    from arifaa_pack.adapters import VendorOrder
-
-    ssm = _FakeSSM("ses, postmark")
-    vo = VendorOrder(ssm, "/kx/vendors", {"email": ("ses", "postmark")})
-    assert await vo.order("email") == ("ses", "postmark")
-    assert await vo.order("email") == ("ses", "postmark")
-    assert ssm.calls == 1  # 60 s cache: one read
-
-
-async def test_vendor_order_falls_back_to_defaults() -> None:
-    from arifaa_pack.adapters import VendorOrder
-
-    defaults = {"email": ("ses", "postmark"), "calls": ("twilio",)}
-    # no prefix configured: the documented default, no SSM call
-    vo = VendorOrder(_FakeSSM("ignored"), None, defaults)
-    assert await vo.order("calls") == ("twilio",)
-    # unreadable parameter: the default order, not an empty list
-    vo = VendorOrder(_FakeSSM(RuntimeError("no such parameter")), "/kx/vendors", defaults)
-    assert await vo.order("email") == ("ses", "postmark")
-
-
-def _infra_metric_names() -> set[str]:
-    tf = (ROOT / "infra/modules/observability/main.tf").read_text(encoding="utf-8")
-    return set(re.findall(r'metric_name\s*=\s*"([^"]+)"', tf))
-
-
-def test_emitted_metric_names_match_the_cloudwatch_alarms() -> None:
-    """The app emits bare metric names (EMF namespace Kairox); the alarms must name the same strings."""
-    names = _infra_metric_names()
-    assert "VendorSwitch" in names  # kx.core.fallback / kx.agents.service on every switch (incl. hand-over)
-    assert "SpendCap" in names  # kx.core.spend at 80 % / 100 % (D34)
+def test_emitted_metric_names_are_the_ones_signoz_alerts_on() -> None:
+    """D46: SigNoz alert rules watch these names (docs/PLATFORM_MODES.md, infra/server/README.md)."""
     for src in (
         "packages/kx-core-db/src/kx/core/fallback.py",
         "packages/kx-agent-framework/src/kx/agents/service.py",
     ):
         assert '"VendorSwitch"' in (ROOT / src).read_text(encoding="utf-8")
     assert '"SpendCap"' in (ROOT / "packages/kx-core-db/src/kx/core/spend.py").read_text(encoding="utf-8")
+    readme = (ROOT / "infra/server/README.md").read_text(encoding="utf-8")
+    assert "VendorSwitch" in readme and "QueueLagSeconds" in readme and "SpendCap" in readme

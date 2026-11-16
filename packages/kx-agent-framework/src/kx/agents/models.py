@@ -2,7 +2,13 @@
 
 D27 (11 Nov): Claude Sonnet 5.5 on money turns (SMART) and Haiku 5.5 on the rest (FAST), called directly
 through the Claude API (langchain-anthropic `ChatAnthropic`); Amazon Bedrock was dropped. Backup providers
-are appended to the router's list only once they pass the eval suite and the client agrees.
+(16 Nov: Gemini 3.8 Flash standby, `KX_PLATFORM__LLM_STANDBY`) are appended to the router's list only once
+they pass the eval suite and the client agrees.
+
+D51 (16 Nov): Claude Sonnet 5.5 and Haiku 5.5 reject non-default `temperature` / `top_p` / `top_k` with
+HTTP 400 (the bench found every Sonnet call failing on `temperature=0.2`), so no sampling parameter is ever
+sent. Depth and cost are steered with `output_config.effort` per tier; thinking stays adaptive (it cannot be
+disabled on Sonnet 5.5) and `max_tokens` leaves room for it so replies are not cut short.
 
 Live agents (`create_agent`) get fallbacks through `ModelFallbackMiddleware` (a `.with_fallbacks()`
 runnable is not a chat model and cannot bind tools); plain node calls use `.with_fallbacks()`.
@@ -12,7 +18,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Final, Protocol, runtime_checkable
+from typing import Any, Final, Literal, Protocol, runtime_checkable
 
 from langchain.agents.middleware import AgentMiddleware, ModelFallbackMiddleware
 from langchain_anthropic import ChatAnthropic
@@ -29,13 +35,38 @@ ANTHROPIC_MODEL_IDS: Final[dict[ModelTier, str]] = {
     ModelTier.JUDGE: "claude-opus-5-5",
 }
 
+Effort = Literal["low", "medium", "high", "xhigh", "max"]
+
 
 @dataclass(frozen=True, slots=True)
 class ModelOptions:
-    temperature: float = 0.2  # sales replies: consistent, still natural
-    max_tokens: int = 1024
+    """Per-tier request options. No sampling parameters (D51): consistency comes from the prompts, the
+    fixed phrases and the price guard, not from temperature."""
+
+    effort: Effort = "medium"
+    max_tokens: int = 4096  # room for adaptive thinking + the reply; replies themselves are short
     timeout_s: float = 30.0
     max_retries: int = 2
+
+
+# OPEN_QUESTIONS #76: FAST answers routine turns quickly; SMART (money turns) thinks more; the judge most.
+DEFAULT_OPTIONS: Final[dict[ModelTier, ModelOptions]] = {
+    ModelTier.FAST: ModelOptions(effort="low", max_tokens=2048),
+    ModelTier.SMART: ModelOptions(effort="medium", max_tokens=4096),
+    ModelTier.JUDGE: ModelOptions(effort="high", max_tokens=8192, timeout_s=120.0),
+}
+
+
+def tier_options(
+    fast: Effort | None = None, smart: Effort | None = None, judge: Effort | None = None
+) -> dict[ModelTier, ModelOptions]:
+    """DEFAULT_OPTIONS with the effort of some tiers replaced (settings `KX_APP_LLM_EFFORT_*`)."""
+    out = dict(DEFAULT_OPTIONS)
+    for tier, effort in ((ModelTier.FAST, fast), (ModelTier.SMART, smart), (ModelTier.JUDGE, judge)):
+        if effort is not None:
+            base = out[tier]
+            out[tier] = ModelOptions(effort, base.max_tokens, base.timeout_s, base.max_retries)
+    return out
 
 
 @runtime_checkable
@@ -58,11 +89,14 @@ class AnthropicApiProvider:
         kwargs: dict[str, Any] = {"api_key": self._key} if self._key is not None else {}
         return ChatAnthropic(
             model_name=self._ids[tier],
-            temperature=options.temperature,
             max_tokens_to_sample=options.max_tokens,
             timeout=options.timeout_s,
             max_retries=options.max_retries,
             stop=None,
+            # effort via output_config, not `reasoning_effort`: that field would also switch the thinking
+            # display to "summarized" (more output tokens for nothing a buyer sees).
+            thinking={"type": "adaptive"},
+            output_config={"effort": options.effort},
             **kwargs,
         )
 
@@ -108,7 +142,7 @@ class ModelRouter:
 
     def for_tier(self, tier: ModelTier) -> ModelSet:
         if tier not in self._cache:
-            opts = self.options.get(tier, ModelOptions())
+            opts = self.options.get(tier) or DEFAULT_OPTIONS.get(tier, ModelOptions())
             models = [p.chat_model(tier, opts) for p in self.providers]
             self._cache[tier] = ModelSet(models[0], tuple(models[1:]))
         return self._cache[tier]

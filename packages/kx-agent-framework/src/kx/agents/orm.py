@@ -128,7 +128,8 @@ class ToolCall(Base):
     result_summary: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(Text)
     duration_ms: Mapped[int | None] = mapped_column(Integer)
-    at: Mapped[datetime] = mapped_column(TS, server_default=_NOW)
+    # D48: partitioned by month on `at`, so the key is (id, at)
+    at: Mapped[datetime] = mapped_column(TS, server_default=_NOW, primary_key=True)
 
 
 class GuardEvent(Base):
@@ -138,7 +139,7 @@ class GuardEvent(Base):
     guard: Mapped[str] = mapped_column(Text)
     action: Mapped[str] = mapped_column(Text)
     detail: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=sql("'{}'::jsonb"))
-    at: Mapped[datetime] = mapped_column(TS, server_default=_NOW)
+    at: Mapped[datetime] = mapped_column(TS, server_default=_NOW, primary_key=True)  # D48 (id, at)
 
 
 class KnowledgeGap(Base):

@@ -1,4 +1,119 @@
-# Arifaa Platform — Platforms, Pricing & Fallbacks (11 Nov update)
+# Arifaa Platform — Platforms, Pricing & Fallbacks (16 Nov v2 update)
+
+Nov 16, 2026 · @Hamthan · source: *Arifaa Platform — Accounts & Server Plan (for Arifa IT) v2.docx* (§2–§5) and *Options by field — alternatives and usage.docx* (measurements from `resource-usage-bench/`, 14 Nov)
+
+## The answer
+
+**The platform runs on one Namecheap dedicated server that we manage (Coolify), plus a few online services on Arifa's accounts.** Everything on the server is open source. Every field has a main platform and, where one exists, a free open-source alternative on our server. Each field runs in the **paid version** or the **free version** (environment switch, `docs/PLATFORM_MODES.md`):
+
+| US$ per month, VAT excluded | Light ≈ 45 buyers a day | Normal ≈ 215 | Heavy ≈ 700 |
+| --- | --- | --- | --- |
+| **Paid version** (v2 §3) | **≈ 232** | **≈ 819** | **≈ 2,459** |
+| **Free version** (v2 §4) | **≈ 171** | **≈ 575** | **≈ 1,739** |
+| Saving of the free version | ≈ 61 | ≈ 244 | ≈ 720 |
+| 11 Nov AWS stack, for comparison | 903 | 1,775 | 3,936 |
+
+- In the **paid version** the free alternative stays wired as the automatic fallback (Deepgram → faster-whisper, ElevenLabs → Piper, Vercel → our server).
+- The **free version** still pays for what has no free option: the server, Claude, Telnyx, Meta WhatsApp, Amazon SES (relay) and Cloudflare R2.
+- **Before the first bill:** Claude prepaid credits + monthly spend limit; Deepgram card on file; ElevenLabs minimum top-up $5; Telnyx minimum payment $10 + 1 caller-ID number; Meta verified business with 2 numbers; SES domain verification + production access; R2 card on file; Gemini minimum prepay $5 (standby only).
+- ⚠ **Data location:** all Namecheap dedicated servers are in Phoenix, Arizona (USA). The 11 Nov plan and the consent text said data stays in the UAE. **Arifa must approve the USA location in writing** (OPEN_QUESTIONS #69), or the same stacks move to a UAE dedicated server.
+
+## Platforms we use (v2 §2)
+
+| Area | Platform we use | Purpose | Alternative we use (our server) | Server usage of the alternative | Arifa account |
+| --- | --- | --- | --- | --- | --- |
+| AI assistant | Claude Sonnet 5.5 (price and terms) + Haiku 5.5 (the rest) | Writes the replies to buyers | Gemini 3.8 Flash (Google, standby; paid, only when used) | under 1 core, inside the application | Yes (Gemini optional) |
+| Speech-to-text | Deepgram Nova-3 Multilingual | Caller's speech to text in website voice calls | faster-whisper Small (INT8, CPU) | ≈ 1 GB RAM, ≈ 0.5 GB disk; slower and less accurate than Deepgram | Yes |
+| Text-to-speech | ElevenLabs Flash | Speaks the reply in the caller's language | Piper: English, Arabic, Hindi, Chinese; no Tamil or Sinhala | 0.4–2.1 GB RAM, 0.25 GB disk, ≈ 0.4 core per voice speaking | Yes |
+| Live voice | LiveKit (open source, self-hosted) | Live audio between browser and voice assistant | — | LiveKit ≤ 0.1 GB; voice assistant 1.4–4.2 GB for up to 10 calls | No |
+| Staff alert calls and call-backs | Telnyx | Calls staff for approvals; calls back buyers who asked | Later: Asterisk + a UAE operator SIP line | Asterisk ≈ 50 MB RAM, < 0.2 core for 10 calls | Yes |
+| WhatsApp | Meta WhatsApp Cloud API | Quotes and replies on WhatsApp | — (direct from Meta, already the cheapest) | ≈ 2 KB per message | Yes |
+| Email | Stalwart mail server (self-hosted) | Sends quote emails, brings buyer replies into the deal | Amazon SES as the sending relay (inbox reputation) | Stalwart 0.1–0.23 GB RAM; ≈ 140 KB per email stored | Yes (AWS, SES only) |
+| Website and CRM hosting | Vercel Pro | Public website and staff CRM screens | Our Namecheap server | ≈ 0.5–1 GB RAM, ≈ 1 GB disk | Yes |
+| Server | Namecheap dedicated server + Coolify | Runs every self-hosted platform | — | ≈ 25–29 GB of 64 GB RAM, ≈ 31 GB of 960 GB disk at peak | Yes |
+| Database | PostgreSQL + pgvector | Deals, quotes, conversations, product knowledge | — | ≈ 0.4 GB RAM + cache; data grows 0.3–4.7 GB a month | No |
+| Cache and job queue | Redis + Celery | Follow-ups, reminders, rate limits | — | Redis ≈ 12 MB; job workers ≈ 1 GB | No |
+| Knowledge search | BGE-M3 on Hugging Face TEI | Finds the right product fact in the buyer's language | Qwen3-Embedding-0.6B | BGE-M3 ≈ 4.8 GB RAM; Qwen3 ≈ 3.1 GB but 6× slower to re-index | No |
+| AI audit trail | Arize Phoenix | Records every AI answer for staff | Langfuse | Phoenix ≈ 0.5 GB; Langfuse ≈ 2.5 GB, 7 containers | No |
+| Monitoring and alerts | SigNoz + UptimeRobot (outside check) | Uptime, errors, logs, alerts | Grafana stack | SigNoz 4–8 GB RAM; Grafana 2–4 GB | No |
+| Firewall and bots | SafeLine WAF + CrowdSec + Cloudflare Turnstile | Blocks attacks and bots | — | SafeLine ≈ 1.6 GB; CrowdSec ≈ 0.16 GB | No |
+| DNS and file storage | Cloudflare (DNS, R2) | Domain records; 3D models, videos, quote PDFs, backups | — | none | Yes |
+| Staff login | Built-in login + authenticator app | Password + 6-digit code | — | inside the application | No |
+
+## Paid version: platforms to purchase (v2 §3)
+
+★ = purchased in Arifa's name. US$ per month.
+
+| Platform | Used for | Before first use | Light | Normal | Heavy |
+| --- | --- | --- | --- | --- | --- |
+| ★ Namecheap dedicated server | every self-hosted platform | monthly fee | 84 | 84 | 84 |
+| ★ Vercel Pro | website and CRM hosting | monthly fee | 20 | 40 | 40 |
+| ★ Claude API (Anthropic) | AI assistant | prepaid credits + monthly spend limit | 49 | 228 | 735 |
+| ★ Deepgram | speech-to-text | card on file | 14 | 69 | 230 |
+| ★ ElevenLabs | text-to-speech | minimum top-up $5 | 27 | 135 | 450 |
+| ★ Telnyx | staff alert calls and call-backs | minimum payment $10 + 1 caller-ID number | 10 | 46 | 152 |
+| ★ Meta WhatsApp Business | WhatsApp messages | verified business, 2 numbers, payment method | 26 | 213 | 756 |
+| ★ Amazon SES (AWS) | email sending relay | domain verification + production access | < 1 | 2 | 6 |
+| ★ Cloudflare R2 | files and backups | card on file | 2 | 3 | 6 |
+| ★ Gemini API (Google) | standby AI, charged only when used | minimum prepay $5 | 0 | 0 | 0 |
+| **Total** |  |  | **≈ 232** | **≈ 819** | **≈ 2,459** |
+
+## Free version (v2 §4)
+
+Every field that has a free alternative runs it on our server. Still purchased: the server, Claude, Telnyx, Meta WhatsApp, Amazon SES, Cloudflare R2.
+
+| Area | Platform (free version) | Light | Normal | Heavy |
+| --- | --- | --- | --- | --- |
+| Server | ★ Namecheap dedicated server | 84 | 84 | 84 |
+| Website and CRM hosting | Namecheap server (self-hosted) | 0 | 0 | 0 |
+| AI assistant | ★ Claude API | 49 | 228 | 735 |
+| Speech-to-text | faster-whisper Small | 0 | 0 | 0 |
+| Text-to-speech | Piper (Tamil calls use ElevenLabs when its key is set, else chat; Sinhala is chat) | 0 | 0 | 0 |
+| Live voice | LiveKit | 0 | 0 | 0 |
+| Staff alert calls and call-backs | ★ Telnyx | 10 | 46 | 152 |
+| WhatsApp | ★ Meta WhatsApp Business | 26 | 213 | 756 |
+| Email mailbox | Stalwart | 0 | 0 | 0 |
+| Email sending | ★ Amazon SES | < 1 | 2 | 6 |
+| Files and backups | ★ Cloudflare R2 | 2 | 3 | 6 |
+| Database, cache, knowledge search, AI audit trail, monitoring, firewall | PostgreSQL, Redis, BGE-M3, Phoenix, SigNoz, SafeLine, CrowdSec | 0 | 0 | 0 |
+| **Total** |  | **≈ 171** | **≈ 575** | **≈ 1,739** |
+
+## Recommended server (v2 §5)
+
+| Item | Recommendation |
+| --- | --- |
+| Server | Namecheap dedicated server, Intel Xeon E-2236 |
+| CPU / RAM / disk | 6 cores / 12 threads, 64 GB, 2 × 960 GB SSD (RAID 1) |
+| OS / management | Ubuntu Server 24.04 LTS, Coolify |
+| Network | 1 public IPv4 with reverse DNS |
+| Peak use (free version, 10 users + 10 calls) | ≈ 24–29 GB of 64 GB RAM, ≈ 31 GB of 960 GB disk; new data ≈ 0.7 / 3.2 / 11.5 GB a month |
+
+## Usage assumptions (unchanged from 11 Nov)
+
+| Usage per company per month | Light | Normal | Heavy |
+| --- | --- | --- | --- |
+| AI turns | 14,000 | 65,000 | 210,000 |
+| Website voice minutes | 1,500 | 7,500 | 25,000 |
+| WhatsApp messages sent | 3,900 | 19,500 | 65,000 |
+| Emails out / in | 2,000 / 500 | 10,000 / 2,500 | 40,000 / 8,000 |
+| Staff alert and call-back minutes | 36 | 180 | 600 |
+
+Claude and WhatsApp stay the biggest costs in both versions; the share of money turns (Sonnet) and the WhatsApp template mix are the biggest swings.
+
+## Decisions before go-live
+
+- [ ] **Arifa approves the USA server location** (or a UAE dedicated server is bought) and the processor list (Anthropic, Deepgram, ElevenLabs, Telnyx, Meta, AWS SES, Cloudflare, Google if Gemini is used).
+- [ ] Which version per field at go-live (`KX_PLATFORM_PLAN`): the build defaults to **paid** with the free alternatives as fallback.
+- [ ] Gemini 3.8 Flash as standby: yes or no (needs the 50-scenario suite, D27).
+- [ ] faster-whisper Small measured on the real server before free voice is opened (OPEN #72).
+- [ ] BGE-M3 passes the retrieval test in en / ar / hi / ta / zh / si.
+- [ ] Live Telnyx test calls to du and e& from the caller ID.
+- [ ] Off-site backups (WAL-G to R2) and a tested restore; external uptime check (UptimeRobot).
+- [ ] Stalwart: SES relay, DKIM / SPF / DMARC / reverse DNS, sending limits raised.
+
+---
+
+# History: 11 Nov stack (AWS, superseded 16 Nov)
 
 Nov 11, 2026 · @Hamthan
 

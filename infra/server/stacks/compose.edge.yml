@@ -1,0 +1,45 @@
+# Edge (D53): CrowdSec reads the logs of SafeLine, Stalwart and SSH and bans abusers. SafeLine itself is installed
+# from its official compose at a pinned 9.2.x release (host networking on 80 / 443; README §6).
+# Bans: proxied traffic -> the Cloudflare bouncer (ban at Cloudflare, never ban Cloudflare's IPs on the host);
+# direct ports (22, 25) -> the host firewall bouncer (installed on the host with apt, crowdsec-firewall-bouncer).
+name: kx-edge
+
+services:
+  crowdsec:
+    image: ${KX_IMG_CROWDSEC:-crowdsecurity/crowdsec:v1.7.3}
+    restart: unless-stopped
+    environment:
+      COLLECTIONS: >-
+        crowdsecurity/linux crowdsecurity/sshd crowdsecurity/nginx crowdsecurity/postfix
+      BOUNCER_KEY_cloudflare: ${CROWDSEC_CF_BOUNCER_KEY:?}
+      BOUNCER_KEY_firewall: ${CROWDSEC_FW_BOUNCER_KEY:?}
+    volumes:
+      - ./crowdsec-acquis.yaml:/etc/crowdsec/acquis.yaml:ro
+      - /var/log:/var/log/host:ro
+      - ${SAFELINE_LOG_DIR:-/data/safeline/logs/nginx}:/var/log/safeline:ro
+      - crowdsec-db:/var/lib/crowdsec/data
+      - crowdsec-config:/etc/crowdsec
+    ports:
+      - "127.0.0.1:8081:8080"   # local API for the host firewall bouncer
+    networks: [kx]
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "3" }
+
+  cloudflare-bouncer:
+    image: ${KX_IMG_CF_BOUNCER:-crowdsecurity/cloudflare-bouncer:v0.3.0}
+    restart: unless-stopped
+    environment:
+      CROWDSEC_LAPI_URL: http://crowdsec:8080
+      CROWDSEC_LAPI_KEY: ${CROWDSEC_CF_BOUNCER_KEY:?}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?}
+    depends_on: [crowdsec]
+    networks: [kx]
+
+volumes:
+  crowdsec-db:
+  crowdsec-config:
+
+networks:
+  kx:
+    external: true

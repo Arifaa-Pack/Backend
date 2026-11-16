@@ -2,8 +2,11 @@
 
 Revision 0001 of each applies the reviewed DDL in db/ddl (the source of truth for v1); later revisions are
 ordinary Alembic ops. Migrations run as the database's owning app role over psycopg (sync driver: it runs
-multi-statement DDL with $$ bodies without prepared statements). Extensions are pre-created by the infra
-bootstrap as the RDS master user (CREATE EXTENSION IF NOT EXISTS is then a no-op for the app role).
+multi-statement DDL with $$ bodies without prepared statements), directly to Postgres (port 5432, never
+through PgBouncer: `KX_MIGRATE_<DB>_DSN`). Extensions are pre-created by
+`infra/server/postgres/db_bootstrap.sh`
+as the superuser (CREATE EXTENSION IF NOT EXISTS is then a no-op for the app role). The LangGraph checkpoint
+tables are created here too (`setup_checkpointer`), so app processes behind PgBouncer never run DDL.
 """
 
 from __future__ import annotations
@@ -60,6 +63,21 @@ def upgrade(
 ) -> None:
     for db in dbs:
         command.upgrade(config(db, (dsns or {}).get(db)), revision)
+
+
+def setup_checkpointer(dsn: str | None = None) -> None:
+    """D48: create / upgrade the LangGraph checkpoint tables in the agents database (idempotent). Runs on a
+    direct connection: the saver's setup uses CREATE INDEX CONCURRENTLY, which PgBouncer transaction mode
+    cannot carry."""
+    import asyncio  # noqa: PLC0415
+
+    from kx.agents.memory import open_checkpointer  # noqa: PLC0415 - the app may import every package
+
+    async def run() -> None:
+        async with open_checkpointer(dsn or migration_dsn(LogicalDb.AGENTS), max_size=1, setup=True):
+            pass
+
+    asyncio.run(run())
 
 
 def current(db: LogicalDb, dsn: str | None = None) -> None:

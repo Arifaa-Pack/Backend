@@ -14,7 +14,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Final, Literal
+from typing import Any, Final, Literal
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -266,20 +266,20 @@ def psycopg_conninfo(dsn: str) -> str:
 
 @asynccontextmanager
 async def open_checkpointer(
-    dsn: str, *, max_size: int = 10, setup: bool = True
+    dsn: str, *, max_size: int = 3, setup: bool = True, pgbouncer: bool = False
 ) -> AsyncIterator[AsyncPostgresSaver]:
     """AsyncPostgresSaver on a pooled psycopg connection set, tables in the `agents` schema.
-    Call once per process (app lifespan / worker startup)."""
+    Call once per process (app lifespan / worker startup). D48: a small pool (it is opened by every api,
+    worker and voice process); behind PgBouncer (transaction mode) no prepared statements and no startup
+    options, the role's own `search_path` applies, and the tables are created by `kx migrate`
+    (setup=False)."""
+    kwargs: dict[str, Any] = {"autocommit": True, "row_factory": dict_row}
+    if pgbouncer:
+        kwargs["prepare_threshold"] = None
+    else:
+        kwargs |= {"prepare_threshold": 0, "options": "-c search_path=agents,public"}
     pool: AsyncConnectionPool = AsyncConnectionPool(
-        psycopg_conninfo(dsn),
-        max_size=max_size,
-        open=False,
-        kwargs={
-            "autocommit": True,
-            "prepare_threshold": 0,
-            "row_factory": dict_row,
-            "options": "-c search_path=agents,public",
-        },
+        psycopg_conninfo(dsn), max_size=max_size, open=False, kwargs=kwargs
     )
     await pool.open()
     try:

@@ -12,7 +12,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from kx.automation.channels import ChannelError, HttpRetry
 from kx.automation.settings import WhatsAppSettings
-from kx.core.identity import constant_time_equals, hmac_sha256_hex, normalise_phone
+from kx.core.identity import constant_time_equals, hmac_sha256_hex, normalise_phone, try_normalise_phone
+from kx.core.logging import get_logger
+
+log = get_logger(__name__)
 
 PROVIDER: Final = "meta_cloud"
 SIGNATURE_HEADER: Final = "X-Hub-Signature-256"
@@ -207,8 +210,10 @@ def parse_webhook(payload: dict[str, Any]) -> WaWebhook:
     for value in _values(envelope):
         names = {c.wa_id: c.profile.name if c.profile else None for c in value.contacts}
         pnid = value.metadata.phone_number_id
-        messages.extend(_inbound(pnid, m, names.get(m.from_)) for m in value.messages)
-        statuses.extend(_status(pnid, s) for s in value.statuses)
+        messages.extend(
+            msg for m in value.messages if (msg := _inbound(pnid, m, names.get(m.from_))) is not None
+        )
+        statuses.extend(st for raw in value.statuses if (st := _status(pnid, raw)) is not None)
     return WaWebhook(tuple(messages), tuple(statuses))
 
 
@@ -219,12 +224,18 @@ def _values(envelope: WebhookEnvelope) -> Iterator[_Value]:
         yield from (c.value for c in entry.changes if c.field == "messages")
 
 
-def _inbound(phone_number_id: str, m: _Message, profile_name: str | None) -> WaInbound:
+def _inbound(phone_number_id: str, m: _Message, profile_name: str | None) -> WaInbound | None:
+    """None (logged, skipped) when the sender id is not a valid phone number: the rest of the batch is still
+    recorded and Meta gets its 200."""
+    sender = try_wa_id_to_e164(m.from_)
+    if sender is None:
+        log.warning("whatsapp.unparseable_sender", message_id=m.id)
+        return None
     kind, text, media = _content(m)
     return WaInbound(
         phone_number_id=phone_number_id,
         message_id=m.id,
-        from_e164=wa_id_to_e164(m.from_),
+        from_e164=sender,
         profile_name=profile_name,
         received_at=_epoch(m.timestamp),
         kind=kind,
@@ -251,14 +262,18 @@ def _content(m: _Message) -> tuple[InboundKind, str, WaMedia | None]:
     return "other", "", None
 
 
-def _status(phone_number_id: str, s: _Status) -> WaStatus:
+def _status(phone_number_id: str, s: _Status) -> WaStatus | None:
+    recipient = try_wa_id_to_e164(s.recipient_id)
+    if recipient is None:
+        log.warning("whatsapp.unparseable_recipient", message_id=s.id)
+        return None
     error = "; ".join(f"{e.code} {e.title or e.message or ''}".strip() for e in s.errors) or None
     return WaStatus(
         phone_number_id=phone_number_id,
         message_id=s.id,
         status=s.status,
         at=_epoch(s.timestamp),
-        recipient_e164=wa_id_to_e164(s.recipient_id),
+        recipient_e164=recipient,
         error=error,
     )
 
@@ -266,6 +281,11 @@ def _status(phone_number_id: str, s: _Status) -> WaStatus:
 def wa_id_to_e164(wa_id: str) -> str:
     """wa_id is the international number without '+'; normalise so it hashes like CRM contacts."""
     return normalise_phone(wa_id if wa_id.startswith("+") else f"+{wa_id}")
+
+
+def try_wa_id_to_e164(wa_id: str) -> str | None:
+    """`wa_id_to_e164`, or None when Meta sends an id that is not a valid number."""
+    return try_normalise_phone(wa_id if wa_id.startswith("+") else f"+{wa_id}")
 
 
 def e164_to_wa_id(e164: str) -> str:

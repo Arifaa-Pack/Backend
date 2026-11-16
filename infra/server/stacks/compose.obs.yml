@@ -1,0 +1,44 @@
+# Telemetry tier (D46, D48): the AI audit trail (Arize Phoenix) on its own Postgres. SigNoz is installed from its
+# official Docker compose at a pinned release on the same `kx` network (infra/server/README.md §5); its collector
+# is then reachable as http://signoz-otel-collector:4318 (KX_APP_OTLP_ENDPOINT).
+name: kx-obs
+
+services:
+  phoenix-postgres:
+    image: ${KX_IMG_PG:-pgvector/pgvector:pg18}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: phoenix
+      POSTGRES_PASSWORD: ${PHOENIX_DB_PASSWORD:?}
+      POSTGRES_DB: phoenix
+    volumes:
+      - phoenix-pg:/var/lib/postgresql/data
+    networks: [kx]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U phoenix"]
+      interval: 10s
+      retries: 30
+    logging: &logs
+      driver: json-file
+      options: { max-size: "50m", max-file: "3" }
+
+  phoenix:
+    image: ${KX_IMG_PHOENIX:-arizephoenix/phoenix:version-12.9.0}
+    restart: unless-stopped
+    environment:
+      PHOENIX_SQL_DATABASE_URL: postgresql://phoenix:${PHOENIX_DB_PASSWORD}@phoenix-postgres:5432/phoenix
+      PHOENIX_PORT: "6006"
+      # 30-90 days (D48); traces are re-creatable, never backed up
+      PHOENIX_DEFAULT_RETENTION_POLICY_DAYS: "${PHOENIX_RETENTION_DAYS:-60}"
+    depends_on:
+      phoenix-postgres:
+        condition: service_healthy
+    networks: [kx]
+    logging: *logs
+
+volumes:
+  phoenix-pg:
+
+networks:
+  kx:
+    external: true
