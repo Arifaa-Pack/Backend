@@ -56,14 +56,15 @@ async def main(send: bool) -> None:
         h = {u: {"Authorization": f"Bearer {t}"} for u, t in tok.items()}
         users = (await c.get("/v1/users", headers=h["kxmgr"])).json()
         users = users if isinstance(users, list) else users.get("items", [])
-        deals = (await c.get("/v1/deals", headers=h["kxmgr"], params={"limit": 100})).json().get("items", [])
+        # found the way the team would: the buyer's message in the inbox (D-9: it used to be missing)
         deal = None
-        for d in deals:
-            full = (await c.get(f"/v1/deals/{d['id']}", headers=h["kxmgr"])).json()
-            if (full.get("contact") or {}).get("email") == BUYER:
-                deal = full
-                break
-        assert deal is not None, "the Gmail buyer's deal was not found"
+        for user in ("kxsales1", "kxsales2", "kxmgr"):
+            for item in (await c.get("/v1/inbox", headers=h[user])).json():
+                if item["kind"] == "buyer_message" and deal is None:
+                    full = (await c.get(f"/v1/deals/{item['deal_id']}", headers=h["kxmgr"])).json()
+                    if (full.get("contact") or {}).get("email") == BUYER:
+                        deal = full
+        assert deal is not None, "the Gmail buyer's message is not in the inbox"
         owner = next(u["email"].split("@")[0] for u in users if u["id"] == deal["owner_user_id"])
         inbox = (await c.get("/v1/inbox", headers=h[owner])).json()
         mine = [i for i in inbox if i["deal_id"] == deal["id"] and i["kind"] == "buyer_message"]
