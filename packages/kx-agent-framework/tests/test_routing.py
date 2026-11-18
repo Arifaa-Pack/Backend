@@ -229,3 +229,21 @@ def test_every_website_visitor_who_gave_one_identifier_is_asked_for_the_other() 
     assert "mobile number" in _ask_for_the_other("web_voice", ContactPatch(email="a@b.ae"))
     assert _ask_for_the_other("web_chat", ContactPatch(phone="+971501234567", email="a@b.ae")) == ""
     assert _ask_for_the_other("whatsapp", ContactPatch(email="a@b.ae")) == ""  # WhatsApp proves the number
+
+
+def test_each_claude_model_has_its_own_http_pool() -> None:
+    """Load test 18 Nov: langchain-anthropic shares one async HTTP client per process; with the AI worker's
+    thread pool (one event loop per thread) pooled connections crossed loops and calls failed, so about 1 %
+    of turns ended in the safe hand-over. Every model instance now builds its own client."""
+    from langchain_anthropic import ChatAnthropic
+    from pydantic import SecretStr
+
+    def router() -> ModelRouter:
+        return ModelRouter([AnthropicApiProvider(SecretStr("test-key"))])
+
+    a, b = (router().for_tier(ModelTier.FAST).primary for _ in range(2))
+    assert a._async_client._client is not b._async_client._client  # type: ignore[attr-defined]
+    plain = [
+        ChatAnthropic(model_name="claude-haiku-5-5", api_key=SecretStr("k"), stop=None) for _ in range(2)
+    ]
+    assert plain[0]._async_client._client is plain[1]._async_client._client  # the library default we avoid

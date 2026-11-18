@@ -18,8 +18,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from functools import cached_property
 from typing import Any, Final, Literal, Protocol, runtime_checkable
 
+import anthropic
 from langchain.agents.middleware import AgentMiddleware, ModelFallbackMiddleware
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel, LanguageModelInput
@@ -76,6 +78,18 @@ class ModelProvider(Protocol):
     def chat_model(self, tier: ModelTier, options: ModelOptions) -> BaseChatModel: ...
 
 
+class OwnClientChatAnthropic(ChatAnthropic):
+    """ChatAnthropic with its own HTTP connection pool. langchain-anthropic caches one async httpx client per
+    process (`lru_cache`), but the AI worker runs a thread pool with an event loop per thread (D-6): pooled
+    connections crossed loops and calls failed with "Connection error" / "attached to a different event loop"
+    (live load test 18 Nov: about 1 % of turns ended in the safe hand-over). Each instance belongs to one
+    thread's container, so its pool stays on that thread's loop."""
+
+    @cached_property
+    def _async_client(self) -> anthropic.AsyncClient:
+        return anthropic.AsyncClient(**self._client_params)
+
+
 class AnthropicApiProvider:
     name = "anthropic"
 
@@ -87,7 +101,7 @@ class AnthropicApiProvider:
 
     def chat_model(self, tier: ModelTier, options: ModelOptions) -> BaseChatModel:
         kwargs: dict[str, Any] = {"api_key": self._key} if self._key is not None else {}
-        return ChatAnthropic(
+        return OwnClientChatAnthropic(
             model_name=self._ids[tier],
             max_tokens_to_sample=options.max_tokens,
             timeout=options.timeout_s,
