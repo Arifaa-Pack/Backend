@@ -10,9 +10,14 @@ labels:
   type: syslog
 ---
 source: docker
+# M7: through the read-only Docker API proxy of compose.edge.yml (the CrowdSec container has no socket).
+docker_host: tcp://docker-socket-proxy:2375
 # by pattern, not by exact name (H3): Coolify names containers after its resource UUID, not `kx-mail-stalwart-1`.
 # Check after deploy that exactly the Stalwart container matches: docker ps --format '{{.Names}}' | grep stalwart
 container_name_regexp:
   - stalwart
 labels:
-  type: syslog
+  # M7: Stalwart's console log is not syslog, and the hub has no Stalwart parser (checked 18 Nov), so these lines
+  # are read but not yet parsed: SMTP / IMAP brute force is not banned by CrowdSec until a parser for this type
+  # exists (README §2 step 7). Stalwart's own auth-failure ban covers it meanwhile (verify it is on).
+  type: stalwart

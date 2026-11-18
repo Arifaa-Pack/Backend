@@ -14,9 +14,13 @@ services:
     volumes:
       - tei-cache:/data
     networks: [default, kx-ai]
+    # M15: no capabilities (tested 18 Nov with cpu-1.8: model download into /data, server ready)
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    # M4: half the cores, so a re-index (all cores for ≈ 30 min per 2,500 chunks) leaves the rest to the app
     deploy:
       resources:
-        limits: { memory: 6g }
+        limits: { memory: 6g, cpus: "6" }
     logging: &logs
       driver: json-file
       options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
@@ -34,9 +38,12 @@ services:
     volumes:
       - speech-models:/models
     networks: [default, kx-ai]
+    # M15: runs as the `speech` user (uid 10002), needs no capabilities
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
     deploy:
       resources:
-        limits: { memory: 4g }
+        limits: { memory: 4g, cpus: "4" }   # STT_THREADS=4
     logging: *logs
 
 volumes:

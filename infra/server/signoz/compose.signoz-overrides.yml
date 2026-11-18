@@ -2,30 +2,44 @@
 #   cd /opt/signoz/deploy/docker
 #   docker compose -f docker-compose.yaml -f /opt/kairox/infra/server/signoz/compose.signoz-overrides.yml up -d
 # * our collector config (OTLP + host metrics + container metrics + container logs)
-# * read-only views of the host (/hostfs), the Docker socket and the container log files
-# * root inside the collector: the log files and the socket are root-only on the host
+# * read-only views of the host (/hostfs) and the container log files
+# * root inside the collector: the log files are root-only on the host
+# * M15: no Docker socket in the collector. Container metrics come through a read-only Docker API proxy
+#   (signoz-docker-proxy: containers, events, version; no POST), on an internal network shared with the collector
+#   only. Before 18 Nov the collector (root, on kx-obs, receiving OTLP from the app) held the socket, i.e. the host.
 # * the `kx-obs` network (H1), so the app reaches http://signoz-otel-collector:4318
 # * OTLP ports only on the Docker networks, never on the public interface
 # * the SigNoz UI on 127.0.0.1:3301 (H2): upstream publishes 8080:8080 on every interface, which is also the
 #   Coolify proxy's port (README §2); open it with ssh -L 3301:127.0.0.1:3301 <server>
+# * M4: memory ceilings (SigNoz 4-8 GB at peak, README §9)
 # * SigNoz's own containers name themselves in SigNoz -> Logs (compose service label), like our stacks
 x-logs: &logs
   options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
 
 services:
-  clickhouse: { logging: *logs }
-  zookeeper-1: { logging: *logs }
+  clickhouse:
+    logging: *logs
+    deploy:
+      resources:
+        limits: { memory: 6g, cpus: "4" }
+  zookeeper-1:
+    logging: *logs
+    deploy:
+      resources:
+        limits: { memory: 512m, cpus: "1" }
   signoz:
     logging: *logs
     ports: !override
       - "127.0.0.1:3301:8080"
+    deploy:
+      resources:
+        limits: { memory: 1g, cpus: "1" }
   otel-collector:
     logging: *logs
     user: "0:0"
     volumes:
       - ${KX_SIGNOZ_CONFIG_DIR:-/opt/kairox/infra/server/signoz}/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
       - /:/hostfs:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
     environment:
       - OTEL_RESOURCE_ATTRIBUTES=host.name=${KX_HOST_NAME:-kx-server},os.type=linux
@@ -37,9 +51,32 @@ services:
     ports: !override
       - "127.0.0.1:4317:4317"
       - "127.0.0.1:4318:4318"
-    networks: [signoz-net, kx-obs]
+    networks: [signoz-net, kx-obs, signoz-docker-api]
+    security_opt: ["no-new-privileges:true"]
+    deploy:
+      resources:
+        limits: { memory: 1g, cpus: "2" }
+
+  signoz-docker-proxy:
+    image: ${KX_IMG_SOCKET_PROXY:-tecnativa/docker-socket-proxy:v0.5.0}
+    restart: unless-stopped
+    environment:
+      CONTAINERS: "1"
+      EVENTS: "1"
+      INFO: "1"     # docker info: CrowdSec's docker datasource refuses to start without it (tested 18 Nov)
+      POST: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [signoz-docker-api]
+    security_opt: ["no-new-privileges:true"]
+    deploy:
+      resources:
+        limits: { memory: 64m, cpus: "0.25" }
+    logging: *logs
 
 networks:
   kx-obs:
     name: ${KX_NETWORK:-kx-obs}
     external: true
+  signoz-docker-api:
+    internal: true   # the Docker API proxy and the collector only

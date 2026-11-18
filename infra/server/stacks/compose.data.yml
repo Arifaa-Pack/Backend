@@ -15,7 +15,10 @@ services:
     shm_size: 1g
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in Coolify}
+      # M8: the superuser password is read from a root-only file at first start (initdb), so it is not in the
+      # container's environment (`docker inspect`). The superuser logs in over the local socket only (peer,
+      # pg_hba.conf), so this password is never used for a login; keep it random anyway (openssl rand -hex 32).
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       # psql / wal-g / db_bootstrap.sh inside the container: local socket as `postgres` (pg_hba.conf, pg_ident.conf)
       PGHOST: /var/run/postgresql
       PGUSER: postgres
@@ -32,11 +35,29 @@ services:
       # offline (password manager + paper): without it no backup can be restored.
       WALG_LIBSODIUM_KEY: ${WALG_LIBSODIUM_KEY:?32-byte key, openssl rand -hex 32 (keep a copy offline)}
       WALG_LIBSODIUM_KEY_TRANSFORM: hex
-      PGDATA: /var/lib/postgresql/data/pgdata
+      # M9: no PGDATA override. PG18 images keep the cluster in /var/lib/postgresql/18/docker (the image's
+      # PGDATA) and refuse a volume mounted at /var/lib/postgresql/data (compose.obs.yml, local stack 16 Nov).
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
+      # outside the Git checkout (H5): root, 0600 (README §2 step 5)
+      - ${KX_PG_SUPERUSER_PASSWORD_FILE:-/opt/kx/secrets/postgres_password}:/run/secrets/postgres_password:ro
     # default: this stack's own network, for WAL-G's egress to R2 (nobody else is on it)
     networks: [default, kx-data]
+    # M15: the entrypoint chowns the data directory and drops to `postgres` (gosu); `docker compose exec` as root
+    # (db_bootstrap.sh, wal-g backup-push) reads the 0700 data directory. Every other capability is dropped.
+    # Tested 18 Nov with pgvector/pgvector:0.8.7-pg18-bookworm: initdb, restart, root exec reading PGDATA.
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, DAC_READ_SEARCH, FOWNER, SETUID, SETGID]
+    # M4: shared_buffers 8 GB + connections + maintenance work; page cache above the limit is reclaimed first.
+    # oom_score_adj: if the host itself runs out of memory, the kernel picks anything but Postgres.
+    deploy:
+      resources:
+        limits: { memory: 16g }
+    oom_score_adj: -900
+    # M5: the image stops Postgres with SIGINT (fast shutdown); the shutdown checkpoint of 8 GB shared_buffers
+    # can take longer than Docker's default 10 s, after which SIGKILL means crash recovery on the next start.
+    stop_grace_period: 120s
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -51,12 +72,21 @@ services:
     restart: unless-stopped
     volumes:
       - ../postgres/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
-      # outside the Git checkout (H5): SCRAM verifiers never go near the repo
+      # outside the Git checkout (H5): SCRAM verifiers never go near the repo. Regenerate it whenever a role
+      # password changes (db_bootstrap.sh with KX_BOOTSTRAP_ROTATE=1, a restore): runbooks/rotate-secrets.md (M6)
       - ${PGBOUNCER_USERLIST:-/opt/kx/secrets/userlist.txt}:/etc/pgbouncer/userlist.txt:ro
     depends_on:
       postgres:
         condition: service_healthy
     networks: [kx-data]
+    # M15: runs as a non-root user; its unix socket goes to /tmp. Tested 18 Nov with v1.24.1-p1.
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    deploy:
+      resources:
+        limits: { memory: 256m, cpus: "1" }
     logging: *logs
 
 volumes:

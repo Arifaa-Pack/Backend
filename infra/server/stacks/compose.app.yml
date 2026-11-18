@@ -4,14 +4,24 @@
 # Secrets live outside the Git checkout (H5): KX_ENV_FILE / KX_CMS_ENV_FILE default to /opt/kx/secrets/ (root, 0600).
 # Networks (H1, infra/server/README.md §1): redis is on this stack's own internal network, so only the app reaches
 # it; kx-data / kx-ai / kx-obs / kx-mail / kx-proxy are created once on the host (docker network create).
+# Images (M1): no `latest` fallback. KX_APP_IMAGE / KX_CMS_IMAGE are required and immutable
+# (ghcr.io/<owner>/app:<tag>@sha256:<digest>); the release workflow sets KX_APP_IMAGE in Coolify before each deploy.
+# Limits (M4): every service has a memory ceiling sized from the bench (infra/server/README.md §9), so a leak is
+# killed inside its own container instead of the host OOM killer picking Postgres.
+# Shutdown (M5): `docker compose up -d` recreates in place, it is not a rolling restart. stop_grace_period lets
+# running work finish: api 30 s (open requests), workers 120 s (Celery warm shutdown), voice 300 s (calls).
+# Hardening (M15): no-new-privileges and no Linux capabilities (the app runs as uid 10001 on a read-only root).
 name: kx-pack
 
 x-app: &app
-  image: ${KX_APP_IMAGE:-ghcr.io/kairox/app:latest}
+  image: ${KX_APP_IMAGE:?ghcr.io/<owner>/app:<tag>@sha256:<digest>; set by the release workflow (M1)}
   restart: unless-stopped
   env_file: ["${KX_ENV_FILE:-/opt/kx/secrets/pack.env}"]  # quoted: a bare { inside [ ] is YAML flow-mapping syntax
   read_only: true
   tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  stop_grace_period: 30s
   # default: this stack's own network, for egress to the vendors (Anthropic, Meta, Telnyx, SES, R2)
   networks: [default, app-internal, kx-data, kx-ai, kx-obs, kx-mail]
   # the app sends its own logs to SigNoz over OTLP (with trace ids); this label tells the SigNoz collector
@@ -38,6 +48,17 @@ services:
       REDISCLI_AUTH: ${REDIS_PASSWORD:?}   # redis-cli (healthcheck) reads the password from here
     volumes: [redis-data:/data]
     networks: [app-internal]
+    # M15: the entrypoint chowns /data and drops to the redis user (gosu): CHOWN, SETUID, SETGID only.
+    # Tested 18 Nov with redis:8.2.3: starts, AOF rewrite works.
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID]
+    # M4: maxmemory caps the data (512 MB); the fork for an AOF rewrite can need as much again
+    deploy:
+      resources:
+        limits: { memory: 1536m, cpus: "1" }
+    oom_score_adj: -500   # the broker: after Postgres, the last thing the host OOM killer should pick
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -53,6 +74,9 @@ services:
     environment:
       KX_ENV: production
       KX_PROCESS: migrate
+    deploy:
+      resources:
+        limits: { memory: 1g, cpus: "2" }
 
   api:
     <<: *app
@@ -68,6 +92,9 @@ services:
     networks: [default, app-internal, kx-data, kx-ai, kx-obs, kx-mail, kx-proxy]
     labels: { kx.logs: otlp, traefik.docker.network: kx-proxy }
     expose: ["8000"]
+    deploy:
+      resources:
+        limits: { memory: 2g, cpus: "2" }
 
   worker:
     <<: *app
@@ -78,6 +105,14 @@ services:
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
+    # Celery warm shutdown: SIGTERM stops taking jobs and lets running ones (PDF render, sends) finish. A job
+    # killed anyway stays `running` in automation.scheduled_jobs and is re-sent by Beat's sweep after 15 minutes
+    # (kx.core.jobs STUCK_AFTER), not after the 2-hour broker visibility timeout.
+    stop_grace_period: 120s
+    # 3 prefork children + headless Chromium per PDF (≈ 300-500 MB each while rendering)
+    deploy:
+      resources:
+        limits: { memory: 3g, cpus: "4" }
 
   # D-6 (live test 18 Nov): buyer turns that call the model have their own queue, so a send never waits
   # behind them. Threads, not processes: a turn mostly waits on the model API, so one process with
@@ -92,6 +127,10 @@ services:
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
+    stop_grace_period: 120s   # a model turn can take a minute
+    deploy:
+      resources:
+        limits: { memory: 2g, cpus: "2" }
 
   beat:
     <<: *app
@@ -102,6 +141,10 @@ services:
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
+    stop_grace_period: 10s
+    deploy:
+      resources:
+        limits: { memory: 512m, cpus: "0.5" }
 
   voice:
     <<: *app
@@ -111,40 +154,62 @@ services:
       KX_PROCESS: voice
     depends_on:
       migrate: { condition: service_completed_successfully }
+    # calls in progress get this long to end before the container is killed (a deploy waits for it); a longer
+    # call is cut. Raise it with KX_VOICE_STOP_GRACE if calls run longer (verify the drain on staging).
+    stop_grace_period: ${KX_VOICE_STOP_GRACE:-300s}
+    # bench: ≈ 4.3 GB at 10 calls (VAD + plug-ins per call)
+    deploy:
+      resources:
+        limits: { memory: 6g, cpus: "4" }
 
   cms:
-    # Payload CMS (website admin, §7); image built from the CMS repo (not in this repo)
-    image: ${KX_CMS_IMAGE:-ghcr.io/kairox/cms:latest}
+    # Payload CMS (website admin, §7); image built from the CMS repo (not in this repo), pinned like the app (M1)
+    image: ${KX_CMS_IMAGE:?ghcr.io/<owner>/cms:<tag>@sha256:<digest> (M1)}
     restart: unless-stopped
     env_file: ["${KX_CMS_ENV_FILE:-/opt/kx/secrets/pack-cms.env}"]
     expose: ["3000"]
     # kx-proxy: routed by the Coolify proxy, and calls api:8000/webhooks/cms; kx-data: its own database
     networks: [kx-proxy, kx-data]
     labels: { traefik.docker.network: kx-proxy }
+    # image from another repo: no-new-privileges only; drop capabilities once its user is known (verify)
+    security_opt: ["no-new-privileges:true"]
+    deploy:
+      resources:
+        limits: { memory: 1g, cpus: "1" }
     logging: *logs
 
   # Free hosting version of the website and CRM screens (v2 §2 alternative to Vercel Pro):
   #   docker compose --profile selfhost-web up -d web crm-web
+  # The image defaults are deliberately a tag that does not exist (M1): with the profile on, a missing
+  # KX_WEB_IMAGE / KX_CRM_WEB_IMAGE fails the pull instead of silently running `latest`.
   web:
     profiles: [selfhost-web]
-    image: ${KX_WEB_IMAGE:-ghcr.io/kairox/web:latest}
+    image: ${KX_WEB_IMAGE:-ghcr.io/kairox/web:set-KX_WEB_IMAGE}
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?}
     expose: ["3000"]
     networks: [kx-proxy]
     labels: { traefik.docker.network: kx-proxy }
+    security_opt: ["no-new-privileges:true"]
+    deploy:
+      resources:
+        limits: { memory: 512m, cpus: "1" }
     logging: *logs
 
   crm-web:
     profiles: [selfhost-web]
-    image: ${KX_CRM_WEB_IMAGE:-ghcr.io/kairox/crm-web:latest}
+    image: ${KX_CRM_WEB_IMAGE:-ghcr.io/kairox/crm-web:set-KX_CRM_WEB_IMAGE}
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?}
     expose: ["3000"]
     networks: [kx-proxy]
     labels: { traefik.docker.network: kx-proxy }
+    security_opt: ["no-new-privileges:true"]
+    deploy:
+      resources:
+        limits: { memory: 512m, cpus: "1" }
     logging: *logs
 
 volumes:

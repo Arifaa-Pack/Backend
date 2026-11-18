@@ -42,7 +42,8 @@ Flash as the Claude standby, MD and admin created at launch (the admin adds ever
    firewall bouncer on `INPUT` and `DOCKER-USER` (`infra/server/README.md` §2, steps 2-7).
    Secrets in `/opt/kx/secrets/` (root, 0700; files 0600), never in the checkout: `git status` on the server shows
    no `env/*.env` or `userlist.txt`.
-2. `compose.data.yml` (with `WALG_LIBSODIUM_KEY`; key also stored offline) -> `infra/server/postgres/db_bootstrap.sh`
+2. `compose.data.yml` (with `WALG_LIBSODIUM_KEY`, key also stored offline; the superuser password in the file
+   `/opt/kx/secrets/postgres_password`, M8) -> `infra/server/postgres/db_bootstrap.sh`
    (prefix `pack_`); confirm WAL-G pushes to R2 and that the objects are encrypted (a downloaded WAL file does not
    decompress with `zstd -t`); from another container on `kx-data`, `psql -h postgres -U postgres` is refused.
    R2: bucket lock on `backups/` (7 days postgres, 14 days volumes); separate push and delete tokens
@@ -52,7 +53,10 @@ Flash as the Claude standby, MD and admin created at launch (the admin adds ever
    admin straight away (else it accepts no data); add the alert rules (`infra/server/README.md` §5).
 5. **Stalwart v1.1.1** (`compose.mail.yml`): web wizard (hostname `mail.arifapack.com`, DKIM on, logging Console,
    DNS manual), account `sales@arifapack.com`, relay route `ses` + outbound strategy (steps in the file), raise the
-   25-per-hour throttle; then remove `KX_STALWART_RECOVERY_ADMIN` from the env.
+   25-per-hour throttle; Stalwart's own authentication-failure ban on (CrowdSec has no Stalwart parser yet). Then
+   delete `KX_STALWART_RECOVERY_ADMIN` from the **mail** resource in Coolify (it and `KX_SES_SMTP_PASSWORD` are
+   never in `pack.env`, M13), redeploy it, and check `docker inspect <stalwart> --format '{{.Config.Env}}'` shows
+   `STALWART_RECOVERY_ADMIN=` empty and `docker inspect <api>` shows neither variable.
 6. App env from `infra/server/stacks/env/pack.env.example` into `/opt/kx/secrets/pack.env` (and
    `pack-cms.env`), Coolify variables `REDIS_PASSWORD` (same value as in the redis URLs) and the rest marked
    encrypted; deploy `compose.app.yml` (migrate runs first). Every app container runs with `KX_ENV=production`.
@@ -71,6 +75,34 @@ Flash as the Claude standby, MD and admin created at launch (the admin adds ever
 10. Isolation spot checks: Redis refuses a connection without its password (`NOAUTH`); Phoenix UI asks for a login
     (default admin password changed) and traces still arrive with the API key in `KX_APP_AI_TRACE_HEADERS`;
     SafeLine console only on 127.0.0.1:9443; Cloudflare Authenticated Origin Pulls on.
+11. **Live-test infra review, MEDIUM items (18 Nov)**, each checked on the server (`infra/server/README.md`):
+    - [ ] M1/M2 release pipeline: Cloudflare Tunnel + Access in front of Coolify's API only (§2 step 9: without
+      the Access headers 403, the dashboard path 404); Coolify token *write + deploy*; `KX_APP_IMAGE` and
+      `KX_CMS_IMAGE` set as `…:<tag>@sha256:…` on the app resource; one tag released to staging end to end (the
+      workflow waits for the deployment and `/healthz`).
+    - [ ] M3 GitHub: `production` environment with required reviewers and a `v*`-tags-only deployment rule;
+      `staging` tags only; Dependabot enabled; workflow default permissions *read* (`docs/DEPLOYMENT.md`).
+    - [ ] M4 `docker stats --no-stream`: every container shows its own limit, not the host total.
+    - [ ] M5 deploys are not zero-downtime: release outside sales hours; a voice call held across a deploy ends
+      only after `KX_VOICE_STOP_GRACE` (300 s).
+    - [ ] M6 `db_bootstrap.sh` run twice in a row: the app still logs in through PgBouncer.
+    - [ ] M7 CrowdSec: `cscli metrics show acquisition` lists the Stalwart container (docker), SafeLine and
+      auth.log; `cscli postoverflows list` has `crowdsecurity/cdn-whitelist`; the firewall bouncer config has
+      `scenarios_containing`; the Cloudflare bouncer runs from its config file; a SafeLine log line shows the real
+      client IP, not a Cloudflare one.
+    - [ ] M8/M9 `docker inspect` of postgres: no `POSTGRES_PASSWORD`, no `PGDATA` override; the volume is
+      mounted at `/var/lib/postgresql` and `SHOW data_directory` = `/var/lib/postgresql/18/docker`.
+    - [ ] M10 `pg-health-check.sh` in root's cron; its Healthchecks.io check is green; a test `/fail` reached the
+      alert email; SigNoz disk alert (> 80 %) added. **RPO ≈ 5 min, RTO ≈ new server + ≈ 1 h restore, agreed by
+      Arifa: name + date ______________________**
+    - [ ] M11 the postgres image was built from the pinned digest with the WAL-G checksum (build log shows
+      `/tmp/walg.tar.gz: OK`).
+    - [ ] M14 `volumes-to-r2.sh` run by hand stops and restarts Stalwart (mail back within a minute);
+      `volumes-restore-test.sh` passes once by hand and is in cron with its heartbeat.
+    - [ ] M15 `docker inspect -f '{{.HostConfig.CapDrop}} {{.HostConfig.SecurityOpt}}'` on each container shows
+      `[ALL]` (except cms / web) and `no-new-privileges`; the SigNoz collector has no `/var/run/docker.sock` mount
+      and container metrics still arrive.
+    - [ ] M16 the Monday `image-scan` workflow ran green (or its findings are being fixed).
 
 ## D. WhatsApp templates to submit to Meta (EN; AR for the buyer ones)
 

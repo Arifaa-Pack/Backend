@@ -3,15 +3,43 @@
 # Bans: proxied traffic -> the Cloudflare bouncer (ban at Cloudflare, never ban Cloudflare's IPs on the host);
 # direct ports (22, 25, LiveKit) -> the host firewall bouncer (installed on the host with apt,
 # crowdsec-firewall-bouncer), with iptables_chains INPUT and DOCKER-USER: Docker-published ports never pass INPUT (H2).
+# M7: CrowdSec reads container logs through a read-only Docker API proxy (containers + events, no POST), never the
+# raw socket; Cloudflare's own ranges are whitelisted (crowdsecurity/whitelist-good-actors: cdn-whitelist), and
+# the firewall bouncer only takes SSH / SMTP decisions (README §2 step 7).
 name: kx-edge
 
+x-logs: &logs
+  driver: json-file
+  options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
+
 services:
+  docker-socket-proxy:
+    # read-only Docker API for CrowdSec's `docker` datasource (crowdsec-acquis.yaml): list containers, read their
+    # logs, follow events. Everything else (exec, create, POST of any kind) answers 403.
+    image: ${KX_IMG_SOCKET_PROXY:-tecnativa/docker-socket-proxy:v0.5.0}
+    restart: unless-stopped
+    environment:
+      CONTAINERS: "1"
+      EVENTS: "1"
+      INFO: "1"     # docker info: CrowdSec's docker datasource refuses to start without it (tested 18 Nov)
+      POST: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    # only CrowdSec is on this network; it has no egress and nothing is published
+    networks: [docker-api]
+    security_opt: ["no-new-privileges:true"]
+    deploy:
+      resources:
+        limits: { memory: 64m, cpus: "0.25" }
+    logging: *logs
+
   crowdsec:
     image: ${KX_IMG_CROWDSEC:-crowdsecurity/crowdsec:v1.7.3}
     restart: unless-stopped
     environment:
+      # no hub collection parses Stalwart's log (checked 18 Nov); crowdsecurity/postfix never matched it
       COLLECTIONS: >-
-        crowdsecurity/linux crowdsecurity/sshd crowdsecurity/nginx crowdsecurity/postfix
+        crowdsecurity/linux crowdsecurity/sshd crowdsecurity/nginx crowdsecurity/whitelist-good-actors
       BOUNCER_KEY_cloudflare: ${CROWDSEC_CF_BOUNCER_KEY:?}
       BOUNCER_KEY_firewall: ${CROWDSEC_FW_BOUNCER_KEY:?}
     volumes:
@@ -22,21 +50,36 @@ services:
       - crowdsec-config:/etc/crowdsec
     ports:
       - "127.0.0.1:8081:8080"   # local API for the host firewall bouncer
-    # this stack's own network only: nothing else needs CrowdSec, and CrowdSec needs no other service (H1)
-    networks: [default]
-    logging:
-      driver: json-file
-      options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
+    # default: hub downloads, the community blocklist, the published LAPI port; docker-api: the socket proxy
+    networks: [default, docker-api]
+    depends_on: [docker-socket-proxy]
+    # M15: no capabilities (tested 18 Nov with v1.7.3: hub install, LAPI, CAPI pull)
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    deploy:
+      resources:
+        limits: { memory: 512m, cpus: "1" }
+    logging: *logs
 
   cloudflare-bouncer:
     image: ${KX_IMG_CF_BOUNCER:-crowdsecurity/cloudflare-bouncer:v0.3.0}
     restart: unless-stopped
+    # M7: this bouncer reads a config file (account / zone ids, token, LAPI key), not environment variables:
+    # generate it once on the host (README §2 step 7), root 0600, outside the checkout.
+    volumes:
+      - ${KX_CF_BOUNCER_CONFIG:-/opt/kx/secrets/crowdsec-cloudflare-bouncer.yaml}:/etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml:ro
     environment:
       CROWDSEC_LAPI_URL: http://crowdsec:8080
       CROWDSEC_LAPI_KEY: ${CROWDSEC_CF_BOUNCER_KEY:?}
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?}
     depends_on: [crowdsec]
     networks: [default]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    deploy:
+      resources:
+        limits: { memory: 128m, cpus: "0.5" }
+    logging: *logs
 
 volumes:
   crowdsec-db:
@@ -44,3 +87,5 @@ volumes:
 
 networks:
   default:
+  docker-api:
+    internal: true   # the Docker API proxy: CrowdSec only, no egress

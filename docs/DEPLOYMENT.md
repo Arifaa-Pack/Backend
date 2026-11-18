@@ -29,7 +29,7 @@ Outside the server (processors Arifa must approve): Anthropic (Claude), Meta (Wh
 1. Order the server (v2 §5), Ubuntu 24.04, reverse DNS for the public IP; harden SSH (keys only, admin IPs).
 2. Install Coolify (`infra/server/README.md` §2): dashboard and realtime ports on 127.0.0.1, proxy on 127.0.0.1:8080 / 8443 and on `kx-proxy`, the trust-zone networks (`kx-data`, `kx-ai`, `kx-obs`, `kx-mail`, `kx-proxy`), the `DOCKER-USER` backstop (Docker-published ports bypass ufw), secrets in `/opt/kx/secrets/` outside the checkout. Create a project *pack* with environments *staging* / *production*.
 3. Cloudflare: DNS records (`api.`, `cms.`, `voice.` **proxied** like the others: signalling goes through Cloudflare, only the media ports are direct; `mail.` + MX), origin certificate for SafeLine, Authenticated Origin Pulls; R2 buckets, an app access key, and separate backup tokens with a bucket lock (`infra/server/README.md` §7).
-4. Deploy `compose.data.yml` (needs `WALG_LIBSODIUM_KEY`: backups are encrypted; keep the key offline); run `infra/server/postgres/db_bootstrap.sh` inside the postgres container (prefix `pack_`; the superuser logs in over the local socket only): roles, databases, extensions, per-role `search_path` / `statement_timeout`. Confirm WAL-G pushes to R2.
+4. Deploy `compose.data.yml` (needs `WALG_LIBSODIUM_KEY`: backups are encrypted; keep the key offline; and the superuser password as the root-only file `/opt/kx/secrets/postgres_password`, not an environment variable, M8); run `infra/server/postgres/db_bootstrap.sh` inside the postgres container (prefix `pack_`; the superuser logs in over the local socket only): roles, databases, extensions, per-role `search_path` / `statement_timeout`. Confirm WAL-G pushes to R2.
 5. Deploy `compose.ai.yml`, `compose.voice.yml`, `compose.mail.yml`, `compose.obs.yml`, `compose.edge.yml`. Finish Stalwart's setup wizard: domain, DKIM, SES smarthost, the sending account (`sales@`, the JMAP login of the app), sending limits.
 6. Fill the app environment (below) into `/opt/kx/secrets/pack.env` (root, 0600; never in the Git checkout), including `KX_PLATFORM_PLAN`; compose variables such as `REDIS_PASSWORD` and `PHOENIX_SECRET` in Coolify as *encrypted*.
 7. Deploy `compose.app.yml`: `migrate` runs first (Alembic for every DB + checkpointer tables), then api / worker / worker-ai / beat / voice, each with `KX_ENV=production` set by the compose file itself.
@@ -39,7 +39,16 @@ Outside the server (processors Arifa must approve): Anthropic (Claude), Meta (Wh
 
 ## Every release
 
-`git tag vX.Y.Z && git push --tags` → CI (ruff, format, mypy strict, import-linter, pytest on pgvector Postgres, amd64 image build, speech image build, `docker compose config` of every stack) → image pushed to GHCR → Coolify deploy webhook → `migrate` → rolling restart (Beat last).
+`git tag vX.Y.Z && git push --tags` → CI (ruff, format, mypy strict, import-linter, pytest on pgvector Postgres, amd64 image build, speech image build, `docker compose config` of every stack, shellcheck, actionlint, zizmor, hadolint) → images pushed to GHCR → the workflow sets `KX_APP_IMAGE=ghcr.io/<owner>/app:<tag>@sha256:<digest>` on the Coolify app resource, starts the deploy, waits for Coolify to report it finished and for `/healthz` to answer 200, and fails otherwise (M1) → staging. Production: run the `release` workflow by hand with `target=production` **on the tag** (refused from a branch).
+
+**Not a rolling restart (M5).** Coolify's Docker Compose deploy recreates each changed container in place: `migrate` first, then api / workers / voice / beat are stopped (api 30 s, workers 120 s to finish running jobs, voice up to 300 s for calls in progress) and started on the new image. The api is down for a few seconds per release: deploy outside sales hours, and keep migrations expand / contract (the old code must still run against the new schema). Details: `infra/server/README.md` §10.
+
+### Release pipeline settings (GitHub, once; M2 / M3)
+
+- **Environments** (Settings → Environments): `staging` and `production`. `production`: required reviewers (the Kairox lead + one more), deployment branches and tags = **selected**, tag rule `v*` only, "prevent self-review" on. `staging`: tag rule `v*`.
+- **Secrets / variables**: `COOLIFY_TOKEN` (Coolify API token with *write* + *deploy*, not root), `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` (Cloudflare Access service token), `COOLIFY_URL` (the Access-protected API hostname, never the dashboard), `COOLIFY_STAGING_UUID`, `COOLIFY_PRODUCTION_UUID`, and per environment `KX_HEALTH_URL` (`https://api.<domain>/healthz`). The Coolify API is reachable only through Cloudflare Tunnel + Access: `infra/server/README.md` §2 step 9.
+- **Branch protection on `main`**: PRs only, CI required. Actions: "Allow GitHub Actions to create and approve pull requests" off; workflow permissions default *read*.
+- Actions are pinned by commit SHA; Dependabot (`.github/dependabot.yml`) proposes updates weekly, `image-scan.yml` rebuilds and scans the images every Monday (M16).
 
 ## Local development
 

@@ -14,8 +14,13 @@
 #   * MTA > Outbound > Strategy > route: if is_local_domain(rcpt_domain) then 'local' else 'ses'
 #   * Raise the default throttle (25 messages an hour per sender + recipient) before go-live (OPEN_QUESTIONS #71)
 # The app deletes finished JMAP submission records itself (v1 refuses sends after 500 of them, maxSubmissions).
-# Remove KX_STALWART_RECOVERY_ADMIN from the env file after setup. v0.x data cannot be upgraded in place
-# (stalwart-migrate); this is a new install, so start v1 on empty volumes.
+# v0.x data cannot be upgraded in place (stalwart-migrate); this is a new install, so start v1 on empty volumes.
+#
+# Mail-only secrets (M13): KX_STALWART_RECOVERY_ADMIN and KX_SES_SMTP_PASSWORD are Coolify variables of THIS
+# resource (kx-mail) only, marked encrypted; never in the app's env file (env/pack.env), which every app container
+# loads. Recovery admin: `admin:<openssl rand -hex 24>`, for the first setup only; delete the variable and redeploy
+# straight after the wizard, then check `docker inspect <stalwart> --format '{{.Config.Env}}'` shows
+# STALWART_RECOVERY_ADMIN= (empty) (docs/GO_LIVE_CHECKLIST.md C5).
 name: kx-mail
 
 services:
@@ -34,6 +39,16 @@ services:
       - stalwart-etc:/etc/stalwart
       - stalwart-data:/var/lib/stalwart
     networks: [default, kx-mail]
+    # M15: runs as uid 2000; the binary carries the file capability cap_net_bind_service (port 25), so that one
+    # stays in the bounding set. Tested 18 Nov with v1.1.1 (bootstrap mode starts, listeners up).
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    # M14: the nightly backup stops this container for the copy (RocksDB is not copied while it writes)
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits: { memory: 2g, cpus: "2" }   # M4
     logging:
       driver: json-file
       options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }

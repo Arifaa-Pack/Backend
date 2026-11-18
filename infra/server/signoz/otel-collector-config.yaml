@@ -1,7 +1,7 @@
 # SigNoz collector config for the Kairox dedicated server: SigNoz v0.129.0's own deploy/docker file (the last
 # release with compose files) plus three receivers marked "kx" below (17 Nov):
 #   hostmetrics   CPU, memory, load, disks, filesystems, network of the server (reads the host through /hostfs)
-#   docker_stats  CPU / memory / network per container (Docker socket, read-only)
+#   docker_stats  CPU / memory / network per container (read-only Docker API proxy, M15)
 #   filelog       every container's log file; lines of the app containers are dropped here because the app
 #                 sends its own logs over OTLP with their trace id (label kx.logs=otlp, see compose.app.yml)
 # Mounted by compose.signoz-overrides.yml. Keep the rest identical to upstream when upgrading SigNoz.
@@ -47,7 +47,8 @@ receivers:
       paging: {}
   # kx: every container (api, worker, postgres, stalwart, livekit, speech, ...)
   docker_stats:
-    endpoint: unix:///var/run/docker.sock
+    # M15: the read-only Docker API proxy of compose.signoz-overrides.yml, not the socket itself
+    endpoint: tcp://signoz-docker-proxy:2375
     api_version: "1.44"  # Docker 29 refuses older API versions
     # one-shot stats take ~1-2 s per container (Docker samples twice for CPU); 20 s timed out on a laptop
     collection_interval: 60s

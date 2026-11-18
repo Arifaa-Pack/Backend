@@ -7,7 +7,8 @@ name: kx-obs
 
 services:
   phoenix-postgres:
-    image: ${KX_IMG_PG:-pgvector/pgvector:pg18}
+    # M16: the same pinned release as the data tier (pg18 was 0.8.7-pg18-bookworm on 18 Nov)
+    image: ${KX_IMG_PG:-pgvector/pgvector:0.8.7-pg18-bookworm}
     restart: unless-stopped
     environment:
       POSTGRES_USER: phoenix
@@ -18,6 +19,14 @@ services:
       # start, found on the local stack 16 Nov)
       - phoenix-pg:/var/lib/postgresql
     networks: [phoenix-db]
+    # M15: the entrypoint chowns the data directory, then drops to `postgres` (gosu)
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID]
+    deploy:
+      resources:
+        limits: { memory: 1g, cpus: "1" }   # M4
+    stop_grace_period: 60s
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U phoenix"]
       interval: 10s
@@ -44,6 +53,12 @@ services:
     ports:
       - "127.0.0.1:6006:6006"
     networks: [default, phoenix-db, kx-obs]
+    # M15: no capabilities (tested 18 Nov with version-12.9.0, auth on)
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    deploy:
+      resources:
+        limits: { memory: 2g, cpus: "2" }   # M4
     logging: *logs
 
 volumes:
