@@ -56,6 +56,16 @@ log = get_logger(__name__)
 Deliver = Callable[[str, str], Awaitable[None]]  # (reply text, language)
 # D27 "5xx or 429" and timeouts, after the client's own retries and any fallback model
 MODEL_ERRORS: Final = (anthropic.APIError, httpx.HTTPError, TimeoutError)
+# The Gemini standby raises its own errors once it is the last model tried (D-1, live test 18 Nov: they
+# escaped as HTTP 500 on the website). Matched by module so the Gemini client is imported only when used.
+_STANDBY_ERROR_MODULES: Final = ("google.", "langchain_google_genai")
+
+
+def is_model_error(exc: BaseException) -> bool:
+    """True when every model failed (vendor outage, rate limit, timeout): the buyer gets the safe reply."""
+    return isinstance(exc, MODEL_ERRORS) or any(
+        cls.__module__.startswith(_STANDBY_ERROR_MODULES) for cls in type(exc).__mro__
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -392,7 +402,10 @@ class AgentService:
             else:
                 assert text is not None
                 result = await self.runner.run(rt, ctx, text, history, config)
-        except MODEL_ERRORS as exc:
+        except Exception as exc:
+            if not is_model_error(exc):
+                self.llm_breaker.release()
+                raise
             self.llm_breaker.failure()
             log.exception("agents.all_models_failed", deal_ref=str(ctx.deal_id), error=type(exc).__name__)
             return await self._safe_handover(ctx, type(exc).__name__)

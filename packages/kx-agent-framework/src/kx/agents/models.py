@@ -106,13 +106,21 @@ GEMINI_MODEL_IDS: Final[dict[ModelTier, str]] = {
     ModelTier.SMART: "gemini-3.8-flash",
     ModelTier.JUDGE: "gemini-3.8-flash",
 }
-_GEMINI_THINKING: Final[dict[str, str]] = {
-    "low": "low",
-    "medium": "medium",
-    "high": "high",
-    "xhigh": "high",
-    "max": "high",
+# Effort -> thinking tokens. `thinking_budget`, not `thinking_level`: the pinned google-ai-generativelanguage
+# (0.12.1) has no `thinking_level` in ThinkingConfig, so every call with it failed, and langchain-google-genai
+# 3.2 accepts only "low" / "high" there (live test 18 Nov, D-1: start-up crashed on "medium").
+_GEMINI_THINKING_BUDGET: Final[dict[str, int]] = {
+    "low": 512,
+    "medium": 1024,
+    "high": 2048,
+    "xhigh": 4096,
+    "max": 8192,
 }
+
+
+def gemini_thinking_budget(options: ModelOptions) -> int:
+    """Thinking tokens for an effort, capped at half of `max_tokens` so the reply always has room."""
+    return min(_GEMINI_THINKING_BUDGET[options.effort], options.max_tokens // 2)
 
 
 class GeminiApiProvider:
@@ -135,7 +143,7 @@ class GeminiApiProvider:
             max_output_tokens=options.max_tokens,
             timeout=options.timeout_s,
             max_retries=options.max_retries,
-            thinking_level=_GEMINI_THINKING[options.effort],
+            thinking_budget=gemini_thinking_budget(options),
         )
         return model
 

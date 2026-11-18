@@ -187,3 +187,33 @@ def test_a_claude_refusal_is_no_answer_so_the_buyer_gets_the_hand_over() -> None
     declined = AIMessage("I can't help with", response_metadata={"stop_reason": "refusal"})
     assert final_reply([declined]) is None
     assert final_reply([AIMessage("Hello!", response_metadata={"stop_reason": "end_turn"})]) == "Hello!"
+
+
+@pytest.mark.parametrize("effort", ["low", "medium", "high", "xhigh", "max"])
+@pytest.mark.parametrize("tier", [ModelTier.FAST, ModelTier.SMART, ModelTier.JUDGE])
+def test_gemini_standby_builds_for_every_tier_and_effort(tier: ModelTier, effort: str) -> None:
+    """D-1 (live test 18 Nov): "medium" crashed start-up and `thinking_level` failed every call, because the
+    pinned API types have no such field. The standby must build for every setting and send a thinking budget
+    that leaves room for the reply."""
+    from pydantic import SecretStr
+
+    from kx.agents.models import DEFAULT_OPTIONS, GeminiApiProvider, ModelOptions
+
+    base = DEFAULT_OPTIONS[tier]
+    opts = ModelOptions(effort, base.max_tokens, base.timeout_s, base.max_retries)  # type: ignore[arg-type]
+    model = GeminiApiProvider(SecretStr("test-key")).chat_model(tier, opts)
+    config = model._prepare_params(stop=None)  # type: ignore[attr-defined]
+    budget = config.thinking_config.thinking_budget
+    assert 0 < budget <= base.max_tokens // 2
+    assert config.max_output_tokens == base.max_tokens
+    assert "thinking_level" not in type(config.thinking_config).meta.fields
+
+
+def test_a_gemini_failure_counts_as_every_model_failing() -> None:
+    """D-1: with the standby last in line, its error must lead to the safe reply, not an HTTP 500."""
+    from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
+
+    from kx.agents.service import is_model_error
+
+    assert is_model_error(ChatGoogleGenerativeAIError("429 quota"))
+    assert not is_model_error(KeyError("bug in our code"))
