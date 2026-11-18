@@ -49,6 +49,13 @@ async def anonymise_contact(session: AsyncSession, contact: Contact, reason: str
         .where(TimelineEvent.contact_id == contact.id, TimelineEvent.kind.in_(MESSAGE_KINDS))
         .values(summary="[removed under retention policy]")
     )
+    # D8: the AI's summary of the conversation is a copy of what the buyer said (the transcripts are deleted)
+    await session.execute(
+        update(Deal)
+        .where(Deal.primary_contact_id == contact.id)
+        .values(ai_summary=None, ai_summary_at=None)
+        .execution_options(synchronize_session=False)
+    )
     if contact.company_id is not None:
         others = await session.scalar(
             select(func.count()).where(

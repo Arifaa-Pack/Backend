@@ -174,6 +174,72 @@ async def test_email_code_then_totp_gives_mfa(env: Env) -> None:
     assert len(r.json()["temporary_password"]) >= 12 and r.json()["user"]["role"] == "sales"
 
 
+async def test_an_email_code_session_cannot_replace_an_active_authenticator(env: Env) -> None:
+    """D4: with only the mailbox (email-code sign-in, mfa=false) nobody may swap the authenticator and so gain
+    approval rights. A TOTP session may, and the user is told by email. After an admin reset, the email-code
+    session may enrol again (lost-phone recovery)."""
+    email, password, user_id = await new_user(env, role="sales")
+    first = await email_login(env, email, password)
+    secret = await enrol_totp(env, first)  # first enrolment: allowed from the email-code session
+
+    # an attacker with the mailbox: email-code session -> replacing the active seed is refused, seed untouched
+    attacker = await email_login(env, email, password)
+    assert attacker["mfa"] is False
+    r = await env.client.post("/v1/auth/totp/enrol", headers=bearer(attacker))
+    assert r.status_code == 403, r.text
+    still = await totp_login(env, email, password, secret)  # the real authenticator still works
+    assert still["mfa"] is True
+
+    # the owner, signed in with TOTP, may replace it; the replacement is announced by email
+    sent_before = len(env.mailer.sent)
+    r = await env.client.post("/v1/auth/totp/enrol", headers=bearer(still))
+    assert r.status_code == 200, r.text
+    assert len(env.mailer.sent) == sent_before + 1 and env.mailer.sent[-1][0] == email
+    assert "being replaced" in env.mailer.sent[-1][1]
+
+    # lost phone: an admin resets MFA, then the email-code session may enrol a new authenticator
+    async with env.databases.transaction(LogicalDb.CRM) as s:
+        await svc.reset_mfa(s, env.deps, user_id, Actor.system("test"))
+    after_reset = await email_login(env, email, password)
+    assert (await env.client.post("/v1/auth/totp/enrol", headers=bearer(after_reset))).status_code == 200
+
+
+async def _mfa_session(env: Env, role: str) -> tuple[dict[str, Any], uuid.UUID]:
+    email, password, user_id = await new_user(env, role=role)
+    secret = await enrol_totp(env, await email_login(env, email, password))
+    return await totp_login(env, email, password, secret), user_id
+
+
+async def test_only_the_md_manages_md_and_nobody_changes_their_own_role(env: Env) -> None:
+    """D12(a), decided 17 Nov: the MD role reads cost data, so only an MD may create an MD, give or remove the
+    role, deactivate an MD or reset an MD's authenticator; nobody changes their own role."""
+    admin, admin_id = await _mfa_session(env, "admin")
+    md, _ = await _mfa_session(env, "md")
+    _, _, sales_id = await new_user(env, role="sales")
+    _, _, other_md_id = await new_user(env, role="md")
+    new = {"full_name": "New MD", "role": "md"}
+
+    async def create(tokens: dict[str, Any]) -> int:
+        body = {**new, "email": f"md-{uuid.uuid4().hex[:8]}@test.ae"}
+        return (await env.client.post("/v1/users", json=body, headers=bearer(tokens))).status_code
+
+    async def patch(tokens: dict[str, Any], user_id: uuid.UUID, body: dict[str, Any]) -> int:
+        return (await env.client.patch(f"/v1/users/{user_id}", json=body, headers=bearer(tokens))).status_code
+
+    async def reset(tokens: dict[str, Any], user_id: uuid.UUID) -> int:
+        return (await env.client.post(f"/v1/users/{user_id}/reset-mfa", headers=bearer(tokens))).status_code
+
+    assert await create(admin) == 403 and await create(md) == 201
+    assert await patch(admin, sales_id, {"role": "md"}) == 403  # an admin cannot hand out the MD role
+    assert await patch(admin, other_md_id, {"role": "sales"}) == 403  # ... or take it away
+    assert await patch(admin, other_md_id, {"is_active": False}) == 403  # ... or switch an MD off
+    assert await reset(admin, other_md_id) == 403  # ... or reset an MD's authenticator
+    assert await patch(admin, admin_id, {"role": "manager"}) == 403  # nobody changes their own role
+    assert await patch(admin, sales_id, {"role": "manager"}) == 200  # ordinary role changes still work
+    assert await patch(md, sales_id, {"role": "md"}) == 200
+    assert await reset(md, other_md_id) == 200
+
+
 async def test_wrong_password_locks_after_five(env: Env) -> None:
     email, password, user_id = await new_user(env)
     for _ in range(5):

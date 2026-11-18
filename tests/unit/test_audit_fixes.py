@@ -89,3 +89,8 @@ def test_emitted_metric_names_are_the_ones_signoz_alerts_on() -> None:
     assert '"SpendCap"' in (ROOT / "packages/kx-core-db/src/kx/core/spend.py").read_text(encoding="utf-8")
     readme = (ROOT / "infra/server/README.md").read_text(encoding="utf-8")
     assert "VendorSwitch" in readme and "QueueLagSeconds" in readme and "SpendCap" in readme
+    # D6: a message the worker died on (stored lowercase by OpenTelemetry, as the README's rule names it)
+    assert '"OutboundStuck"' in (ROOT / "packages/kx-core-automation/src/kx/automation/jobs.py").read_text(
+        encoding="utf-8"
+    )
+    assert "outboundstuck" in readme

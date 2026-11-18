@@ -1,4 +1,4 @@
-"""Celery Beat timetable (UTC; Dubai = UTC+4). Run **exactly one** Beat (`kx beat`, ECS desired count 1).
+"""Celery Beat timetable (UTC; Dubai = UTC+4). Run **exactly one** Beat (`kx beat`; never scale the service).
 
 Each entry runs `kx.periodic(<name>)`; the worker maps the name to a package's job body (`periodic_jobs()` in
 kx.crm.jobs / kx.automation.jobs, plus the app's own). Long waits are rows in automation.scheduled_jobs,
@@ -26,15 +26,20 @@ def beat_schedule() -> dict[str, dict[str, Any]]:
         "relay.crm": timedelta(seconds=s.relay_seconds),
         "relay.automation": timedelta(seconds=s.relay_seconds),
         "relay.agents": timedelta(seconds=s.relay_seconds),
-        # Better Stack heartbeat (missing 2 min = page) + Kairox/QueueLagSeconds
+        # D46: Redis heartbeat behind /healthz/beat (UptimeRobot) + QueueLagSeconds
         "app.heartbeat": timedelta(seconds=30),
+        # D44: buyer replies and bounce / complaint reports in the Stalwart mailbox
+        "automation.mail_poll": timedelta(seconds=30),
         "crm.approval_sweep": crontab(minute="*/5"),
         "automation.requeue_outbound": crontab(minute="*/5"),
         "crm.lost_proposals": crontab(minute=7, hour=4),  # 08:07 Dubai, start of staff hours
         "crm.price_staleness": crontab(minute=23, hour=5),  # 09:23 Dubai: quote expiry (v1), staleness (v2)
+        # D48: prune plumbing rows, month partitions, archive to R2 (Interactions tier)
+        "app.retention": crontab(minute=11, hour=23),  # 03:11 Dubai
         "crm.retention": crontab(minute=41, hour=23),  # 03:41 Dubai
         # §21 daily summary / weekly report: the times are settings, so Beat only asks every 15 min
         "crm.scheduled_reports": crontab(minute="*/15"),
+        "crm.fx_rates": crontab(minute=5, hour=2),  # 06:05 Dubai: daily FX rates (18 Nov)
         # v2 (D14): runs daily but returns at once while `features.scraping` is off
         "automation.price_scrapes": crontab(minute=0, hour=2),  # 06:00 Dubai
     }

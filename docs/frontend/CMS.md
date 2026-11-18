@@ -6,7 +6,9 @@ the CMS must do is fixed by two things in this repo, and both are described here
 
 1. the **publish webhook** the platform receives: `packages/kx-core-automation/src/kx/automation/cms.py`;
 2. the **REST reads** the platform makes back into the CMS: `PayloadContentSource` in
-   `apps/arifaa-pack/src/arifaa_pack/adapters.py`.
+   `apps/arifaa-pack/src/arifaa_pack/adapters.py`;
+3. (18 Nov) the **product drafts** the platform writes into the CMS from the product workbook:
+   `PayloadProductWriter` in the same file (section 5).
 
 The content model and editor rules come from the SRS §7 (CMS flow) and D22. The website's AI API is in
 `WEBSITE_API.md`; the staff CRM in `CRM_API.md`.
@@ -42,6 +44,10 @@ citation-friendly summaries). Structured data is generated from these fields.
 * **No prices anywhere in the CMS**: no price, cost, discount or tier fields; product structured data never
   includes prices. Prices, tiers, MOQ *for quoting* and the default delivery time live only in the CRM.
 * **Product code = CRM product code** (`crm.products.sku`). It is how the CRM matches the record.
+* **Products are created and updated from the product workbook** (client decision 18 Nov, section 5): one
+  Excel upload in the CRM saves product details here **as drafts**; a manager previews and publishes them.
+  Editors may still make small edits (text, photos) in the CMS; photos, videos and rich text are never
+  overwritten by the workbook.
 * Roles: **content editor** (edit and publish) and **admin** (users, settings). Content editors have no CRM
   access.
 * Videos: upload an MP4 or paste a YouTube / Vimeo link; large factory films should be links.
@@ -83,7 +89,7 @@ Body:
 | `name` | string (1-300) | yes | |
 | `category_code` | string | no | The CRM creates the category if it does not exist (with `category_name`). |
 | `category_name` | string | no | |
-| `spec` | object | no | Material, capacity, dimensions, colours ... Any key containing `price`, `cost`, `margin`, `discount`, `tier`, `aed` or `usd` is dropped. |
+| `spec` | object | no | Send the product's details with these keys, so the CRM's copy (and the next workbook download) shows what the CMS publishes: `shortDescription`, `descriptionText`, `material`, `capacity`, `dimensions`, `thickness`, `colours`, `lidOptions` (strings). Any key containing `price`, `cost`, `margin`, `discount`, `tier`, `aed` or `usd` is dropped. |
 | `custom_printing` | boolean | no | |
 
 Example (TypeScript, Payload `afterChange` hook):
@@ -163,3 +169,53 @@ Home and the factory experience; one page per product category with product deta
 sustainability; quality and certificates; about, contact, FAQ; privacy policy and terms. All content comes
 from the CMS; "publishing updates the website within about a minute" (use on-demand revalidation from the
 same publish hook, or a short ISR interval).
+
+---
+
+## 5. Product drafts written by the platform (product workbook, 18 Nov)
+
+Staff keep the catalogue in one Excel workbook in the CRM (`CRM_API.md` §5.1). When a manager applies an
+upload, the platform saves each changed product **in the CMS as a draft** through Payload's REST API, one
+background job per product (retried if the CMS is down). The manager then opens the draft in the CMS,
+previews it and publishes; the publish webhook (section 2) does the rest (website, AI knowledge, CRM mirror).
+
+**What the CMS needs:**
+
+* The API-key user of `KX_APP_CMS_API_KEY` (section 3) must be allowed to **create and update drafts** in
+  `products` and `product-categories` (read is not enough any more). It must not be allowed to publish.
+* `products` and `product-categories` must have **drafts enabled** (versions: drafts) and a unique,
+  searchable text field **`code`**.
+* `products` fields the platform writes (use exactly these names, or tell Kairox the names you used):
+
+| Field | Type | Written from the workbook column |
+|---|---|---|
+| `code` | text, unique | Code |
+| `name` | text | Name |
+| `title` | text | Name (section 3 reads `title`) |
+| `category` | relationship -> `product-categories` | Category code (looked up by the category's `code`; a missing category is created as a draft with `code` + `name`) |
+| `shortDescription` | text / textarea | Short description |
+| `descriptionText` | textarea (plain text) | Description. Plain text; the CMS may render it, or copy it into a rich-text field in a `beforeChange` hook |
+| `moq` | number | Minimum order (MOQ), display only |
+| `unit` | text | Unit |
+| `customPrinting` | checkbox | Custom printing |
+| `specs` | group: `material`, `capacity`, `dimensions`, `thickness`, `colours`, `lidOptions` (text) | the columns of the same names |
+
+**Calls the platform makes** (all with `Authorization: users API-Key <key>`):
+
+```
+GET   /api/product-categories?where[code][equals]=<code>&limit=1&depth=0&draft=true
+POST  /api/product-categories?draft=true        {"code", "name", "_status": "draft"}
+GET   /api/products?where[code][equals]=<code>&limit=1&depth=0&draft=true
+POST  /api/products?draft=true                  {..fields above.., "_status": "draft"}
+PATCH /api/products/<id>?draft=true             {..only the fields the workbook set.., "_status": "draft"}
+```
+
+* Only the fields the workbook set are sent (a blank cell is not sent); a field the workbook cleared (`-`) is
+  sent as `null`. `specs` is read first and merged, so a spec edited only in the CMS is kept.
+* **Never written**: photos, videos, datasheets, rich-text bodies, SEO fields, `_status: published`. **No
+  price, tier, minimum or cost field exists in the payload.**
+* The answer's `doc.id` is stored in the CRM as the product's CMS id.
+
+**Editor rule:** publish or discard open CMS drafts of a product before the next workbook upload changes it:
+the upload updates the latest draft.
+

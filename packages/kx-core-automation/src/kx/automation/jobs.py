@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Final, Protocol
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from kx.automation import inbound
 from kx.automation.alerts import ApprovalLadder, LadderTicket, PauseAlerts
@@ -31,17 +31,19 @@ from kx.automation.channels.email import parse_inbound
 from kx.automation.channels.feedback import parse_feedback
 from kx.automation.channels.stalwart import MailboxPoller, raw_key
 from kx.automation.handlers import EventHandlers, FollowUps, stop_after_no_answer
-from kx.automation.models import SCHEMA, OutboundMessage
-from kx.automation.outbound import OutboundService, TransientDeliveryError
+from kx.automation.models import SCHEMA, ChannelAccount, OutboundMessage
+from kx.automation.outbound import STUCK_ERROR, OutboundService, TransientDeliveryError
+from kx.automation.outbox import emit
 from kx.automation.ports import MediaStore, SweepCallback, TaskScheduler
 from kx.automation.scraping import PriceScraper
 from kx.automation.settings import AutomationSettings
 from kx.core.db import Databases
-from kx.core.event_payloads import DealNextActionSet, NegotiationPaused, StopUnclear
+from kx.core.event_payloads import DealNextActionSet, MessageStatus, NegotiationPaused, StopUnclear
 from kx.core.events import Event, Publisher, relay_once
 from kx.core.identity import sha256_hex
 from kx.core.jobs import Job, JobRunner, JobSpec, JobStore
 from kx.core.logging import get_logger
+from kx.core.metrics import emit_metric
 from kx.core.settings import LogicalDb
 
 log = get_logger(__name__)
@@ -163,7 +165,8 @@ def periodic_jobs(rt: AutomationRuntime) -> dict[str, Periodic]:
         return await relay_all(rt)
 
     async def requeue(now: datetime) -> int:
-        return await requeue_lost(rt, now)
+        """Every 5 min: re-enqueue queued rows that lost their job, and settle rows stuck in sending (D6)."""
+        return await requeue_lost(rt, now) + await expire_stuck_sending(rt, now)
 
     async def scrapes(_: datetime) -> Any:
         """v2 (D14): raw-material price scraping. v1 keeps the code but `features.scraping` is off, so
@@ -238,6 +241,51 @@ async def requeue_lost(rt: AutomationRuntime, now: datetime) -> int:
         await rt.outbound.requeue(message_id, f"thread:{thread_id}" if thread_id else None)
         count += 1
     return count
+
+
+STUCK_SENDING_MINUTES: Final = 15  # a provider call takes seconds (HTTP timeouts 15-30 s); 15 min = it died
+
+
+async def expire_stuck_sending(rt: AutomationRuntime, now: datetime) -> int:
+    """D6 (architecture guide): a worker that died between "sending" and the provider's answer left the row
+    in `sending` for ever. Such rows become `failed` with error `unknown:stuck_sending`, the CRM is told (it
+    tells the salesperson to check the conversation and leaves the buyer's phone status alone, §8.2) and
+    the `OutboundStuck` metric counts them. Never resent automatically: the provider may have delivered it,
+    and a
+    second copy of a quote or reply is worse than a person checking."""
+    cutoff = now - timedelta(minutes=STUCK_SENDING_MINUTES)
+    async with rt.databases.transaction(LogicalDb.AUTOMATION) as s:
+        rows = (
+            await s.execute(
+                select(OutboundMessage, ChannelAccount.channel)
+                .join(ChannelAccount, ChannelAccount.id == OutboundMessage.channel_account_id)
+                .where(
+                    OutboundMessage.status == "sending",
+                    func.coalesce(OutboundMessage.sending_at, OutboundMessage.created_at) < cutoff,
+                )
+                .with_for_update(of=OutboundMessage, skip_locked=True)
+                .limit(200)
+            )
+        ).all()
+        for row, channel in rows:
+            row.status, row.error = "failed", STUCK_ERROR
+            await emit(
+                s,
+                MessageStatus(
+                    message_ref=row.id,
+                    status="failed",
+                    provider_message_id=None,
+                    error=STUCK_ERROR,
+                    at=now,
+                    contact_ref=row.contact_ref,
+                    deal_ref=row.deal_ref,
+                    channel=channel,
+                    kind=row.kind,
+                ),
+            )
+            log.error("outbound.stuck_sending", message_id=str(row.id), kind=row.kind, channel=channel)
+            emit_metric("OutboundStuck", 1, company=rt.settings.company_name or "unknown", channel=channel)
+    return len(rows)
 
 
 async def _ingest_media(rt: AutomationRuntime, inbound_id: uuid.UUID) -> None:

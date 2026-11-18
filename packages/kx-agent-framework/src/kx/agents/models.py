@@ -101,6 +101,45 @@ class AnthropicApiProvider:
         )
 
 
+GEMINI_MODEL_IDS: Final[dict[ModelTier, str]] = {
+    ModelTier.FAST: "gemini-3.8-flash",
+    ModelTier.SMART: "gemini-3.8-flash",
+    ModelTier.JUDGE: "gemini-3.8-flash",
+}
+_GEMINI_THINKING: Final[dict[str, str]] = {
+    "low": "low",
+    "medium": "medium",
+    "high": "high",
+    "xhigh": "high",
+    "max": "high",
+}
+
+
+class GeminiApiProvider:
+    """18 Nov (client decision): Gemini 3.8 Flash as the standby when every Claude call fails
+    (`KX_PLATFORM__LLM_STANDBY=gemini`, a PAID key: the free tier allows 20 requests a day). It only ever
+    answers inside the same guards (price guard, fixed phrases, hand-over rules) as Claude."""
+
+    name = "gemini"
+
+    def __init__(self, api_key: SecretStr, model_ids: Mapping[ModelTier, str] = GEMINI_MODEL_IDS) -> None:
+        self._key = api_key
+        self._ids = dict(model_ids)
+
+    def chat_model(self, tier: ModelTier, options: ModelOptions) -> BaseChatModel:
+        from langchain_google_genai import ChatGoogleGenerativeAI  # noqa: PLC0415 - only with the standby on
+
+        model: BaseChatModel = ChatGoogleGenerativeAI(
+            model=self._ids[tier],
+            google_api_key=self._key,
+            max_output_tokens=options.max_tokens,
+            timeout=options.timeout_s,
+            max_retries=options.max_retries,
+            thinking_level=_GEMINI_THINKING[options.effort],
+        )
+        return model
+
+
 @dataclass(frozen=True, slots=True)
 class ModelSet:
     """A tier's primary model plus ordered fallbacks."""

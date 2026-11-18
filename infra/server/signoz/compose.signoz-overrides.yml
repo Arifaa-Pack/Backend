@@ -1,0 +1,40 @@
+# Kairox additions to SigNoz v0.129.0's deploy/docker/docker-compose.yaml (infra/server/README.md §5):
+#   cd /opt/signoz/deploy/docker
+#   docker compose -f docker-compose.yaml -f /opt/kairox/infra/server/signoz/compose.signoz-overrides.yml up -d
+# * our collector config (OTLP + host metrics + container metrics + container logs)
+# * read-only views of the host (/hostfs), the Docker socket and the container log files
+# * root inside the collector: the log files and the socket are root-only on the host
+# * the shared `kx` network, so the app reaches http://signoz-otel-collector:4318
+# * OTLP ports only on the Docker networks, never on the public interface
+# * SigNoz's own containers name themselves in SigNoz -> Logs (compose service label), like our stacks
+x-logs: &logs
+  options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
+
+services:
+  clickhouse: { logging: *logs }
+  zookeeper-1: { logging: *logs }
+  signoz: { logging: *logs }
+  otel-collector:
+    logging: *logs
+    user: "0:0"
+    volumes:
+      - ${KX_SIGNOZ_CONFIG_DIR:-/opt/kairox/infra/server/signoz}/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+      - /:/hostfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    environment:
+      - OTEL_RESOURCE_ATTRIBUTES=host.name=${KX_HOST_NAME:-kx-server},os.type=linux
+      - LOW_CARDINAL_EXCEPTION_GROUPING=false
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN=tcp://clickhouse:9000
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER=cluster
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION=true
+      - SIGNOZ_OTEL_COLLECTOR_TIMEOUT=10m
+    ports: !override
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+    networks: [signoz-net, kx]
+
+networks:
+  kx:
+    name: ${KX_NETWORK:-kx}
+    external: true

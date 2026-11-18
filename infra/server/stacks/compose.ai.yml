@@ -17,7 +17,7 @@ services:
         limits: { memory: 6g }
     logging: &logs
       driver: json-file
-      options: { max-size: "50m", max-file: "3" }
+      options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
 
   speech:
     build:

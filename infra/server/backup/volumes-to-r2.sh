@@ -11,7 +11,7 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-VOLUMES=(kx-mail_stalwart-data kx-mail_stalwart-etc)
+VOLUMES=(kx-mail_stalwart-etc kx-mail_stalwart-data)  # Stalwart v1: config.json + RocksDB (mail, settings, DKIM)
 [[ -d /data/coolify ]] && tar -C /data -czf "$WORK/coolify-${STAMP}.tar.gz" coolify
 
 for v in "${VOLUMES[@]}"; do

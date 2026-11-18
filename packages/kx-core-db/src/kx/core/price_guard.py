@@ -71,9 +71,54 @@ _CURRENCY_WORDS: Final[dict[str, str]] = {
     "人民币": "CNY",
     "sar": "SAR",
     "ريال": "SAR",
+    "ر.س": "SAR",
+    "riyal": "SAR",
+    "riyals": "SAR",
     "gbp": "GBP",
+    # D3 (16 Nov): the other Gulf currencies. Any amount in a currency that is not on the approved quote is a
+    # violation, so naming the currency is enough to fail closed.
+    "qar": "QAR",
+    "qr": "QAR",
+    "ر.ق": "QAR",
+    "omr": "OMR",
+    "ر.ع": "OMR",
+    "kwd": "KWD",
+    "kd": "KWD",
+    "د.ك": "KWD",
+    "bhd": "BHD",
+    "bd": "BHD",
+    "د.ب": "BHD",
+    "دينار": "KWD",
+    # 18 Nov translation check: the forms the AI really writes. Arabic puts the "-an" ending on the currency
+    # after numbers such as 11-99 ("50 درهماً"); the tanween mark sits after or before the alif, or is
+    # left out.
+    # Hindi, Tamil, Sinhala and Chinese native names. Unambiguous words only (no false alarm on quantities).
+    **{f: "AED" for f in ("درهماً", "درهمًا", "درهما")},
+    **{f: "SAR" for f in ("ريالاً", "ريالًا", "ريالا", "ريالات")},
+    **{f: "KWD" for f in ("ديناراً", "دينارًا", "دينارا", "دنانير")},
+    **{f: "USD" for f in ("دولار", "دولاراً", "دولارًا", "دولارا", "دولارات")},
+    "يورو": "EUR",
+    **{f: "INR" for f in ("روبية", "روبيات")},
+    "दिरहम": "AED",
+    **{f: "INR" for f in ("रुपये", "रुपए", "रुपया")},
+    "डॉलर": "USD",
+    "रियाल": "SAR",
+    "यूरो": "EUR",
+    "திர்ஹம்": "AED",
+    "ரூபாய்": "INR",
+    "டாலர்": "USD",
+    "ඩිර්හම්": "AED",
+    "රුපියල්": "INR",
+    "ඩොලර්": "USD",
+    "迪拉姆": "AED",
+    "美元": "USD",
+    "欧元": "EUR",
+    "里亚尔": "SAR",
+    "卢比": "INR",
+    "英镑": "GBP",
 }
-_GLUED_OK: Final = frozenset({"元", "人民币"})  # CJK is written without spaces: no word boundary
+# CJK is written without spaces: no word boundary
+_GLUED_OK: Final = frozenset({"元", "人民币", "迪拉姆", "美元", "欧元", "里亚尔", "卢比", "英镑"})
 _UNITS: Final = frozenset(
     {
         "pcs",
@@ -445,6 +490,55 @@ _PRICE_SUFFIX: Final = re.compile(
 )
 
 
+# D3 (16 Nov): "I can do 450 for you", "our final offer is 450." A whole number with no currency, no keyword
+# and no decimals is a price when an offer phrase comes earlier in the same clause AND no noun follows it
+# ("only 3 colours", "within 12 working days" stay quantities). A false alarm only costs a rewrite.
+_OFFER_CUE: Final = re.compile(
+    r"\b(?:(?:can|could|will|would|'ll) do|offer(?:ing|ed)?|give you|go(?:ing)? (?:down )?to|come down to"
+    r"|drop(?:ping)? to|reduc(?:e|ed|ing) (?:it )?to|best (?:i|we) can|final(?:ly)?|discount(?:ed)? to"
+    r"|just|only)\b"
+)
+_OFFER_FOLLOWERS: Final = frozenset(
+    {
+        "for",
+        "if",
+        "only",
+        "flat",
+        "final",
+        "then",
+        "and",
+        "but",
+        "with",
+        "is",
+        "as",
+        "now",
+        "today",
+        "max",
+        "maximum",
+        "net",
+        "per",
+        "total",
+    }
+)
+_OFFER_WINDOW: Final = 40
+
+
+def _offer_bare(lt: str, s: int, e: int) -> bool:
+    lo = max(s - _OFFER_WINDOW, 0)
+    for b in _CLAUSE_END.finditer(lt, lo, s):
+        lo = b.end()
+    if lo >= s or _OFFER_CUE.search(lt, lo, s) is None:
+        return False
+    k = e
+    while k < len(lt) and lt[k] in _WS:
+        k += 1
+    if k >= len(lt) or not lt[k].isalpha():  # end of text or punctuation: "... is 450." / "450, ok?"
+        return True
+    sp = lt.find(" ", k)
+    word = lt[k : sp if sp >= 0 else len(lt)].rstrip(_TRAILING_PUNCT)
+    return word in _OFFER_FOLLOWERS
+
+
 def _bare_currency(
     lt: str,
     s: int,
@@ -460,7 +554,12 @@ def _bare_currency(
     in a sales reply such a number is almost always a price, and a false alarm only costs a rewrite."""
     if prev_cur is not None and 0 <= s - prev_end <= 5 and lt[prev_end:s].strip() in _RANGE_GAPS:
         return prev_cur
-    if dec >= 2 or _has_keyword(lt, s) or _PRICE_SUFFIX.match(lt, e) is not None:
+    if (
+        dec >= 2
+        or _has_keyword(lt, s)
+        or _PRICE_SUFFIX.match(lt, e) is not None
+        or (dec == 0 and _offer_bare(lt, s, e))
+    ):
         return default_currency.upper() if default_currency else None
     return _NOT_A_PRICE
 

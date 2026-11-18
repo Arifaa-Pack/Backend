@@ -1,0 +1,312 @@
+{
+ "rows": [
+  {
+   "lang": "en",
+   "q": "How many ml does the small paper cup hold?",
+   "expected": "cup-8oz",
+   "strict": {
+    "top": [
+     "8 oz paper cup"
+    ],
+    "verdict": "right",
+    "ms": 71.5
+   },
+   "loose": {
+    "top": [
+     "8 oz paper cup"
+    ],
+    "verdict": "right",
+    "ms": 4.5
+   }
+  },
+  {
+   "lang": "en",
+   "q": "Do you have a cup that stays hot without a sleeve?",
+   "expected": "cup-12oz",
+   "strict": {
+    "top": [
+     "12 oz double-wall cup"
+    ],
+    "verdict": "right",
+    "ms": 4.3
+   },
+   "loose": {
+    "top": [
+     "12 oz double-wall cup"
+    ],
+    "verdict": "right",
+    "ms": 3.3
+   }
+  },
+  {
+   "lang": "en",
+   "q": "Can the foil container go in the oven?",
+   "expected": "foil-tray",
+   "strict": {
+    "top": [
+     "Aluminium foil tray 2 lb"
+    ],
+    "verdict": "right",
+    "ms": 3.7
+   },
+   "loose": {
+    "top": [
+     "Aluminium foil tray 2 lb"
+    ],
+    "verdict": "right",
+    "ms": 3.1
+   }
+  },
+  {
+   "lang": "en",
+   "q": "I need a kraft box that comes with a lid",
+   "expected": "box-750",
+   "strict": {
+    "top": [
+     "750 ml kraft box with lid"
+    ],
+    "verdict": "right",
+    "ms": 3.9
+   },
+   "loose": {
+    "top": [
+     "750 ml kraft box with lid"
+    ],
+    "verdict": "right",
+    "ms": 4.0
+   }
+  },
+  {
+   "lang": "en",
+   "q": "Which food safety certifications does your plant have?",
+   "expected": "certs",
+   "strict": {
+    "top": [
+     "1-litre kraft box without lid"
+    ],
+    "verdict": "wrong",
+    "ms": 3.8
+   },
+   "loose": {
+    "top": [
+     "1-litre kraft box without lid"
+    ],
+    "verdict": "wrong",
+    "ms": 2.8
+   }
+  },
+  {
+   "lang": "ar",
+   "q": "ما هو الحد الأدنى لطلب الأكواب الورقية الصغيرة؟",
+   "expected": "cup-8oz",
+   "strict": {
+    "top": [
+     "كوب ورقي 8 أونصة"
+    ],
+    "verdict": "right",
+    "ms": 4.3
+   },
+   "loose": {
+    "top": [
+     "كوب ورقي 8 أونصة"
+    ],
+    "verdict": "right",
+    "ms": 3.1
+   }
+  },
+  {
+   "lang": "ar",
+   "q": "هل يمكن وضع علبة الألمنيوم في الفرن؟",
+   "expected": "foil-tray",
+   "strict": {
+    "top": [
+     "صينية ألمنيوم 2 رطل"
+    ],
+    "verdict": "right",
+    "ms": 3.1
+   },
+   "loose": {
+    "top": [
+     "صينية ألمنيوم 2 رطل"
+    ],
+    "verdict": "right",
+    "ms": 2.5
+   }
+  },
+  {
+   "lang": "hi",
+   "q": "छोटे पेपर कप का न्यूनतम ऑर्डर कितना है?",
+   "expected": "cup-8oz",
+   "strict": {
+    "top": [
+     "8 औंस पेपर कप"
+    ],
+    "verdict": "right",
+    "ms": 3.4
+   },
+   "loose": {
+    "top": [
+     "8 औंस पेपर कप"
+    ],
+    "verdict": "right",
+    "ms": 2.6
+   }
+  },
+  {
+   "lang": "zh",
+   "q": "铝箔餐盒可以放进烤箱吗？",
+   "expected": "foil-tray",
+   "strict": {
+    "top": [],
+    "verdict": "none",
+    "ms": 2.9
+   },
+   "loose": {
+    "top": [],
+    "verdict": "none",
+    "ms": 2.3
+   }
+  },
+  {
+   "lang": "en",
+   "q": "what's the MOQ on your foil trays?",
+   "expected": "foil-tray",
+   "strict": {
+    "top": [
+     "Aluminium foil tray 2 lb"
+    ],
+    "verdict": "right",
+    "ms": 3.4
+   },
+   "loose": {
+    "top": [
+     "Aluminium foil tray 2 lb"
+    ],
+    "verdict": "right",
+    "ms": 2.3
+   }
+  },
+  {
+   "lang": "en",
+   "q": "Are your 12oz cups sold with lids?",
+   "expected": "cup-12oz",
+   "strict": {
+    "top": [
+     "12 oz double-wall cup"
+    ],
+    "verdict": "right",
+    "ms": 3.5
+   },
+   "loose": {
+    "top": [
+     "12 oz double-wall cup"
+    ],
+    "verdict": "right",
+    "ms": 2.6
+   }
+  },
+  {
+   "lang": "en",
+   "q": "Is the 750ml kraft box microwave safe?",
+   "expected": "box-750",
+   "strict": {
+    "top": [
+     "750 ml kraft box with lid"
+    ],
+    "verdict": "right",
+    "ms": 3.8
+   },
+   "loose": {
+    "top": [
+     "750 ml kraft box with lid"
+    ],
+    "verdict": "right",
+    "ms": 2.4
+   }
+  },
+  {
+   "lang": "en",
+   "q": "How long is delivery for printed 8 oz cups?",
+   "expected": "cup-8oz",
+   "strict": {
+    "top": [
+     "8 oz paper cup"
+    ],
+    "verdict": "right",
+    "ms": 3.5
+   },
+   "loose": {
+    "top": [
+     "8 oz paper cup"
+    ],
+    "verdict": "right",
+    "ms": 2.6
+   }
+  },
+  {
+   "lang": "en",
+   "q": "Is the 1 litre box grease proof?",
+   "expected": "box-1l",
+   "strict": {
+    "top": [
+     "1-litre kraft box without lid"
+    ],
+    "verdict": "right",
+    "ms": 3.2
+   },
+   "loose": {
+    "top": [
+     "1-litre kraft box without lid"
+    ],
+    "verdict": "right",
+    "ms": 2.9
+   }
+  },
+  {
+   "lang": "en",
+   "q": "Do you sell plastic carry bags?",
+   "expected": null,
+   "strict": {
+    "top": [],
+    "verdict": "right",
+    "ms": 3.1
+   },
+   "loose": {
+    "top": [],
+    "verdict": "right",
+    "ms": 2.9
+   }
+  },
+  {
+   "lang": "en",
+   "q": "What is the capacity of your 16 oz cup?",
+   "expected": null,
+   "strict": {
+    "top": [
+     "12 oz double-wall cup"
+    ],
+    "verdict": "wrong",
+    "ms": 3.3
+   },
+   "loose": {
+    "top": [
+     "12 oz double-wall cup"
+    ],
+    "verdict": "wrong",
+    "ms": 2.4
+   }
+  }
+ ],
+ "summary": {
+  "strict": {
+   "right": 13,
+   "none": 1,
+   "wrong": 2
+  },
+  "loose": {
+   "right": 13,
+   "none": 1,
+   "wrong": 2
+  }
+ }
+}

@@ -161,7 +161,8 @@ async def test_orm_matches_ddl(databases: Databases) -> None:
     }
     # 45 baseline + product_price_tiers, quote_line_tiers, change_requests (5 Nov)
     # + staff_credentials, auth_sessions, auth_challenges (11 Nov, D26 in-house login)
-    assert len(m.metadata.tables) == 51
+    # + message_texts (18 Nov, editable message texts, crm_0014)
+    assert len(m.metadata.tables) == 52
     problems = []
     for table in m.metadata.tables.values():
         cols = db[table.name]
@@ -699,6 +700,7 @@ async def test_retention_anonymises_lost_leads(databases: Databases, seed: Seed,
     await gw.add_timeline(deal_id, "message_in", "my number is " + phone, AiRole.COMMUNICATION)
     async with databases.transaction(CRM) as s:
         deal = await deals.get_deal(s, deal_id, lock=True)
+        deal.ai_summary, deal.ai_summary_at = f"Buyer Ahmed ({phone}) wants 750 ml lids", deps.now()
         await deals.move_stage(
             s, deal, DealStage.LOST, Actor.user(MGR), now=deps.now(), lost_reason="no_response_postponed"
         )
@@ -711,6 +713,9 @@ async def test_retention_anonymises_lost_leads(databases: Databases, seed: Seed,
         assert (
             c is not None and c.anonymised_at is not None and c.phone_e164 is None and c.whatsapp_e164 is None
         )
+        # D8: the AI's summary of the conversation goes with the transcripts
+        d = await s.get(m.Deal, deal_id, populate_existing=True)
+        assert d is not None and d.ai_summary is None and d.ai_summary_at is None
         summaries = (
             (
                 await s.execute(

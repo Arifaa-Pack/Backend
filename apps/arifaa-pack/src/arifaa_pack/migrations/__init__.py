@@ -84,6 +84,25 @@ def current(db: LogicalDb, dsn: str | None = None) -> None:
     command.current(config(db, dsn), verbose=True)
 
 
+def status(db: LogicalDb, dsn: str | None = None) -> tuple[str | None, str | None]:
+    """(revision in the database, head revision of the code) for `kx first-run` (18 Nov)."""
+    from alembic.runtime.migration import MigrationContext  # noqa: PLC0415
+    from alembic.script import ScriptDirectory  # noqa: PLC0415
+    from sqlalchemy import create_engine  # noqa: PLC0415
+
+    cfg = config(db, dsn)
+    head = ScriptDirectory.from_config(cfg).get_current_head()
+    engine = create_engine(cfg.attributes["dsn"])
+    try:
+        with engine.connect() as conn:
+            ctx = MigrationContext.configure(
+                conn, opts={"version_table": "alembic_version", "version_table_schema": "public"}
+            )
+            return ctx.get_current_revision(), head
+    finally:
+        engine.dispose()
+
+
 def apply_ddl_file(db: LogicalDb) -> None:
     """Used by each baseline revision: execute the whole reviewed DDL file in the migration transaction."""
     execute_sql((ddl_dir() / DDL_FILES[db]).read_text(encoding="utf-8"))

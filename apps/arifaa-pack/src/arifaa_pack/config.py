@@ -25,6 +25,9 @@ class AppSettings(BaseSettings):
     cms_url: str = "http://localhost:3000"  # Payload CMS (KB source)
     cms_api_key: SecretStr | None = None
     cors_origins: tuple[str, ...] = ("http://localhost:3001",)
+    # 18 Nov: automatic daily FX rates for quotes in other currencies (false = manual rates only)
+    fx_rates_auto: bool = True
+    fx_rates_url: str = "https://open.er-api.com/v6/latest/AED"
 
     # ---- background jobs (D25: Celery 5.7 + Beat, Redis broker, PostgreSQL schedule table)
     celery_broker_url: str | None = None  # default: KX_REDIS_URL

@@ -55,6 +55,10 @@ DEAL_REQUIREMENT_SUMMARY: Final = (
 QUOTE_NOT_DELIVERED: Final = "quote.not_delivered.v1"
 QUOTE_RESEND_REQUESTED: Final = "quote.resend_requested.v1"
 CATALOGUE_PRODUCT_PUBLISHED: Final = "catalogue.product_published.v1"  # §7: CMS product -> CRM by code
+# 18 Nov: the product workbook changed a product's website content -> saved as a CMS draft (never prices)
+CATALOGUE_PRODUCT_CONTENT: Final = "catalogue.product_content_changed.v1"
+# 18 Nov: a manager / MD changed an English message text -> the AI translates the other languages
+MESSAGE_TEXT_CHANGED: Final = "texts.text_changed.v1"
 CONVERSATION_SUMMARY_UPDATED: Final = "conversation.summary_updated.v1"  # §7A.2: AI summary on the deal
 
 

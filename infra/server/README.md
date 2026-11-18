@@ -13,7 +13,7 @@ infra/server/
     compose.data.yml       postgres (pgvector:pg18 + WAL-G), pgbouncer
     compose.ai.yml         embeddings (TEI cpu-1.8: BGE-M3 or Qwen3), speech (faster-whisper Small + Piper)
     compose.voice.yml      livekit server (+ livekit.yaml)
-    compose.mail.yml       stalwart (MX + JMAP; relays out through SES)
+    compose.mail.yml       stalwart v1.1.1 (MX + JMAP; relays out through SES)
     compose.obs.yml        phoenix + phoenix-postgres; SigNoz is installed from its own pinned compose (see §5)
     compose.edge.yml       crowdsec + Cloudflare bouncer (+ crowdsec-acquis.yaml); SafeLine from its own compose (§6)
     compose.app.yml        migrate, api, worker, beat, voice, redis, cms; web / crm-web (profile selfhost-web)
@@ -52,7 +52,7 @@ All stacks share one external Docker network, `kx`, so services find each other 
 | 1 | `compose.data.yml` | `pg_isready`; then run `postgres/db_bootstrap.sh` with `KX_BOOTSTRAP_PREFIXES=pack_`; `wal-g backup-list` shows a base backup |
 | 2 | `compose.ai.yml` | `curl http://embeddings/health`, `curl http://speech:8100/healthz` (models download on first start, ≈ 3 GB) |
 | 3 | `compose.voice.yml` | LiveKit `:7880` answers; UDP ports reachable from outside |
-| 4 | `compose.mail.yml` | Stalwart web setup done: domain, DKIM, SES smarthost, the `sales@` account (the app's JMAP login; bounce reports land there too) |
+| 4 | `compose.mail.yml` | Stalwart v1.1.1 web setup done (steps in the file's header): domain, DKIM (RSA + Ed25519), the `ses` relay route + outbound strategy, the `sales@` account (the app's JMAP login; bounce reports land there too) |
 | 5 | SigNoz, `compose.obs.yml` | SigNoz UI (tunnel), Phoenix UI (tunnel) |
 | 6 | SafeLine, `compose.edge.yml` | test page through Cloudflare; WAF logs |
 | 7 | `compose.app.yml` | `migrate` exits 0; `/healthz` and `/healthz/beat` return 200; `kx platform show` |
@@ -70,9 +70,21 @@ Internet ─► :25 Stalwart (MX)          Internet ─► LiveKit :7881/tcp, :3
 
 ## 5. Monitoring
 
-- **SigNoz:** install from its official Docker compose at a pinned release, on the `kx` network; retention 15 days logs, 30 days traces and metrics. The app sends OTLP to `http://signoz-otel-collector:4318` (`KX_APP_OTLP_ENDPOINT`); the collector's filelog receiver reads container logs (`/var/lib/docker/containers/*/*.log`). Alert rules: `VendorSwitch > 0`, `QueueLagSeconds > 300`, `SpendCap >= 80`, error-log rate; channel = email through Stalwart.
+- **SigNoz:** retention 15 days logs, 30 days traces and metrics. Alert rules on the metrics `VendorSwitch`, `QueueLagSeconds`, `SpendCap` and `OutboundStuck`, which SigNoz stores lowercase: `vendorswitch > 0`, `queuelagseconds > 300`, `spendcap >= 80`, `outboundstuck > 0` (D6: a message the worker died on; the salesperson is told too), error-log rate; channel = email through Stalwart.
+  - **How to install.** SigNoz dropped its Docker Compose files after **v0.129.0** (from v0.130 the supported installer is *Foundry*, `foundryctl cast`). Use the official `deploy/docker/docker-compose.yaml` of tag **v0.129.0** (SigNoz v0.129.0, otel-collector v0.144.5, ClickHouse 25.5.6, ZooKeeper 3.7.1; ≈ 0.7 GB RAM idle) **with our override**:
+    `docker compose -f docker-compose.yaml -f /opt/kairox/infra/server/signoz/compose.signoz-overrides.yml up -d`
+    (env `KX_SIGNOZ_CONFIG_DIR`, `KX_HOST_NAME`; the override puts the collector on the `kx` network, binds OTLP 4317 / 4318 to 127.0.0.1 only, mounts `/` read-only at `/hostfs`, the Docker socket and `/var/lib/docker/containers` read-only, and runs the collector as root because those files are root-only).
+  - **Create the admin account straight after the first start** (web UI, or `POST /api/v1/register`). Until an organisation exists the collector gets no configuration over OpAMP and **does not open 4317 / 4318**: the app's data is refused (connection refused, retried, then dropped).
+  - **What arrives** (tested live 17 Nov, `infra/server/signoz/otel-collector-config.yaml`):
+    - *App traces:* one span per API request (`/healthz*` excluded) and Celery spans for publishing and running jobs, so Beat → `apply_async` → `kx.run_job` is one trace; model calls appear as `anthropic.messages.create` spans (model, error type; no prompt text). `service.name` = `kx-api|kx-worker|kx-voice` (Beat itself sends nothing; its jobs show up as worker traces), `service.namespace` = the company code.
+    - *App logs:* every structlog line after PII masking, with the trace id of its request or job, and `exception.type / message / stacktrace` for `log.exception` (masked). Library warnings / errors (uvicorn, Celery, SQLAlchemy) too.
+    - *Server:* `system.*` metrics every 30 s (CPU, load, memory, paging, disks, filesystems, network).
+    - *Containers:* `container.*` CPU / memory / network / block I/O per container every 60 s (`docker_stats`; on Docker Desktop some one-shot stats calls are cancelled, so a few points are missing; check on the server).
+    - *Other containers' logs* (Postgres, Stalwart, LiveKit, ClickHouse, …) from their json-file logs, named by compose service (`labels` logging option, set in every stack). App containers carry the label `kx.logs=otlp` and are skipped there, so their lines are not stored twice.
+  - Metric names arrive **lowercase** (`vendorswitch`, `spendcap`, `queuelagseconds`).
+  - Volume measured idle: ≈ 35 Celery spans a minute from Beat's relay / sweep jobs (≈ 50,000 a day, small in ClickHouse).
 - **UptimeRobot** (free, outside): `https://api.<domain>/healthz` and `/healthz/beat` every 5 minutes; alerts by email / app.
-- Docker log rotation: `max-size 50m`, 3 files (daemon.json).
+- Docker log rotation: `max-size 50m`, 3 files (set per service in the compose files, with the `labels` option above).
 
 ## 6. Firewall: SafeLine
 

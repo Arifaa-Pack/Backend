@@ -32,7 +32,7 @@ services:
       retries: 30
     logging: &logs
       driver: json-file
-      options: { max-size: "50m", max-file: "3" }
+      options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
 
   pgbouncer:
     image: ${KX_IMG_PGBOUNCER:-edoburu/pgbouncer:v1.24.1-p1}

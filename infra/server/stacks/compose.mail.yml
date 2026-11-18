@@ -1,23 +1,39 @@
-# Email (D44): Stalwart mail server. MX on :25 (public); JMAP / admin on :8080 (internal + SSH tunnel only).
-# Outbound relays through Amazon SES SMTP (set in Stalwart's admin: Settings -> SMTP -> Outbound -> Relay host
-# email-smtp.<region>.amazonaws.com:587, SES SMTP credentials). Raise the default throttle (25 messages an hour
-# per sender domain + recipient) before go-live (OPEN_QUESTIONS #71). First start is in setup mode: open the
-# web admin (tunnel to :8080) and finish the wizard (domain, DKIM, the sending account the app logs in as).
+# Email (D44): Stalwart mail server v1.1.1 (pinned; tested locally 17 Nov with the app's JMAP code and a relay
+# that requires STARTTLS + SMTP AUTH like SES). MX on :25 (public); JMAP / admin on :8080 (kx network + SSH tunnel).
+#
+# First start (bootstrap mode): open the web admin through the tunnel (ssh -L 8080:<stalwart ip>:8080) and log in
+# as admin / KX_STALWART_RECOVERY_ADMIN's password, then finish the wizard: hostname mail.<domain>, domain
+# <domain>, DKIM keys on (RSA + Ed25519 are both created), logging = Console, DNS = manual (copy the records into
+# Cloudflare). Then, in Settings (or over JMAP, infra/server/README.md §4):
+#   * Account: sales@<domain>, role User  -> KX_AUTO_STALWART__USERNAME / __PASSWORD in env/pack.env
+#   * MTA > Outbound > Routes: Relay "ses", host email-smtp.<region>.amazonaws.com, port 587, implicitTls off
+#     (STARTTLS), authUsername = SES SMTP user, authSecret = EnvironmentVariable SES_SMTP_PASSWORD
+#   * MTA > Outbound > Strategy > route: if is_local_domain(rcpt_domain) then 'local' else 'ses'
+#   * Raise the default throttle (25 messages an hour per sender + recipient) before go-live (OPEN_QUESTIONS #71)
+# The app deletes finished JMAP submission records itself (v1 refuses sends after 500 of them, maxSubmissions).
+# Remove KX_STALWART_RECOVERY_ADMIN from the env file after setup. v0.x data cannot be upgraded in place
+# (stalwart-migrate); this is a new install, so start v1 on empty volumes.
 name: kx-mail
 
 services:
   stalwart:
-    image: ${KX_IMG_STALWART:-stalwartlabs/stalwart:v0.14}
+    image: ${KX_IMG_STALWART:-stalwartlabs/stalwart:v1.1.1}
+    init: true
     restart: unless-stopped
     ports:
       - "25:25"
+    environment:
+      STALWART_RECOVERY_ADMIN: ${KX_STALWART_RECOVERY_ADMIN:-}   # admin:<password> for the first setup only
+      SES_SMTP_PASSWORD: ${KX_SES_SMTP_PASSWORD:?SES SMTP password (from the SES SMTP credentials)}
     volumes:
+      # v1: config.json (written by the wizard) in /etc/stalwart; RocksDB (mail, accounts, settings, DKIM keys)
+      # in /var/lib/stalwart. Both are backed up nightly (backup/volumes-to-r2.sh).
       - stalwart-etc:/etc/stalwart
       - stalwart-data:/var/lib/stalwart
     networks: [kx]
     logging:
       driver: json-file
-      options: { max-size: "50m", max-file: "3" }
+      options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
 
 volumes:
   stalwart-etc:

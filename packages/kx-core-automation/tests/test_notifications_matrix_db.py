@@ -294,3 +294,19 @@ async def test_opt_out_sends_one_confirmation(auto_db: Any, clock: Clock) -> Non
     channel_only = stop.model_copy(update={"scope": "phone"})
     assert await handlers.dispatch(make_event(ev.CONSENT_OPTED_OUT, "x", uuid.uuid4(), channel_only))
     assert len(sender.requests) == 1  # nothing else leaves
+
+
+async def test_a_deal_closed_as_lost_gets_no_more_followups(auto_db: Any, clock: Clock) -> None:
+    """D10: deal.stage_changed to LOST cancels the queued day 2/5/10 reminders; other stage changes do not."""
+    from kx.core.contracts import DealStage
+    from kx.core.event_payloads import DealStageChanged
+
+    handlers, _, scheduler, _ = build(auto_db, clock, RecordingSender())
+    moved = DealStageChanged(
+        deal_ref=DEAL, from_stage=DealStage.NEGOTIATION, to_stage=DealStage.READY_TO_CLOSE
+    )
+    assert await handlers.dispatch(make_event(ev.DEAL_STAGE_CHANGED, "deal", DEAL, moved))
+    assert ("cancel_followups", {"deal_ref": DEAL}) not in scheduler.calls
+    lost = moved.model_copy(update={"to_stage": DealStage.LOST, "reason": "bought_competitor"})
+    assert await handlers.dispatch(make_event(ev.DEAL_STAGE_CHANGED, "deal", DEAL, lost))
+    assert ("cancel_followups", {"deal_ref": DEAL}) in scheduler.calls

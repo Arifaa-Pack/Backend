@@ -22,6 +22,9 @@ dependencies = [
     # D46 telemetry: SDK + OTLP exporter (kx.core uses only the API)
     "opentelemetry-sdk==1.45.2",
     "opentelemetry-exporter-otlp-proto-http==1.45.2",
+    # 17 Nov (approved by Hamthan): HTTP spans for the API and job spans for the Celery worker, to SigNoz
+    "opentelemetry-instrumentation-fastapi==0.66b2",
+    "opentelemetry-instrumentation-celery==0.66b2",
 ]
 
 [project.scripts]

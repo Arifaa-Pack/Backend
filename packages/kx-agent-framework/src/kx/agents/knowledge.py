@@ -23,7 +23,7 @@ from sqlalchemy.dialects.postgresql import insert
 from kx.agents.orm import KbChunk, KbDocument, KnowledgeGap
 from kx.core.db import Databases
 from kx.core.identity import sha256_hex
-from kx.core.logging import get_logger
+from kx.core.logging import get_logger, mask_pii
 from kx.core.settings import LogicalDb
 
 log = get_logger(__name__)
@@ -111,6 +111,29 @@ ORDER BY f.score DESC, f.id LIMIT :limit
 """)
 
 
+# Second step of the fallback (18 Nov, resource-usage-bench/docs/LLM_FALLBACK_RESULTS.md): only
+# when the strict query above finds nothing. Any word of the question may match (ranked by
+# ts_rank_cd, so more matching words rank higher). Measured with the embedding server down: strict
+# 2 of 16 buyer questions, strict-then-any-word 13 of 16; the wrong product came first twice, and
+# in 48 answers no model stated a wrong fact (agents answer from the facts only and the price
+# guard checks every reply). Lexemes are quoted: buyer text is never read as tsquery operators.
+_ANY_WORD_SQL: Final = text("""
+WITH docs AS (SELECT id, title, url_path FROM kb_documents WHERE language = ANY(:langs)),
+q AS (
+    SELECT to_tsquery('simple', coalesce(nullif(array_to_string(ARRAY(
+        SELECT quote_literal(w) FROM unnest(tsvector_to_array(to_tsvector('simple', :q))) w), ' | '), ''),
+        quote_literal('zzzz'))) AS q),
+fts AS (
+    SELECT c.id, row_number() OVER (ORDER BY ts_rank_cd(c.tsv, q.q) DESC) AS r
+    FROM kb_chunks c JOIN docs d ON d.id = c.document_id, q
+    WHERE c.tsv @@ q.q ORDER BY ts_rank_cd(c.tsv, q.q) DESC LIMIT :n),
+fused AS (SELECT id, 1.0 / (:k + r) AS score FROM fts)
+SELECT f.id, c.text, d.title, d.url_path, f.score, 0 AS sim, 1 AS lexical
+FROM fused f JOIN kb_chunks c ON c.id = f.id JOIN docs d ON d.id = c.document_id
+ORDER BY f.score DESC, f.id LIMIT :limit
+""")
+
+
 class KnowledgeBase:
     def __init__(
         self,
@@ -145,6 +168,9 @@ class KnowledgeBase:
         async with self._db.transaction(LogicalDb.AGENTS) as s:
             if qv is None:
                 rows = (await s.execute(_LEXICAL_SQL, params)).all()
+                if not rows:  # every-word match found nothing: try any word before handing over
+                    rows = (await s.execute(_ANY_WORD_SQL, params)).all()
+                    log.info("kb.any_word_fallback", hits=len(rows))
             else:
                 rows = (await s.execute(_RRF_SQL, {**params, "qv": qv, "model": self._embedder.model})).all()
         hits = tuple(KbHit(r.id, r.text, r.title, r.url_path, float(r.score), float(r.sim)) for r in rows)
@@ -153,7 +179,12 @@ class KnowledgeBase:
 
     async def record_gap(self, question: str, language: str, conversation_id: uuid.UUID | None) -> None:
         async with self._db.transaction(LogicalDb.AGENTS) as s:
-            s.add(KnowledgeGap(question=question[:2000], language=language, conversation_id=conversation_id))
+            # D8: the question is kept for the content team, the buyer's phone / email are not
+            s.add(
+                KnowledgeGap(
+                    question=mask_pii(question[:2000]), language=language, conversation_id=conversation_id
+                )
+            )
 
 
 # ---------------------------------------------------------------------------------- ingestion

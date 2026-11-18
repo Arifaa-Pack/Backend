@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal, get_args
 
-from sqlalchemy import ColumnElement, Text, cast, exists, func, literal, or_, select
+from sqlalchemy import ColumnElement, Text, cast, exists, func, literal, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.exc import StaleDataError
@@ -18,7 +18,20 @@ from kx.core.contracts import Channel, ContactPatch, DealStage, QualifyResult, R
 from kx.core.errors import Conflict, NotFound, RuleViolation
 from kx.core.event_payloads import DealNextActionSet, DealQualified, DealStageChanged
 from kx.core.identity import new_id, normalise_email, normalise_phone
-from kx.crm.models import Company, Contact, Deal, DealRequirement, Payment, Product, StageHistory
+from kx.crm.models import (
+    Approval,
+    ChangeRequest,
+    Company,
+    Contact,
+    Deal,
+    DealRequirement,
+    Payment,
+    Product,
+    Quote,
+    QuoteSendGrant,
+    QuoteVersion,
+    StageHistory,
+)
 from kx.crm.rules import OPEN_STAGES, QualificationFacts, check_transition, missing_fields
 from kx.crm.services.journal import Actor, Emit, Timeline, record
 
@@ -393,6 +406,7 @@ async def move_stage(
     )
     check_transition(current, target, lost_reason=lost_reason, has_payment=has_payment)
     deal.stage = target.value
+    closed: dict[str, int] | None = None
     match target:
         case DealStage.QUALIFIED:
             deal.qualified_at = deal.qualified_at or now
@@ -400,6 +414,7 @@ async def move_stage(
             deal.won_at = now
         case DealStage.LOST:
             deal.lost_reason, deal.lost_note, deal.lost_at = lost_reason, lost_note, now
+            closed = await _close_open_work(session, deal, now)
         case _:
             pass
     try:
@@ -423,7 +438,7 @@ async def move_stage(
         "deal",
         deal.id,
         before={"stage": current.value},
-        after={"stage": target.value, "lost_reason": lost_reason},
+        after={"stage": target.value, "lost_reason": lost_reason, **({"closed": closed} if closed else {})},
         timeline=Timeline(
             "stage",
             f"{current.value} → {target.value}"
@@ -441,6 +456,52 @@ async def move_stage(
         ),
     )
     return deal
+
+
+async def _close_open_work(session: AsyncSession, deal: Deal, now: datetime) -> dict[str, int]:
+    """D10 (architecture guide): closing a deal as LOST, in the same transaction, cancels its open approvals
+    (no priced quote can be approved for a closed deal; the reminder ladder stops because nothing is pending),
+    declines its open change requests and revokes every send grant not yet used (a quote can no longer leave).
+    The AI is left as it is: on a LOST deal the router only lets the concierge re-engage, which states no
+    price.
+    Queued follow-ups are cancelled by automation on `deal.stage_changed` (LOST). A reopened deal starts the
+    approval again."""
+    versions = (
+        select(QuoteVersion.id).join(Quote, Quote.id == QuoteVersion.quote_id).where(Quote.deal_id == deal.id)
+    )
+    no_sync = {"synchronize_session": False}
+    approvals = (
+        await session.execute(
+            update(Approval)
+            .where(Approval.quote_version_id.in_(versions), Approval.status.in_(("pending", "overdue")))
+            .values(status="cancelled")
+            .returning(Approval.id)
+            .execution_options(**no_sync)
+        )
+    ).all()
+    changes = (
+        await session.execute(
+            update(ChangeRequest)
+            .where(ChangeRequest.deal_id == deal.id, ChangeRequest.status.in_(("open", "in_progress")))
+            .values(status="declined", decline_reason="deal closed as LOST", closed_at=now)
+            .returning(ChangeRequest.id)
+            .execution_options(**no_sync)
+        )
+    ).all()
+    grants = (
+        await session.execute(
+            update(QuoteSendGrant)
+            .where(
+                QuoteSendGrant.quote_version_id.in_(versions),
+                QuoteSendGrant.consumed_at.is_(None),
+                QuoteSendGrant.revoked_at.is_(None),
+            )
+            .values(revoked_at=now, revoked_reason="deal_lost")
+            .returning(QuoteSendGrant.id)
+            .execution_options(**no_sync)
+        )
+    ).all()
+    return {"approvals": len(approvals), "change_requests": len(changes), "grants": len(grants)}
 
 
 async def reopen(session: AsyncSession, deal: Deal, actor: Actor, *, now: datetime, reason: str) -> Deal:

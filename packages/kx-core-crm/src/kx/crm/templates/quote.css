@@ -6,6 +6,8 @@ h1 { font-size: 20pt; margin: 0 0 4mm; letter-spacing: .5px; color: #0f3d5e; }
 h2 { font-size: 11pt; margin: 6mm 0 2mm; color: #0f3d5e; }
 .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f3d5e; padding-bottom: 4mm; }
 .seller-name { font-size: 13pt; font-weight: 700; }
+.logo { max-height: 18mm; max-width: 60mm; display: block; margin-bottom: 2mm; }
+.bank { margin-top: 4mm; }
 .kv th { text-align: start; padding-inline-end: 4mm; font-weight: 600; color: #555; }
 .buyer { margin: 6mm 0 4mm; }
 .buyer .label { color: #555; margin-inline-end: 2mm; }

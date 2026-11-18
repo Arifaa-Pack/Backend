@@ -8,7 +8,9 @@
   downloads each raw message, hands it to the caller and then sets the keyword. No cursor table: the keyword
   is the cursor, and `first_receipt` dedupes a message seen twice (a crash between record and keyword).
 
-Only the JMAP methods below are used; they are stable across Stalwart 0.x / 1.x (pin the image, OPEN #71).
+Only standard JMAP methods are used (tested on Stalwart v0.14 and v1.1.1; the image is pinned, OPEN #71).
+v1 caps the stored submission records per account (`maxSubmissions`, 500); `StalwartSender` clears finished
+ones itself.
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, Final
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
@@ -30,6 +33,7 @@ log = get_logger(__name__)
 PROVIDER: Final = "stalwart"
 DONE_KEYWORD: Final = "$kxdone"
 USING: Final = ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail", "urn:ietf:params:jmap:submission"]
+SUBMISSION_PRUNE_BATCH: Final = 400  # below the default 500 cap, so one prune always frees room
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,7 +57,11 @@ class JmapClient:
 
     async def session(self) -> _Session:
         if self._session is None:
-            r = await self._request("GET", self._settings.url.rstrip("/") + "/.well-known/jmap")
+            # RFC 8620 §2.2: the well-known URL may redirect; Stalwart answers 307 -> /jmap/session, and the
+            # shared client does not follow redirects by default (same origin, so the Basic auth is kept)
+            r = await self._request(
+                "GET", self._settings.url.rstrip("/") + "/.well-known/jmap", follow_redirects=True
+            )
             data = r.json()
             account = data["primaryAccounts"]["urn:ietf:params:jmap:mail"]
             self._session = _Session(
@@ -65,12 +73,13 @@ class JmapClient:
         return self._session
 
     def _absolute(self, url: str) -> str:
-        """Stalwart may advertise its public hostname; we always talk to the internal URL we were given."""
+        """Stalwart may advertise its public hostname (or its container id); we always talk to the internal
+        URL we were given. Plain string surgery: the upload / download URLs are RFC 6570 templates, and
+        httpx.URL would percent-encode their {accountId} / {blobId} placeholders (then never filled in)."""
         if url.startswith("/"):
             return self._settings.url.rstrip("/") + url
-        public = httpx.URL(url)
-        base = httpx.URL(self._settings.url)
-        return str(public.copy_with(scheme=base.scheme, host=base.host, port=base.port))
+        public, base = urlsplit(url), urlsplit(self._settings.url)
+        return urlunsplit((base.scheme, base.netloc, public.path, public.query, public.fragment))
 
     async def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         try:
@@ -175,27 +184,46 @@ class StalwartSender:
                 "Email/import",
                 {"emails": {"m": {"blobId": blob, "mailboxIds": {sent: True}, "keywords": {"$seen": True}}}},
             ),
-            (
-                "EmailSubmission/set",
-                {
-                    "create": {
-                        "s": {
-                            "identityId": identity,
-                            "emailId": "#m",
-                            "envelope": {
-                                "mailFrom": {"email": self._from},
-                                "rcptTo": [{"email": to_address}],
-                            },
-                        }
-                    }
-                },
-            ),
+            ("EmailSubmission/set", {"create": {"s": self._submission(identity, "#m", to_address)}}),
         )
         if "m" not in (imported.get("created") or {}):
             raise ChannelError(PROVIDER, _first_error(imported.get("notCreated")), retryable=False)
-        if "s" not in (submitted.get("created") or {}):
-            raise ChannelError(PROVIDER, _first_error(submitted.get("notCreated")), retryable=True)
+        error = None if "s" in (submitted.get("created") or {}) else _first_error(submitted.get("notCreated"))
+        if error == "overQuota" and await self.prune_submissions():
+            # the Email is already in Sent: submit that one again, never a second copy
+            email_id = str(imported["created"]["m"]["id"])
+            [submitted] = await self._jmap.call(
+                ("EmailSubmission/set", {"create": {"s": self._submission(identity, email_id, to_address)}})
+            )
+            error = (
+                None if "s" in (submitted.get("created") or {}) else _first_error(submitted.get("notCreated"))
+            )
+        if error is not None:
+            raise ChannelError(PROVIDER, error, retryable=True)
         return str(msg["Message-ID"]).strip().strip("<>")
+
+    def _submission(self, identity: str, email_id: str, to_address: str) -> dict[str, Any]:
+        return {
+            "identityId": identity,
+            "emailId": email_id,
+            "envelope": {"mailFrom": {"email": self._from}, "rcptTo": [{"email": to_address}]},
+        }
+
+    async def prune_submissions(self) -> int:
+        """Stalwart v1 keeps a record of every JMAP submission and refuses new ones once the account holds
+        `maxSubmissions` (500 by default): after 500 quotes every send failed with `overQuota` (measured 17
+        Nov on v1.1.1). We never read them back, so the finished ones (`undoStatus` final; the queued delivery
+        is not affected) are deleted. Returns how many."""
+        [found] = await self._jmap.call(
+            ("EmailSubmission/query", {"filter": {"undoStatus": "final"}, "limit": SUBMISSION_PRUNE_BATCH})
+        )
+        ids = [str(i) for i in found.get("ids") or ()]
+        if not ids:
+            return 0
+        [done] = await self._jmap.call(("EmailSubmission/set", {"destroy": ids}))
+        pruned = len(done.get("destroyed") or ())
+        log.info("stalwart.submissions_pruned", count=pruned)
+        return pruned
 
 
 def _first_error(not_created: dict[str, Any] | None) -> str:

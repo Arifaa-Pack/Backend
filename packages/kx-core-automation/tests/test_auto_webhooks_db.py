@@ -190,8 +190,9 @@ async def test_telnyx_gather_press_2_pulls_ladder_forward(hook: Hook) -> None:
     form = {"CallSid": "v3:1", "Digits": "2"}
     unsigned = await hook.http.post(f"/webhooks/telnyx/gather/{row[0]}", data=form)
     assert unsigned.status_code == 401
-    other = await hook.http.post(signed("gather", uuid.uuid4()).replace(str(uuid.uuid4()), ""), data=form)
-    assert other.status_code in {401, 404, 422}
+    # a correctly signed URL for an attempt that does not exist: no "manager is being alerted" reply
+    other = await hook.http.post(signed("gather", uuid.uuid4()), data=form)
+    assert other.status_code == 404
     response = await hook.http.post(signed("gather", row[0]), data=form)
     assert response.status_code == 200 and "manager is being alerted" in response.text
     assert hook.scheduler.named("pull") == [{"approval_ref": approval}]

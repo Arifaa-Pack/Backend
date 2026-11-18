@@ -16,6 +16,7 @@ dependencies = [
     "pgvector==0.5.1",
     "opentelemetry-sdk==1.45.2",  # D29 Phoenix tracing over OTLP (replaces Langfuse)
     "opentelemetry-exporter-otlp-proto-http==1.45.2",
+    "langchain-google-genai==3.2.0",  # 18 Nov: Gemini 3.8 Flash standby when Claude is down (D27, OPEN #74)
 ]
 
 [project.optional-dependencies]

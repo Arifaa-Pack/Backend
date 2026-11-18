@@ -34,7 +34,7 @@ Outside the server (processors Arifa must approve): Anthropic (Claude), Meta (Wh
 6. Fill the app environment in Coolify (below; secrets as *encrypted*), including `KX_PLATFORM_PLAN`.
 7. Deploy `compose.app.yml`: `migrate` runs first (Alembic for every DB + checkpointer tables), then api / worker / beat / voice.
 8. `kx platform show` in the api terminal: check the resolved matrix.
-9. Create staff: `kx create-user --role md --email … --name …` (one-time password; the person enrols an authenticator app). Create the break-glass admin and store its TOTP seed offline.
+9. `kx first-run --md-email … --md-name … --admin-email … --admin-name …` (18 Nov): checks every database is at the code's head, creates the MD and the admin (one-time passwords printed once; each person enrols an authenticator app), shows the letterhead still missing (TRN) and the platform matrix; safe to run again. Then create the break-glass admin with `kx create-user --break-glass` and store its TOTP seed offline. The ordered launch list is `docs/GO_LIVE_CHECKLIST.md`.
 10. UptimeRobot: HTTP monitors on `https://api.<domain>/healthz` and `/healthz/beat` (2-minute interval).
 
 ## Every release

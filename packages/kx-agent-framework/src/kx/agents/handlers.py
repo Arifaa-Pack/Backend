@@ -17,11 +17,13 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from sqlalchemy import text
 
 from kx.agents.knowledge import KnowledgeIndexer
+from kx.agents.language import reply_language
 from kx.agents.memory import TurnStore
 from kx.agents.orm import SCHEMA
+from kx.agents.registry import Phrase
 from kx.agents.service import AgentService, Deliver, InboundTurn
 from kx.core import events as ev
-from kx.core.contracts import MessageSender, OutboundKind, OutboundRequest
+from kx.core.contracts import AiRole, MessageSender, OutboundKind, OutboundRequest
 from kx.core.db import Databases
 from kx.core.event_payloads import (
     ContactAnonymised,
@@ -154,6 +156,30 @@ class AgentHandlers:
             ),
             deliver,
         )
+
+    async def last_resort(self, event: Event) -> None:
+        """D9 (architecture guide): the buyer's turn failed for a reason that is not the model (a database
+        error, a structured-output parse error ...) on the job's LAST attempt. Without this the buyer got
+        nothing and the AI stayed on. Now the buyer gets the safe reply and the deal goes to the salesperson,
+        as for a model failure (D27). The reply uses the same idempotency key as the normal reply, so a reply
+        that did go out is never sent twice."""
+        if event.event_type != ev.MESSAGE_RECEIVED:
+            return
+        m = parse_payload(event, MessageReceived)
+        if m.opted_out or not m.text.strip():
+            return
+        addr = await self.addresses.for_thread(m.thread_ref)
+        deal_ref = m.deal_ref
+        if deal_ref is None and addr is not None:
+            deal_ref = await self.service.gateway.resolve_deal(addr.channel, addr.address, None)
+        if deal_ref is None:
+            return
+        language = reply_language(m.text, None)
+        if addr is not None:
+            deliver = self._deliver(addr, deal_ref, f"agent-reply:{event.event_id}")
+            await deliver(self.service.prompts.phrase(Phrase.SAFE_REPLY, language), language)
+        await self.service.gateway.pause_ai(deal_ref, "exception", AiRole.ORCHESTRATOR)
+        log.error("agents.turn_failed_last_resort", deal_ref=str(deal_ref), event_id=str(event.event_id))
 
     async def _quote(self, event: Event) -> None:
         if event.event_type == ev.QUOTE_APPROVED:

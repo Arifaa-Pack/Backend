@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import os
 import pathlib
-from collections.abc import AsyncIterator, Awaitable, Callable, Collection
+from collections.abc import AsyncIterator, Awaitable, Callable, Collection, Mapping
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
@@ -21,26 +21,36 @@ from typing import Any, Final
 import aioboto3
 import httpx
 from redis.asyncio import Redis
+from sqlalchemy import func, update
 
+from arifaa_pack import texts_sync
 from arifaa_pack.adapters import (
     EMBEDDING_MODELS,
     HttpEmbedder,
+    OpenRatesFx,
     OpsNotifier,
     PayloadContentSource,
+    PayloadProductWriter,
     PublicLimiter,
     StaffCodeMailer,
     ThreadAddressBook,
     TurnstileVerifier,
     VoiceSlots,
 )
-from arifaa_pack.config import AppSettings, app_settings, company
+from arifaa_pack.config import AppSettings, Company, app_settings, company
 from arifaa_pack.jobqueue import CeleryKicker
 from arifaa_pack.telemetry import heartbeat
 from kx.agents import retention as agents_retention
 from kx.agents.handlers import AgentHandlers
 from kx.agents.knowledge import KnowledgeBase, KnowledgeIndexer
 from kx.agents.memory import open_checkpointer
-from kx.agents.models import AnthropicApiProvider, ModelProvider, ModelRouter, tier_options
+from kx.agents.models import (
+    AnthropicApiProvider,
+    GeminiApiProvider,
+    ModelProvider,
+    ModelRouter,
+    tier_options,
+)
 from kx.agents.service import AgentService
 from kx.agents.tracing import Tracer
 from kx.agents.voice import VoiceRoute, VoiceRouter, voice_routes
@@ -63,8 +73,10 @@ from kx.automation.scraping import PriceScraper
 from kx.automation.settings import AutomationSettings, OptOutSettings
 from kx.automation.unsubscribe import UnsubscribeDeps, UnsubscribeLinks
 from kx.automation.webhooks import WebhookDeps
+from kx.core import events as ev
 from kx.core.auth import TokenIssuer
 from kx.core.db import Databases
+from kx.core.event_payloads import ProductContentChanged
 from kx.core.events import Event, relay_once
 from kx.core.fallback import FallbackChain
 from kx.core.jobs import Job, JobRunner, JobSpec, JobStore, Kicker
@@ -77,6 +89,7 @@ from kx.core.spend import SpendCaps, SpendMeter
 from kx.crm import jobs as crm_jobs
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import ApprovalStatusReaderImpl, CrmGatewayImpl, GrantConsumerImpl
+from kx.crm.models import Product
 from kx.crm.pdf import ChromiumEngine, Letterhead, PdfEngine, QuoteRenderer, S3PdfUploader, WeasyPrintEngine
 from kx.crm.services import retention as crm_retention
 from kx.crm.services.settings import SettingsService
@@ -86,6 +99,8 @@ Periodic = Callable[[datetime], Awaitable[Any]]
 CRM_EVENT: Final = "crm.handle_event"
 log = get_logger(__name__)
 AGENTS_EVENT: Final = "agents.handle_event"
+CMS_PRODUCT_DRAFT: Final = "app.cms_product_draft"  # 18 Nov product workbook -> CMS draft
+TRANSLATE_TEXT: Final = "app.translate_text"  # 18 Nov edited English message text -> other languages
 
 
 class EventBus:
@@ -167,19 +182,36 @@ def _log_platform(modes: Modes, configured: Collection[str]) -> None:
 
 def _model_router(s: AppSettings, modes: Modes, configured: Collection[str]) -> ModelRouter:
     """D27 / D51: Claude Sonnet 5.5 on money turns, Haiku 5.5 on the rest, directly through the Claude API.
-    Gemini 3.8 Flash joins only with KX_PLATFORM__LLM_STANDBY=gemini (D27 suite + Arifa's yes; OPEN #74);
-    when every model fails the agents give the safe reply and hand over."""
+    Gemini 3.8 Flash is the standby with KX_PLATFORM__LLM_STANDBY=gemini (client decision 18 Nov; run the
+    eval suite against it first, `kx evals --vendor gemini`); when every model fails the agents give the
+    safe reply and hand over."""
     providers: list[ModelProvider] = []
     for vendor in order(Field.LLM, modes, configured) or ("claude",):
         if vendor == "claude":
             providers.append(AnthropicApiProvider(s.anthropic_api_key))
-        elif vendor == "gemini":
-            raise RuntimeError(
-                "KX_PLATFORM__LLM_STANDBY=gemini needs langchain-google-genai "
-                "(not installed, OPEN_QUESTIONS #74)"
-            )
+        elif vendor == "gemini":  # 18 Nov: the client's standby when Claude is down
+            if s.gemini_api_key is None:
+                raise RuntimeError("KX_PLATFORM__LLM_STANDBY=gemini needs KX_APP_GEMINI_API_KEY (a paid key)")
+            providers.append(GeminiApiProvider(s.gemini_api_key))
     options = tier_options(s.llm_effort_fast, s.llm_effort_smart, s.llm_effort_judge)
     return ModelRouter(providers, options)
+
+
+def check_letterhead(co: Company, env: Environment, saved: Mapping[str, Any] | None = None) -> None:
+    """D12(b): the letterhead prints on every quote PDF. Production refuses to start while a field is still a
+    placeholder (REPLACE or empty) in company.yaml AND not set by staff in the CRM (`saved`, the company
+    profile, 18 Nov); local and staging only warn."""
+    fields = ("name", "address", "trn", "phone", "email")
+    merged = {k: (saved or {}).get(k) or co.letterhead.get(k) for k in fields}
+    missing = sorted(k for k in fields if "REPLACE" in (merged.get(k) or "REPLACE"))
+    if not missing:
+        return
+    if env is Environment.PRODUCTION:
+        raise RuntimeError(
+            f"letterhead still has placeholders: {', '.join(missing)} "
+            "(set them in the CRM company details or company.yaml)"
+        )
+    log.warning("company.letterhead_placeholders", fields=missing)
 
 
 def _wire_events(
@@ -188,13 +220,24 @@ def _wire_events(
     crm_rt: crm_jobs.CrmRuntime,
     agent_handlers: dict[str, EventFn],
     automation_types: frozenset[str],
+    *,
+    agent_last_resort: EventFn | None = None,
 ) -> None:
     async def crm_event(job: Job) -> None:
         await crm_jobs.dispatch(crm_rt, Event.model_validate(job.args["event"]))
 
     async def agents_event(job: Job) -> None:
         e = Event.model_validate(job.args["event"])
-        await agent_handlers[e.event_type](e)
+        try:
+            await agent_handlers[e.event_type](e)
+        except Exception:
+            # D9: on the last attempt the buyer still gets the safe reply and the salesperson the deal
+            if job.final_attempt and agent_last_resort is not None:
+                try:
+                    await agent_last_resort(e)
+                except Exception:
+                    log.exception("agents.last_resort_failed", event_id=str(e.event_id))
+            raise
 
     runner.register(CRM_EVENT, JobSpec(crm_event))
     runner.register(AGENTS_EVENT, JobSpec(agents_event))
@@ -204,6 +247,23 @@ def _wire_events(
         bus.route(event_type, AGENTS_EVENT)
     for event_type in automation_types:
         bus.route(event_type, auto_jobs.EVENT)
+
+
+async def cms_product_draft(writer: PayloadProductWriter | None, dbs: Databases, job: Job) -> None:
+    """Save one product's workbook details in the CMS as a draft and remember its CMS id in the CRM.
+    Retried by the job store on any CMS error; without a CMS key (local dev) it is skipped with a warning."""
+    content = ProductContentChanged.model_validate(Event.model_validate(job.args["event"]).payload)
+    if writer is None:
+        log.warning("cms.product_draft_skipped", code=content.code, reason="KX_APP_CMS_API_KEY is not set")
+        return
+    doc_id, created = await writer.save_draft(content)
+    async with dbs.transaction(LogicalDb.CRM) as session:
+        await session.execute(
+            update(Product)
+            .where(func.upper(Product.sku) == content.code.upper(), Product.cms_product_id.is_(None))
+            .values(cms_product_id=doc_id)
+        )
+    log.info("cms.product_draft_saved", code=content.code, cms_id=doc_id, created=created)
 
 
 @dataclass(frozen=True, slots=True)
@@ -273,6 +333,12 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
         redis = Redis.from_url(str(core.redis_url))
         stack.push_async_callback(redis.aclose)
         modes = core.modes()  # D41: raises at start-up on an impossible paid / free setting
+        try:  # 18 Nov editable texts: the edits now, then every 30 s
+            await texts_sync.refresh(dbs)
+        except Exception:  # built-in wording until the CRM answers
+            log.warning("texts.initial_load_failed", exc_info=True)
+        refresher = asyncio.get_running_loop().create_task(texts_sync.refresh_loop(dbs))
+        stack.callback(refresher.cancel)
         session = aioboto3.Session()
         st = core.storage  # D45: Cloudflare R2 through the S3 API
         s3 = await stack.enter_async_context(
@@ -294,6 +360,7 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
         crm_settings = SettingsService(ttl_seconds=30)
         async with dbs.transaction(LogicalDb.CRM) as crm_session:  # §8.1 settings live in the CRM
             business = await SettingsService(ttl_seconds=0).get(crm_session)
+        check_letterhead(co, core.env, business.company_profile.model_dump())
         auto_s = AutomationSettings(  # init values win over KX_AUTO_* env for these two
             company_name=co.name,
             optout=OptOutSettings(
@@ -327,6 +394,7 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             seed_box=_seed_box(core),
             mailer=StaffCodeMailer([email_sender]),
             auth=core.auth,
+            fx_source=OpenRatesFx(http, s.fx_rates_url) if s.fx_rates_auto else None,  # 18 Nov
         )
         media = S3MediaStore(s3, st.bucket, prefix="media/")
         whatsapp = WhatsAppClient(http, auto_s.whatsapp)
@@ -404,18 +472,33 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
         )
         cms_key = s.cms_api_key.get_secret_value() if s.cms_api_key else None
         indexer = KnowledgeIndexer(dbs, embedder, PayloadContentSource(http, s.cms_url, cms_key))
-        agent_handlers = AgentHandlers(
+        agents = AgentHandlers(
             databases=dbs,
             service=agent_service,
             sender=outbound,
             addresses=ThreadAddressBook(dbs),
             indexer=indexer,
             checkpointer=checkpointer,
-        ).handlers()
+        )
+        agent_handlers = agents.handlers()
 
         # ---- CRM jobs + event routing
         crm_rt = crm_jobs.CrmRuntime(dbs, crm_deps, bus.publish)
-        _wire_events(runner, bus, crm_rt, agent_handlers, frozenset(auto_handlers.registry()))
+        _wire_events(
+            runner,
+            bus,
+            crm_rt,
+            agent_handlers,
+            frozenset(auto_handlers.registry()),
+            agent_last_resort=agents.last_resort,
+        )
+        runner.register(
+            TRANSLATE_TEXT, JobSpec(partial(texts_sync.translate_text, agent_service.runner.models, dbs))
+        )
+        bus.route(ev.MESSAGE_TEXT_CHANGED, TRANSLATE_TEXT)
+        writer = PayloadProductWriter(http, s.cms_url, cms_key) if cms_key else None
+        runner.register(CMS_PRODUCT_DRAFT, JobSpec(partial(cms_product_draft, writer, dbs)))
+        bus.route(ev.CATALOGUE_PRODUCT_CONTENT, CMS_PRODUCT_DRAFT)
 
         auto_rt = AutomationRuntime(
             databases=dbs,

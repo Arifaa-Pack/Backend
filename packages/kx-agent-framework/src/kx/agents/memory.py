@@ -25,7 +25,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.agents.models import ModelSet
-from kx.agents.orm import SCHEMA, Conversation, Turn, Visitor
+from kx.agents.orm import SCHEMA, AgentRun, Conversation, GuardEvent, KnowledgeGap, Turn, Visitor
 from kx.core import events as ev
 from kx.core.contracts import Channel
 from kx.core.db import Databases
@@ -255,6 +255,15 @@ class TurnStore:
                 .where(Conversation.id.in_(ids))
                 .values(summary=None, contact_ref=None, visitor_id=None)
             )
+            # D8: the buyer's own words also sit in knowledge gaps and in injection flags of their runs
+            await s.execute(delete(KnowledgeGap).where(KnowledgeGap.conversation_id.in_(ids)))
+            runs = select(AgentRun.id).where(AgentRun.conversation_id.in_(ids))
+            await s.execute(
+                update(GuardEvent)
+                .where(GuardEvent.run_id.in_(runs))
+                .values(detail={})
+                .execution_options(synchronize_session=False)
+            )
         await s.execute(delete(Visitor).where(Visitor.contact_ref == contact_ref))
         return sorted({c.deal_ref for c in convs if c.deal_ref is not None})
 
@@ -278,8 +287,10 @@ async def open_checkpointer(
         kwargs["prepare_threshold"] = None
     else:
         kwargs |= {"prepare_threshold": 0, "options": "-c search_path=agents,public"}
+    # min_size must be set: psycopg_pool defaults it to 4, which is above max_size (3, or 1 for `kx migrate`)
+    # and makes the pool refuse to start.
     pool: AsyncConnectionPool = AsyncConnectionPool(
-        psycopg_conninfo(dsn), max_size=max_size, open=False, kwargs=kwargs
+        psycopg_conninfo(dsn), min_size=1, max_size=max_size, open=False, kwargs=kwargs
     )
     await pool.open()
     try:

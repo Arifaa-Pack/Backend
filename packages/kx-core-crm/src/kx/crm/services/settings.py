@@ -23,6 +23,7 @@ from kx.core.errors import NotFound, RuleViolation
 from kx.core.event_payloads import SettingsChanged
 from kx.core.timewindow import Window
 from kx.crm.models import FeatureFlag, Setting, SettingHistory
+from kx.crm.services.company import CompanyProfile
 from kx.crm.services.journal import Actor, Emit, record
 
 
@@ -115,6 +116,8 @@ class BusinessSettings(BaseModel):
     report_weekly_day: int = _alias("reports.weekly_day", 1, ge=1, le=7)  # ISO weekday, 1 = Monday
     report_weekly_time: time = _alias("reports.weekly_time", time(8))
     report_recipients: tuple[ReportRecipient, ...] = _alias("reports.recipients", ("manager", "md"))
+    # 18 Nov: letterhead, logo and bank details staff edit in the CRM (empty = company.yaml)
+    company_profile: CompanyProfile = _alias("company.profile", CompanyProfile())
     flags: dict[str, bool] = Field(default_factory=dict)
 
     @property

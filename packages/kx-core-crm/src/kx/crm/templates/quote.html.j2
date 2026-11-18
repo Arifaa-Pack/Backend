@@ -8,6 +8,7 @@
 <body class="{{ doc.direction }}">
 <header class="head">
   <div class="seller">
+    {% if doc.letterhead.logo %}<img class="logo" src="{{ doc.letterhead.logo }}" alt="">{% endif %}
     <div class="seller-name">{{ doc.letterhead.name }}</div>
     {% if doc.letterhead.address %}<div>{{ doc.letterhead.address }}</div>{% endif %}
     {% if doc.letterhead.trn %}<div>TRN {{ doc.letterhead.trn }}</div>{% endif %}
@@ -65,6 +66,18 @@
   {% if doc.delivery_place %}<tr><th>{{ t.place }}</th><td>{{ doc.delivery_place }}</td></tr>{% endif %}
   {% if doc.payment_terms_text %}<tr><th>{{ t.payment }}</th><td>{{ doc.payment_terms_text }}</td></tr>{% endif %}
 </table>
+
+{% if doc.letterhead.iban %}
+<section class="bank">
+  <h2>{{ t.bank }}</h2>
+  <table class="kv">
+    {% if doc.letterhead.bank_account_name %}<tr><th>{{ t.account }}</th><td>{{ doc.letterhead.bank_account_name }}</td></tr>{% endif %}
+    {% if doc.letterhead.bank_name %}<tr><th>{{ t.bank_name }}</th><td>{{ doc.letterhead.bank_name }}</td></tr>{% endif %}
+    <tr><th>IBAN</th><td dir="ltr">{{ doc.letterhead.iban }}</td></tr>
+    {% if doc.letterhead.swift %}<tr><th>SWIFT</th><td dir="ltr">{{ doc.letterhead.swift }}</td></tr>{% endif %}
+  </table>
+</section>
+{% endif %}
 
 {% if doc.estimated_delivery %}
 <p class="delivery">{{ t.delivery }}: <span dir="ltr">{{ doc.estimated_delivery.isoformat() }}</span> ({{ t.delivery_note }})</p>

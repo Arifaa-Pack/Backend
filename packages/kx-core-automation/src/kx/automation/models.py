@@ -94,8 +94,11 @@ class ChannelAccount(Base):
 
 
 class MessageTemplate(Base):
+    """One version of a template (automation_0009): an edit of the live version is a new row; the approved
+    row keeps sending until Meta approves the new one, then it becomes `superseded` (the history)."""
+
     __tablename__ = "message_templates"
-    __table_args__ = (UniqueConstraint("channel", "name", "language"),)
+    __table_args__ = (UniqueConstraint("channel", "name", "language", "version"),)
 
     id: Mapped[uuid.UUID] = _uuid_pk()
     channel: Mapped[str] = mapped_column(Text)
@@ -106,7 +109,17 @@ class MessageTemplate(Base):
     subject: Mapped[str | None] = mapped_column(Text)
     body: Mapped[str] = mapped_column(Text)
     variables: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("ARRAY[]::text[]"))
+    version: Mapped[int] = mapped_column(server_default=text("1"))
+    provider_name: Mapped[str | None] = mapped_column(
+        Text
+    )  # the name Meta knows (quote_ready_v2); None = name
+    created_by: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _ts(nullable=False, now=True)
     updated_at: Mapped[datetime] = _ts(nullable=False, now=True)
+
+    @property
+    def sent_as(self) -> str:
+        return self.provider_name or self.name
 
 
 class Thread(Base):
@@ -176,6 +189,7 @@ class OutboundMessage(Base):
     sent_at: Mapped[datetime | None] = _ts()
     delivered_at: Mapped[datetime | None] = _ts()
     read_at: Mapped[datetime | None] = _ts()
+    sending_at: Mapped[datetime | None] = _ts()  # D6: when the provider call started (automation_0008)
     template_params: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     contact_ref: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     recipient_hash: Mapped[str | None] = mapped_column(CHAR(64))

@@ -128,6 +128,82 @@ async def test_manager_reopens_a_lost_deal_to_the_stage_it_was_lost_from(
             await deals.reopen(s, deal, Actor.user(SARA), now=deps.now(), reason="again")
 
 
+async def test_lost_closes_open_approvals_change_requests_and_unused_grants(
+    databases: Databases, deps: CrmDeps
+) -> None:
+    """D10: a deal closed as LOST can no longer get a quote approved or sent: its open approval is cancelled
+    (and cannot be decided any more), its open change request declined, its unused send grant revoked, and a
+    quote revision is refused until the deal is reopened."""
+    from test_change_requests_db import raise_delivery
+    from test_flow_db import MGR, decide
+
+    from kx.core.errors import Conflict
+    from kx.crm.services import approvals, quotes
+
+    pending = await sara_deal(databases, deps)  # quote waiting for the salesperson's approval
+    await raise_delivery(databases, deps, pending)
+    approved = await sara_deal(databases, deps)
+    await decide(databases, deps, approved, MGR)  # approved, grant issued, not sent yet
+    for deal_id in (pending, approved):
+        async with databases.transaction(CRM) as s:
+            deal = await deals.get_deal(s, deal_id, lock=True)
+            await deals.move_stage(
+                s, deal, DealStage.LOST, Actor.user(SARA), now=deps.now(), lost_reason="bought_competitor"
+            )
+
+    async with databases.transaction(CRM) as s:
+
+        def of_deal(deal_id: uuid.UUID) -> Any:
+            return (
+                select(m.QuoteVersion.id)
+                .join(m.Quote, m.Quote.id == m.QuoteVersion.quote_id)
+                .where(m.Quote.deal_id == deal_id)
+            )
+
+        (approval_id, status) = (
+            await s.execute(
+                select(m.Approval.id, m.Approval.status).where(
+                    m.Approval.quote_version_id.in_(of_deal(pending))
+                )
+            )
+        ).one()
+        cr_status = (
+            await s.execute(select(m.ChangeRequest.status).where(m.ChangeRequest.deal_id == pending))
+        ).scalar_one()
+        grants = (
+            (
+                await s.execute(
+                    select(m.QuoteSendGrant.revoked_reason).where(
+                        m.QuoteSendGrant.quote_version_id.in_(of_deal(approved))
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        audit = (
+            (
+                await s.execute(
+                    select(m.AuditEvent.after).where(
+                        m.AuditEvent.entity_id == str(approved), m.AuditEvent.action == "deal.stage_changed"
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+    assert (status, cr_status) == ("cancelled", "declined")
+    assert grants and set(grants) == {"deal_lost"}
+    assert {"approvals": 0, "change_requests": 0, "grants": 1} in [a.get("closed") for a in audit]
+
+    async with databases.transaction(CRM) as s:
+        with pytest.raises(Conflict):
+            await approvals.decide(s, deps, approval_id, MGR, decision="approve")
+    async with databases.transaction(CRM) as s:
+        with pytest.raises(RuleViolation, match="LOST"):
+            await quotes.revise_quote(s, deps, pending, quotes.QuoteEdits(), Actor.user(SARA))
+
+
 def test_lost_reasons_are_section_15() -> None:
     assert {"budget", "duplicate", "other", "price_too_high", "no_response_postponed"} <= LOST_REASONS
     assert "opted_out" in LOST_REASONS  # §8.1 step 8

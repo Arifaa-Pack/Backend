@@ -656,3 +656,411 @@ compose stack, shell scripts and Dockerfiles. Third-party image tags are pinned 
 regenerated (no API change); `tests/unit/test_no_removed_vendors.py` guards D42. `resource-usage-bench/` is excluded
 from ruff (measurement scripts). Gate on Windows, no database: `ruff` clean, `mypy --strict` clean (182 files),
 import-linter 3/3 kept, **434 passed, 264 skipped** (DB / Redis / WeasyPrint tests need the containers).
+
+## 16 Nov. Verification on the local stack (DB tests, server stacks, voice, mail)
+
+**Environment.** Python 3.14.10 via uv 0.13.7 (venv synced to the committed `uv.lock`: Twilio, Sentry, Langfuse
+out, the four LiveKit plug-ins in; no dependency added). Docker Desktop 29.3 (WSL 2). Postgres 18.6 + pgvector and
+Redis 8.2 from `make up`. Two laptop-only workarounds, nothing changed in the repo for them: the Windows
+PostgreSQL 17 service owns :5432, so the compose Postgres was published on :5434 through a local override file;
+WeasyPrint cannot load its GTK libraries on Windows (a wrong `libgobject` DLL from Tesseract on PATH: 44 PDF test
+failures), so the suite ran in a Linux container like CI (Python 3.14.10, Pango, `redis-server`) on the compose
+network, `KX_TEST_PG_DSN=postgresql://postgres:postgres@postgres:5432/postgres`. There is no D: drive on this
+laptop: model caches went to `KX_MODELS_DIR=F:/kx-models`.
+
+**Result: 699 passed, 0 skipped, 0 failed** (the 264 skipped DB / Redis / PDF tests now run); `ruff`, `ruff format`,
+`mypy --strict` (182 files), import-linter 3/3 kept; `make stacks-check` 7/7 stacks; root compose with every
+profile; shellcheck clean.
+
+**Bugs found and fixed (with tests):**
+* **The app could not start** (WP-V2-10): `open_checkpointer` passed `max_size=3` (1 for `kx migrate`) but no
+  `min_size`, which psycopg_pool defaults to 4, so the pool refused to open in every api / worker / voice process
+  and in `kx migrate`. Now `min_size=1` (`kx/agents/memory.py`). Caught by `test_app_smoke` and
+  `test_quotation_waits_durably_and_resumes`.
+* **Beat never ran two jobs** (WP-V2-06, -10): `automation.mail_poll` (buyer replies + bounce reports, D44,
+  every 30 s) and `app.retention` (D48 nightly prune / partitions / archive, now 03:11 Dubai) were registered in
+  the worker but missing from `arifaa_pack/schedule.py`. Caught by the smoke test's timetable check.
+* **Email never worked against a real Stalwart** (WP-V2-06), two bugs in `channels/stalwart.py`, found by driving
+  the app's own `JmapClient` / `StalwartSender` / `MailboxPoller` against `make up-mail`: (1) Stalwart answers
+  `/.well-known/jmap` with 307 → `/jmap/session` and the shared httpx client does not follow redirects, so every
+  send and poll failed on a non-JSON body; (2) the session's upload / download URLs are absolute templates on the
+  container's hostname, and rewriting the host with `httpx.URL` percent-encoded `{accountId}` / `{blobId}`, so
+  every upload went to a 404. New unit test `test_jmap_session_follows_the_well_known_redirect` (fails without
+  the fix).
+* **Stalwart data was outside every volume and backup** (WP-V2-11, -12): v0.14 keeps config, the mail store
+  (accounts, mail, DKIM keys) and logs in `/opt/stalwart`, but the compose files mounted `/etc/stalwart` and
+  `/var/lib/stalwart` (left empty), so the data sat in an unnamed volume and `volumes-to-r2.sh` backed up empty
+  volumes. Now one named volume at `/opt/stalwart` in `compose.mail.yml` and `docker-compose.yml`; the backup
+  copies `kx-mail_stalwart-data`. **Before the first server deploy only**; on a running server, copy the
+  unnamed volume into the named one first.
+* **`compose.app.yml` did not parse** (WP-V2-11): `env_file: [${KX_ENV_FILE:-…}]` is a YAML flow mapping inside a
+  list; values quoted. Its CMS env file had no example: new `infra/server/stacks/env/pack-cms.env.example` (keys
+  from the root `.env.example`); CI copies it; `make stacks-check` now sets the same dummy variables as CI (it had
+  none, so it could not pass anywhere).
+* **Telnyx gather on an unknown attempt** (WP-V2-07): a correctly signed URL for an attempt that does not exist
+  answered "The manager is being alerted now" while nothing was escalated. `VoiceAlerts.record_digits` now raises
+  `NotFound` (404). The test meant to check this had a no-op `.replace(...)`; it now asserts 404.
+* Stale test: inbound email provider is `stalwart` (D44), not `ses`.
+* Local compose: LiveKit `--dev` serves media on UDP 7882, which was not published (only TCP 7881 worked); added.
+
+**Live checks on the laptop:**
+* `kx migrate` (compose `migrate`) against fresh `pack_*` databases: exit 0, checkpointer tables created. The old
+  local volume (11 Nov, un-prefixed DBs) was kept; the `pack_*` roles and DBs were added with
+  `db_bootstrap.sh` (idempotent).
+* **Voice profile** (`make up-voice`, free version): both images build; the speech server loads Whisper Small
+  INT8 + Piper en/ar/hi/zh; round trip Piper → faster-whisper: English 0.6 s + 1.8 s, Arabic 0.5 s + 1.8 s, both
+  transcripts right. The voice worker prewarms, registers with LiveKit, takes a dispatched room, resolves
+  `stt=free:whisper tts=free:piper`, links to a test visitor and speaks the recording notice into the room
+  (audio received). Not tested: a real browser call and a buyer turn through `AgentService` (no Claude key).
+* **Mail profile** (`make up-mail`): local `sales@example.com` account; JMAP send through `StalwartSender`
+  (Message-ID returned), `MailboxPoller` picks the message up once and the second poll returns 0 (`$kxdone`),
+  `parse_inbound` reads it. Not testable here: the SES relay, DKIM, and SES feedback forwarding (OPEN #71).
+
+**Notes, not changed:**
+* `services/speech/download.py` has no timeout: one Piper voice download from Hugging Face hung at 0 bytes and the
+  speech server stayed unhealthy until the file was copied from the bench cache. On the server, pre-seed the
+  models volume or add a timeout + retry.
+* First call per voice process: LiveKit reports the event loop blocked ≈ 1.2 s (container imports, botocore) and
+  ≈ 0.7 s (OpenAI-compatible plug-in import); moving them into `prewarm` would remove that first-call delay.
+* `docs/LOCAL_DEV.md` assumes drive D: (models, Docker disk); on this laptop Docker's disk is on C: (≈ 15 GB
+  free) and models are on F:.
+
+## 16 Nov (cont.). Embeddings, a real browser voice call, SigNoz, Phoenix
+
+**Result: 700 passed, 0 skipped**; ruff, ruff format, mypy --strict, import-linter clean; 7/7 stacks.
+
+**Knowledge search (D47), `make up-embed`, real code** (`HttpEmbedder` → TEI `cpu-1.8`, `KnowledgeIndexer`,
+`KnowledgeBase.search`; scratch DB built by the app's Alembic revisions; 10 catalogue chunks in en / ar / hi / zh with
+look-alike facts, 9 buyer questions):
+
+| | BGE-M3 (server default) | Qwen3-Embedding-0.6B |
+|---|---|---|
+| TEI start / RAM | 49 s, 4.65 GiB (ONNX) | 24 s, 2.79 GiB |
+| Right fact first | **9/9** (incl. "box *with* lid" vs "without") | **9/9** |
+| Query (embed + SQL) | p50 159 ms, max 176 ms; 18 at once all answered | ≈ 230 ms |
+
+Model switch: with `KX_PLATFORM__EMBEDDINGS=qwen3` and no re-index, the vector leg ignored every BGE-M3 chunk (no
+mixed vector spaces); the real `kx reindex` (app image) re-embedded the 10 chunks in 9.5 s, then 9/9 again.
+Fallback (D28): server down or over the 2 s cut-off → `kb.embedding_fallback` logged, no error, every answer "weak"
+(the safe "team will confirm" + gap). **Finding:** the full-text fallback found **0/9** of these sentence questions:
+`websearch_to_tsquery` needs every word and the trigram leg needs 0.6 similarity, so the lexical legs only help
+keyword-style queries (decision needed, see the suggestions).
+`kx` commands that build the container do not run natively on Windows (psycopg async + ProactorEventLoop in the
+LangGraph checkpointer); they run in the Linux image, as on the server.
+
+**Real browser voice call** (Playwright 1.55 + its Chromium + livekit-client 2.15.7, on the compose network, fake
+microphone = a Piper WAV): the page called `POST /v1/public/sessions` (voice consent) and `/voice` like the website
+(CORS allowed via `KX_APP_CORS_ORIGINS`), joined over WebRTC (ICE connected 0.2 s), published the mic; the agent joined
+at 1.8 s. The visitor heard (transcript of the browser's own recording): *"… This conversation is recorded for
+quality and to prepare your quotation. Let me check with our sales team."* The worker transcribed the visitor ("…
+paper cups for coffee shops, I need about 20,000"), ran the graph, Claude failed (no key here) → safe reply + hand-over,
+spoken by Piper. Warning seen under the laptop's load: Silero VAD 1.9 s behind real time.
+
+**SigNoz** (official compose of tag v0.129.0, the last with compose files): app → OTLP/HTTP → collector → ClickHouse
+verified: `queuelagseconds` from the real `kx-worker` (Beat heartbeat), `vendorswitch` (field email) and `spendcap`
+(85 %) through `kx.core.metrics`, labels `service.namespace=pack`. Found: the collector opens 4317/4318 only after the
+first admin account exists (OpAMP); SigNoz has moved to the Foundry installer; the app creates no HTTP / job spans.
+Written into `infra/server/README.md` §5 and `docs/ARCHITECTURE.md` §8. Running the downloaded `foundryctl` binary was
+blocked by the permission check, so Foundry itself is not tested.
+
+**Phoenix** (server `compose.obs.yml`, pinned `version-12.9.0`): one model call through `kx.agents.tracing.Tracer`
+stored as a span in project `kairox`, buyer phone and email masked (`+971*****67`, `s***@example.com`).
+
+**Fixed (with tests):**
+* **Phoenix's database could never start on the server** (WP-V2-11): `compose.obs.yml` mounted the `pgvector:pg18`
+  volume at `/var/lib/postgresql/data`; Postgres 18 images refuse that (crash loop). Now one mount at
+  `/var/lib/postgresql`, verified healthy.
+* **Voice processes never exported metrics** (D46): only api and worker called `init_telemetry`, so a mid-call STT /
+  TTS fallback's `VendorSwitch` was dropped. `voice_worker.prewarm` installs it (seen live: `telemetry.installed
+  component=voice`); test `test_voice_processes_install_the_otlp_exporter` (fails without the fix).
+
+**Bench (resource-usage-bench) re-read against today's code:** fixed since 14 Nov: Claude temperature, voice pickling,
+voice LLM, WhatsApp 500, heartbeat stdout, embedding timeouts, pool sizes / worker concurrency, TEI `cpu-1.8` flags,
+pruning, SafeLine instead of BunkerWeb. Still open: the voice container is built on each process's first call (not in
+`prewarm`); free CPU speech-to-text on the server is unmeasured (OPEN #72; Whisper Small INT8 took 1.8 s per 4–5 s
+clip on this laptop, the bench's large-v3-turbo ≈ 13 s); the bench tested Stalwart **v1.1** (data in
+`/etc/stalwart` + `/var/lib/stalwart`) while the repo pins **v0.14** (data in `/opt/stalwart`): the mount must follow
+the pinned version.
+
+**`docs/Architecture-and-System-Design.docx` updated** (58 pages, schema-validated, rendered and checked): new
+"16 November 2026 update" section at the front (platform changes, what was run, what was fixed, what is still open);
+Figure 1 redrawn for the dedicated server; stale AWS / Terraform / Twilio / Postmark / Better Stack passages corrected
+in §1.3–§10.5; a "Status 16 Nov" row on every defect. Re-checked defects of that guide: D1 resolved by the server
+design, D2 fixed; **still open: D3** (price guard passes "I can do 450" and "QAR 500"), **D4** (an email-code session
+can re-enrol TOTP), **D5** (reporting role reads every crm table), **D6** (no sweep for messages stuck in `sending`),
+**D10** (LOST leaves approvals and grants live), **D12c** (`release.yml` does not wait for CI); D7–D9, D11, D12a/b not
+re-checked.
+
+## 17 Nov. Architecture-guide defects D3, D4, D5, D6, D10, D12c fixed; voice first-call delay
+
+**Result: 736 passed, 0 failed**; ruff, ruff format, mypy --strict (184 files), import-linter 3/3. Every fix has a test
+that fails without it.
+
+* **D3 price guard** (`kx/core/price_guard.py`): (1) Gulf currencies QAR, OMR, KWD, BHD (codes, short forms, Arabic
+  abbreviations) and "riyal(s)"; an amount in a currency not on the quote is a violation. (2) A whole number with no
+  currency, keyword or decimals is a price when an offer phrase ("can do", "offer", "go down to", "final", "only" …)
+  precedes it in the same clause and no noun follows it. "I can do 450 for you", "Our final offer is 450.", "QAR 500
+  total" are now blocked; "Only 3 colours", "in 12 working days", "20000 pieces", "The MOQ is 10000" still pass.
+  Checked on the 241 real AI texts (fixed phrases + every eval-scenario line): **no new false alarm**. 14 spec cases.
+* **D4 authenticator** (`kx/crm/services/auth.py`, `api/auth.py`): replacing an ACTIVE authenticator needs a TOTP
+  sign-in (an email-code session gets 403); the replacement is journalled and the user is emailed. First enrolment
+  and lost-phone recovery (admin `reset_mfa`, then enrol) are unchanged. DB test.
+* **D5 reporting role** (migration `crm_0013`, `db_bootstrap.sh`): no more blanket SELECT or default grant on future
+  tables. Denied: credentials and tokens, cost / markup / freight cost, plumbing; column-limited: minimum price and
+  ladder size on price tiers and quote tiers, minimum discount on categories, before/after values of the audit trail;
+  the rest allowed by explicit list. The bootstrap no longer re-grants all tables (it re-runs on every deploy).
+  Verified on the local `pack_crm` with the migration run as the owner role, like the server. A test fails while a
+  crm table is unclassified (rule in `docs/DATABASE.md` §6).
+* **D6 stuck sends** (migration `automation_0008` adds `outbound_messages.sending_at`; `jobs.expire_stuck_sending`
+  in the 5-minute requeue job): a row sending for over 15 minutes becomes `failed` / `unknown:stuck_sending`, the
+  `OutboundStuck` metric counts it (SigNoz rule `outboundstuck > 0`), and the CRM tells the salesperson to check the
+  conversation (timeline + staff notice) without touching the buyer's phone status. **Never resent automatically**
+  (the provider may have delivered it).
+* **D10 LOST** (`kx/crm/services/deals.py`, `quotes.py`, automation `handlers.py`): closing a deal as LOST, in the same
+  transaction, cancels its open approvals (they can no longer be decided), declines its open change requests and
+  revokes unused send grants (counts in the audit row); `revise_quote` refuses a LOST deal; automation cancels the
+  queued follow-ups on `deal.stage_changed` → LOST. **Not changed on purpose:** the AI on a LOST deal (the router lets
+  only the concierge re-engage a returning buyer; it cannot state a price).
+* **D12c release** (`.github/workflows`): `ci.yml` is also a reusable workflow; `release.yml` runs it first and builds
+  / deploys only after it passes. Structure checked by parsing; **actionlint could not be run here** (blocked by the
+  permission check) and the chain is first proven by a real tag on GitHub.
+* **Voice first call** (`arifaa_pack/voice_worker.py`): `prewarm` now also imports the container modules and the
+  speech plug-ins. Live browser call: agent joined after 1.2 s (1.8 s before); the first call's import stall fell from
+  ≈ 1.9 s to 0.1 s.
+
+**Bench suggestions not done (need a decision or a dependency):** looser full-text fallback (more answers but may
+return a wrong fact), HTTP / job traces (two OpenTelemetry instrumentation packages), building the whole container in
+`prewarm` (needs the job's event loop), free STT capacity on the real server (OPEN #72), Stalwart version.
+
+## 17 Nov (continued). Monitoring live in SigNoz, Stalwart v1.1.1, D7–D12 re-check, Groq / Gemini fallback bench
+
+**Result: 755 passed, 0 failed** (Linux container, PostgreSQL 18 + pgvector, Redis); ruff, ruff format, mypy --strict
+(184 files), import-linter 3/3. Dependencies added with approval: `opentelemetry-instrumentation-fastapi` and
+`-celery` 0.66b2 (lock also pulls `opentelemetry-instrumentation`, `-asgi`, `-util-http` 0.66b2, `asgiref`).
+
+### Defects from the architecture guide (answers from the client)
+
+* **D7 (manager approves):** a manual quote with a catalogue product, or a revision of a line outside every tier, is
+  now a `special_price` approval: the manager decides first. Custom items with no catalogue product stay with the
+  salesperson. 3 DB tests (`test_hand_priced_db.py`).
+* **D8 (AI side only, "nothing more"):** the injection flag and knowledge gaps store masked text; anonymising a
+  contact deletes its knowledge gaps, empties its guard details and clears the deal AI summary. CRM audit values,
+  timeline rows and quote PDFs are kept (business record).
+* **D9:** on the job's final attempt a failed buyer turn still sends the safe reply (same idempotency key as a normal
+  reply, never twice) and pauses the AI with reason `exception`. 2 DB tests.
+* **D11 re-checked, no code change:** the events without a consumer are informational; PRICE_STALE exists only in
+  cost mode (v2, off). **Opt-out timing settings are read when a process starts: restart api / worker / voice after
+  changing them.**
+* **D12(a) (only the MD manages MD):** creating, editing, deactivating or resetting an MD account needs the MD; nobody
+  changes their own role. **D12(b):** one app per project (v2 design); `company.yaml` letterhead filled from
+  arifapack.com for now (ARIFA PACKING & PACKAGING LLC, Al Jurf Industrial Area 2, Ajman, +971 6 748 5384,
+  info@arifapack.com). **The VAT TRN is still `REPLACE`: production refuses to start until it is filled in.**
+
+### Monitoring: traces, logs and server monitoring, tested live against SigNoz v0.129.0
+
+* **Traces:** every API request (`/healthz*` excluded) and Celery publish / run spans; Beat → `apply_async` →
+  `kx.run_job` is one trace; Claude calls appear as `anthropic.messages.create` spans with metadata only (no prompt).
+* **Logs:** structlog lines go to SigNoz after the PII mask, with the trace id of their request or job, plus
+  `exception.type / message / stacktrace` (masked) for `log.exception`. Library warnings / errors too.
+* **Server:** `infra/server/signoz/otel-collector-config.yaml` (SigNoz's file + hostmetrics, docker_stats, filelog) and
+  `compose.signoz-overrides.yml` (mounts, `kx` network, OTLP on 127.0.0.1 only). Every stack's logs carry the compose
+  service name; app containers are labelled `kx.logs=otlp` and skipped by the file reader (checked: 0 duplicate lines).
+* **Live test:** three website chats with no Claude key. In ClickHouse: HTTP spans with status codes (201, 200, 401,
+  404 and the 500 below), job traces, 35 app log lines with trace ids, `system.*` and `container.*` metrics for all 13
+  containers, Postgres / ClickHouse / collector logs by name.
+* **Found and fixed on the way (each with a unit test):**
+  1. Every log timestamp was masked as a phone number (`20*****17T13:19…`): the mask ran after the timestamp.
+  2. Deal ids and dates inside log values were half-masked (`01a1e9b0-…-b8*****65c9cc247`), so a deal could not be
+     found from its logs. UUIDs and real ISO dates are now left alone; a phone typed like `0501-23-4567` is still
+     masked.
+  3. With console logs (`KX_LOG_JSON=false`, local dev) any `log.exception` raised TypeError and killed the request:
+     the visitor's connection dropped instead of getting the safe reply.
+  4. Celery's copy of stdout (`celery.redirected`) would have been forwarded a second time.
+* Seen in SigNoz, not changed: with no active MD user, a hand-over cannot pause the AI (`no active MD user is
+  configured`). Production always has the MD from the first-run setup; keep one active.
+* Docker Desktop cancels some `docker_stats` calls (a few container points missing); recheck on the server.
+
+### Stalwart v1.1.1 (newest stable, released 16 Nov), pinned and tested
+
+* v1 is a rewrite: new database layout (no in-place upgrade from v0.x), `/etc/stalwart/config.json` +
+  `/var/lib/stalwart`, settings managed over JMAP (`x:` objects) or the web wizard. Our app uses only standard JMAP,
+  which worked unchanged.
+* Tested locally with the app's own `JmapClient`, `StalwartSender`, `MailboxPoller`: send, inbox poll (second poll 0),
+  and relay of an external message through a smart host that **requires STARTTLS and SMTP AUTH (as SES on 587)**:
+  delivered, signed with **both RSA and Ed25519 DKIM**. SES setup = a `Relay` route `ses` (host
+  `email-smtp.<region>.amazonaws.com`, 587, STARTTLS, user + password from env `SES_SMTP_PASSWORD`) and the outbound
+  strategy `if is_local_domain(rcpt_domain) then 'local' else 'ses'` (steps in `compose.mail.yml`).
+* **Bug found and fixed:** v1 keeps a record of every JMAP submission and refuses new ones at `maxSubmissions` (500):
+  after 500 emails every send failed with `overQuota` and was retried forever. Reproduced with the cap at 10. The
+  sender now deletes finished submission records on `overQuota` and resubmits the email already in Sent (never a
+  second copy); deleting does not cancel a queued delivery (3 of 3 delivered after an immediate prune). Unit test.
+* Files: `compose.mail.yml` (v1.1.1, two volumes, `init`, `KX_SES_SMTP_PASSWORD`, `KX_STALWART_RECOVERY_ADMIN`),
+  `docker-compose.yml` (new local volumes `stalwart-v1*`; the old v0.14 volume is left untouched), backup script (both
+  volumes), `env/pack.env.example`.
+
+### Fallback bench: looser full-text search, Groq / Gemini free tier (`resource-usage-bench/docs/LLM_FALLBACK_RESULTS.md`)
+
+* **Knowledge search with the embedding server down:** today's fallback (every word must match) answered **2 of 16**
+  questions (only "we don't sell that"); an any-word version found the right product for **13 of 16**, the wrong one
+  first twice. The answers built from it were right 14–15 of 16 with **no wrong product fact in 48 answers** (three
+  models): the model answers only from the facts and declined or used the right chunk lower down.
+  **Recommendation: strict first, any-word only when strict finds nothing. Implemented 18 Nov** (`knowledge.py`
+  `_ANY_WORD_SQL`, DB test): the real search now answers 13 of 16 with the embedding server down (was 2 of 16).
+  Chinese is not split into words by the `simple` text search; only the trigram leg can find it.
+* **Free-tier backup model: not recommended.** Gemini 3.8 Flash (the standby named in the code) allows 20 requests a
+  day per model (the bench hit it); Flash-Lite answered well but took 4–16 s with "high demand" errors. Groq
+  (`openai/gpt-oss-120b`, `qwen/qwen3.8-27b`) was fast (0.15–0.5 s) and clean on all 7 price tricks, but its free
+  limit is 8,000 tokens a minute (one or two real agent turns) and it returned "over capacity" once. Free Gemini
+  terms let Google use the content (buyer messages, PDPL). For a backup, use a paid tier and run the 17-scenario eval
+  suite live first (needs `langchain-openai` or `langchain-google-genai`).
+* The Groq and Gemini keys were used from the environment only and are in no file. **Revoke both keys** (they were
+  pasted into the chat).
+
+**Still open:** VAT TRN for the letterhead; Stalwart v1 setup on the server (wizard,
+`ses` route, outbound strategy, raise the 25-per-hour throttle); container metrics recheck on Linux. (The updated architecture guide replaced
+`docs/Architecture-and-System-Design.docx` on 18 Nov.)
+
+## 18 Nov. Product workbook: one Excel file for products, prices and website details
+
+Client decisions (18 Nov): staff keep the catalogue in **one workbook**; one upload updates the CRM (prices,
+tiers, MOQ, delivery days) and the CMS (product details only, **as drafts**: a manager previews and publishes);
+English only; upload by manager / MD / admin (MFA); price changes need no approval, logged, the MD sees them.
+Workbook is the master; small text / photo edits stay possible in the CMS.
+
+* **Service** `kx/crm/services/workbook.py`: sheets *How to fill*, *Products*, *Price tiers*, *Categories*.
+  Download = today's catalogue filled in. Upload = **preview** (every change old -> new, every error by sheet /
+  row / column, warnings) -> **apply** (all or nothing; refused with 409 if the catalogue changed since the
+  preview). A blank cell keeps the value, `-` clears it, a missing column or product changes nothing; a product
+  in *Price tiers* gets those rows as its next price-list version only when they differ; prices with a currency
+  in any text column are refused (they go to the website). Rules that are new (code format, delivery days,
+  prices in text) are checked on new or changed values only, so a freshly downloaded file always uploads back.
+  Quotable = has prices and is active.
+* **API** `kx/crm/api/catalogue_workbook.py`: `GET /v1/catalogue/workbook`, `POST .../preview`,
+  `POST .../apply?token=`. Uploads appear in the price-list history (`catalogue.workbook_applied`).
+* **CMS drafts**: event `catalogue.product_content_changed.v1` (payload has no price field) -> job
+  `app.cms_product_draft` -> `PayloadProductWriter` (Payload REST, `?draft=true`, `_status: draft`; category
+  created as a draft if missing; specs merged; photos, rich text and SEO never touched); the CMS id is written
+  back to the CRM product. Without `KX_APP_CMS_API_KEY` the job is skipped with a warning.
+* **Docs**: `CRM_API.md` §5.1 (screen flow for the CRM developer), `CMS.md` §5 (fields and calls the CMS
+  developer must support; the API user now needs create / update on drafts) and §2 (webhook `spec` keys);
+  OpenAPI regenerated.
+* Tests: 11 planning rules (unit), 3 database round trips (download -> upload unchanged = no change; apply
+  creates product, category, tiers and one price-free CMS event; dash clears / blank keeps; stale preview and
+  file errors refused), 2 CMS writer tests. **Full suite 771 passed, 0 failed**; ruff, mypy --strict (186
+  files), import-linter clean.
+* **Mistake made and repaired:** a `ruff --fix --select I001,RUF100` run treated every other `# noqa` as
+  unused and removed 120 of them across the repository (with their explanations). All were restored from git
+  HEAD, from the source copy in the 17 Nov app image and from this session's history, and checked word for word
+  against those sources (0 mismatches). Lesson: never combine `--fix` with a narrow `--select`.
+
+## 18 Nov (continued). Editable message texts and versioned WhatsApp templates
+
+Client decisions: the manager edits (the MD may too and sees every change) the AI's fixed phrases, the buyer
+messages that carry quotes and summaries, and the staff alerts; **English only**, the AI translates the buyer /
+AI texts into Arabic, Hindi, Tamil, Chinese and Sinhala; WhatsApp template edits must never stop a live
+template; manager, MD and admin edit templates. Opt-out confirmations, the opt-out questions and the
+call-recording notice stay **not editable** (legal wording).
+
+* **Catalogue** `kx/core/texts.py`: 37 texts (12 AI phrases, 13 buyer texts, 12 staff alerts) with their
+  built-in wording (word for word as before; existing Arabic kept), placeholders and a note. Lookup: edit in
+  that language -> built-in in that language -> edited English -> built-in English; a broken edit falls back to
+  the built-in. Checks on every edit and translation: same placeholders, no amount with a currency, not empty,
+  max 2,000 characters.
+* **Wired**: `DefaultPromptStore.phrase` (every AI phrase), `pdf.quote_message` / `open_to_discuss` (only lines
+  that exist in the buyer's language) / summary caption, labels and email subject, staff alerts in
+  `automation/handlers.py` and `alerts.py`.
+* **CRM**: table `crm.message_texts` (migration `crm_0014`, readable by the reporting role), service
+  `services/texts.py`, API `GET /v1/texts`, `PUT /v1/texts/{key}`, `POST .../reset`, `GET .../history`,
+  `POST /v1/texts/translate-missing`. Every change is in the audit trail.
+* **Run time**: each process loads the edits at start and every 30 s (`arifaa_pack/texts_sync.py`); event
+  `texts.text_changed.v1` -> job `app.translate_text` (Claude FAST tier) stores a translation only for the
+  current English version and only if it passes the checks; until then a language keeps its previous text.
+* **WhatsApp templates** (migration `automation_0009`): **bug fixed** — an edit used to overwrite the approved
+  template and set it back to `submitted`, so that message stopped until Meta approved. Now an edit of the live
+  version is a new version submitted under its own name (`quote_ready_v2`); the approved one keeps sending;
+  approving the new one supersedes the old (history kept). Email templates go live at once with history.
+* Docs: `CRM_API.md` §5.2 (texts screen, template versions). Tests: 11 unit (lookup, checks, AI / staff wiring),
+  3 database (edit -> live -> translate with refused bad translations -> history -> reset; stale translation not
+  stored; staff texts English only), template versions (WhatsApp and email). **786 passed, 0 failed**; lint,
+  mypy --strict (192 files), import-linter clean.
+
+## 18 Nov (continued). Editable company details (letterhead, logo, bank details)
+
+Client decision: admin, MD and manager change the company details printed on quotes without a developer.
+
+* Settings row `company.profile` (migration `crm_0015`): name, address, TRN, phone, email, logo (PNG / JPEG,
+  max 200 KB, type checked by its first bytes) and bank {account name, bank, IBAN, SWIFT}. Checks: TRN 15 digits
+  (spaces allowed when typed), IBAN checksum (stored in groups of four), SWIFT 8 / 11, email, phone. An empty
+  field prints the `company.yaml` value. Settings history, audit and event come with every change.
+* `kx/crm/services/company.py`: quotes, Requirement Summaries and the hand-over signature use the current
+  letterhead (30 s cache); quotes already sent keep their PDF. The quote PDF now prints the logo and a "Bank
+  details" block (only when set); the summary prints the logo.
+* **Payment-fraud protection:** any change of bank details alerts the MD and the manager at once (staff notice)
+  and is audited with the IBAN masked.
+* The production start-up guard (D12b) now checks company.yaml **combined with** the CRM details: entering the
+  TRN in the CRM is enough.
+* API `GET/PATCH /v1/company`, `PUT/DELETE /v1/company/logo`; `CRM_API.md` §5.3.
+* Tests: 10 unit (checks, fallback, the quote prints logo and bank only when set), 1 database (printed details,
+  history, alert only on a bank change, IBAN masked, a wrong IBAN refused). Found by the tests and fixed: a TRN
+  typed with spaces was refused; the alert showed " 456" instead of the last four IBAN digits.
+  **797 passed, 0 failed**; ruff, mypy --strict (195 files), import-linter clean.
+
+## 18 Nov (continued). Automatic daily FX rates
+
+Client decision: automatic rates (the UAE Central Bank has no machine-readable feed). `kx/crm/services/fx.py` +
+job `crm.fx_rates` (06:05 Dubai) + `OpenRatesFx` (open.er-api.com, free, no key; pluggable `FxSource`).
+Currencies: GCC, USD / EUR / GBP, INR, PKR, LKR, CNY, plus any mapped in `quote.currency_by_country` or already
+stored. **Rules:** a manager's rate for that day is never overwritten; a move above 10 % is not stored and the
+manager is alerted (with missing currencies); a failing source leaves quotes on the latest rate, dated on the PDF.
+`KX_APP_FX_RATES_AUTO=false` switches it off. `CRM_API.md` §5.4. Tests: adapter (AED per unit, failures raise),
+database (stored and used by quotes, manual kept, EUR +21 % refused with an alert, missing reported).
+
+
+## 18 Nov (continued). Gemini 3.8 Flash standby
+
+Client decision: when Claude is down, Gemini 3.8 Flash answers. Dependency added with approval:
+`langchain-google-genai==3.2.0` (kx-agent-framework; lock also adds google-ai-generativelanguage, google-api-core,
+google-auth, grpcio-status, proto-plus, pyasn1, pyasn1-modules, filetype). `GeminiApiProvider` in
+`kx/agents/models.py` (thinking level from the tier's effort); `_model_router` appends it after Claude with
+`KX_PLATFORM__LLM_STANDBY=gemini` and refuses to start without `KX_APP_GEMINI_API_KEY` (a **paid** key: the free
+tier allows 20 requests a day, measured 17 Nov). It answers inside the same guards as Claude. New command
+`kx evals --vendor gemini` runs the 17 eval scenarios live against one vendor (exit 1 on any failure): run it with
+the paid key before switching the standby on. Test: the chain is Claude -> Gemini only when switched on.
+**803 passed, 0 failed**; lint, mypy --strict (196 files), import-linter clean.
+
+## 18 Nov (continued). AI translation check (client decision: AI first, then a translator / Arifa person)
+
+All 133 non-English strings in the code were read (`docs/translations/Translation review 18 Nov.xlsx`, 63 review
+rows + texts not yet translated + matching words).
+
+* **Price guard gap found and fixed:** grammatical Arabic puts the "-an" ending on the currency after numbers such
+  as 11-99 ("٥٠ درهماً للقطعة", "50 ريالاً"): these unapproved amounts were **not detected**. Hindi, Chinese,
+  Tamil and Sinhala native currency names (दिरहम, रुपये, 迪拉姆, திர்ஹம், ඩිර්හම් ...) were not either. Added
+  (only unambiguous currency words); compared old vs new guard on the 114 real AI texts: **0 differences** (no new
+  false alarm). 12 spec tests (9 currencies detected, 3 quantity / day sentences in Arabic, Hindi, Chinese stay
+  clean).
+* **Arabic grammar fixed** in built-in texts: "ستصلك عرض أسعار" -> "سيصلك" (change request), "ستصلك على
+  واتساب" -> "سيصلك" (summary), "دفع مقدم" -> "دفعة مقدّمة" (quote message and default clause).
+* **Suggestions for the reviewer** (not applied): smoother manager-60 and open-to-discuss Arabic; the Arabic
+  recording notice omits the company name (legal: lawyer to approve); Sinhala opt-out confirmation needs the
+  object form "ඔබව"; Chinese and Hindi wording closer to the English; the Arabic validity clause is right for 3-10
+  days only (default 7). Missing Tamil / Chinese / Sinhala stop words listed with proposals (OPEN #42).
+* Hindi, Tamil, Chinese and Sinhala versions of the editable texts are produced by the AI in the CRM
+  ("Translate all missing") once the Claude key is set, then reviewed on that screen.
+* **815 passed, 0 failed**; ruff, mypy --strict, import-linter clean.
+
+## 18 Nov (continued). Deployment preparation
+
+* `docs/GO_LIVE_CHECKLIST.md`: one ordered list for launch on arifapack.com: accounts to get (server,
+  Cloudflare, Claude, paid Gemini, Meta, SES, Telnyx, Turnstile, UptimeRobot, Arifa's TRN / bank / logo), DNS
+  records, server deploy order (SigNoz with our override, Stalwart v1.1.1 steps), the 15 WhatsApp templates to
+  submit to Meta, data loading in the CRM, live tests, go-live day.
+* `kx first-run --md-email … --md-name … --admin-email … --admin-name …`: checks each database is at the code's
+  head (new `migrations.status`), creates the MD and the admin if missing (one-time passwords printed once),
+  flags letterhead fields still missing (TRN) and prints the platform matrix; idempotent. **Run for real** on the
+  local stack: it found `crm_0013` / `automation_0008` behind, `kx migrate` applied `crm_0014`, `crm_0015` and
+  `automation_0009` to databases that already hold data, then first-run created both users and a second run left
+  them alone. (On Windows `kx migrate`'s checkpointer step times out: psycopg async needs the selector event
+  loop; the servers run Linux.)
+* `pack.env.example`: `KX_PLATFORM_PLAN=free` (client decision), FX and Gemini standby notes, ops alert address.
+* **815 passed, 0 failed**; ruff, mypy --strict (196 files), import-linter clean.

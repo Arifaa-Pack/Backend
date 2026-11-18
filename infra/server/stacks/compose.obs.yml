@@ -12,7 +12,9 @@ services:
       POSTGRES_PASSWORD: ${PHOENIX_DB_PASSWORD:?}
       POSTGRES_DB: phoenix
     volumes:
-      - phoenix-pg:/var/lib/postgresql/data
+      # Postgres 18 images: one mount at /var/lib/postgresql (a mount at .../data makes the container refuse to
+      # start, found on the local stack 16 Nov)
+      - phoenix-pg:/var/lib/postgresql
     networks: [kx]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U phoenix"]
@@ -20,7 +22,7 @@ services:
       retries: 30
     logging: &logs
       driver: json-file
-      options: { max-size: "50m", max-file: "3" }
+      options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
 
   phoenix:
     image: ${KX_IMG_PHOENIX:-arizephoenix/phoenix:version-12.9.0}

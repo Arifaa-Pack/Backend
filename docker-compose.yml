@@ -39,9 +39,14 @@ x-kx-app: &kx-app
   read_only: true
   tmpfs:
     - /tmp
-  logging: &logs
+  labels: { kx.logs: otlp }  # SigNoz collector skips these log files: the app sends logs over OTLP
+  logging:
     driver: json-file
-    options: { max-size: "50m", max-file: "3" }
+    options: { max-size: "50m", max-file: "3", labels: "kx.logs,com.docker.compose.service,com.docker.compose.project" }
+
+x-logs: &logs
+  driver: json-file
+  options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
 
 services:
   postgres:
@@ -123,17 +128,23 @@ services:
     ports:
       - "7880:7880"
       - "7881:7881"
+      - "7882:7882/udp"   # --dev mode: one UDP media port (rtc.udp_port 7882), not the server's range
       - "50000-50020:50000-50020/udp"
 
   stalwart:
     profiles: ["mail"]
-    image: stalwartlabs/stalwart:v0.14
+    image: stalwartlabs/stalwart:v1.1.1
+    init: true
     ports:
       - "2525:25"
       - "8090:8080"   # web admin + JMAP: finish the setup wizard once, create the sales@ account
+    environment:
+      STALWART_RECOVERY_ADMIN: admin:local-dev-only   # local only; known admin password for the wizard
+      SES_SMTP_PASSWORD: ${KX_SES_SMTP_PASSWORD:-unused-locally}
     volumes:
-      - stalwart-etc:/etc/stalwart
-      - stalwart:/var/lib/stalwart
+      # v1 volumes are new on purpose: v1 cannot read the v0.14 `stalwart` volume (no in-place upgrade)
+      - stalwart-v1-etc:/etc/stalwart    # config.json
+      - stalwart-v1:/var/lib/stalwart    # RocksDB (mail, accounts, settings, DKIM keys)
 
   phoenix:
     profiles: ["obs"]
@@ -212,5 +223,5 @@ services:
 
 volumes:
   pgdata:
-  stalwart-etc:
-  stalwart:
+  stalwart-v1:
+  stalwart-v1-etc:

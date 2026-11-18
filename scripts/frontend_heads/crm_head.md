@@ -52,11 +52,13 @@ Screens (SRS §20) and the endpoints behind them:
 | 5 Quote approval (§11.3) | `GET /v1/quote-versions/{id}`, `POST /v1/approvals/{id}/decision`, `POST /v1/deals/{id}/quotes`, `/quotes/revise`, `/quotes/manual` |
 | Change requests (§13) | `GET /v1/change-requests`, `/{id}`, `POST /{id}/start`, `/revise`, `/resolve`, `/decline` |
 | 6 Contacts and companies | `GET/PATCH /v1/contacts…`, `GET/POST/PATCH /v1/companies…` |
-| 7 Catalogue and price list | `GET /v1/products`, `PATCH /v1/products/{id}`, price tiers `/v1/products/{id}/price-tiers`, `/v1/price-tiers/{id}`, Excel `POST /v1/price-list/import`, `GET /v1/price-list/export` |
+| 7 Catalogue and price list | **Product workbook** (main way, §5.1): `GET /v1/catalogue/workbook`, `POST /v1/catalogue/workbook/preview`, `POST /v1/catalogue/workbook/apply`. Single edits: `GET /v1/products`, `PATCH /v1/products/{id}`, price tiers `/v1/products/{id}/price-tiers`, `/v1/price-tiers/{id}`, history `/v1/products/{id}/history`, `/v1/price-list/history`. Older price-only Excel: `POST /v1/price-list/import`, `GET /v1/price-list/export` |
 | 8 Stock | `GET/PUT /v1/stock` |
 | 9 Orders | `GET /v1/orders`, `PATCH /v1/deals/orders/{id}` |
 | 10 Dashboards (§21) | `GET /v1/dashboards/salesperson`, `/manager`, `/md`, `GET /v1/dashboard/summary` |
 | 11 Settings | `GET/PUT /v1/settings…`, `PUT /v1/feature-flags/{key}`, FX `GET/POST /v1/fx-rates`, users `/v1/users…`, availability `PUT /v1/users/{id}/availability`, WhatsApp numbers `/v1/admin/channel-accounts`, templates `/v1/admin/message-templates`, kill switch `/v1/admin/kill-switch`, material prices `/v1/price-proposals…`, `/v1/materials/freshness` |
+| 11b Message texts (§5.2) | `GET /v1/texts`, `PUT /v1/texts/{key}`, `POST /v1/texts/{key}/reset`, `GET /v1/texts/{key}/history`, `POST /v1/texts/translate-missing`; WhatsApp / email templates with versions `GET/PUT /v1/admin/message-templates`, `POST /v1/admin/message-templates/{id}/status` |
+| 11c Company details (§5.3) | `GET /v1/company`, `PATCH /v1/company`, `PUT /v1/company/logo`, `DELETE /v1/company/logo` |
 | 12 Exports | `GET /v1/exports/{deals|contacts|companies|orders|products}?format=csv|xlsx` |
 
 Deal stages (`stage`): `NEW`, `QUALIFIED`, `QUOTATION`, `NEGOTIATION`, `READY_TO_CLOSE`, `PAYMENT`, `WON`, `LOST`.
@@ -129,6 +131,109 @@ Public key for verifying tokens elsewhere: `GET /.well-known/jwks.json`.
   `.xlsx` file itself as the request body (columns `sku, min_qty, max_qty, list_price, min_price, currency`).
   All rows are checked first: any error saves nothing and the answer lists the row errors (§10).
 * Quote PDFs are produced and sent by the backend; the deal page shows them through the quote versions.
+
+### 5.1 Product workbook: one Excel file for products, prices and website details (18 Nov)
+
+Client decision: staff keep the whole catalogue in **one workbook**. One upload updates the CRM (prices, tiers,
+MOQ, delivery days) **and** the CMS (product details as **drafts**; a manager previews and publishes them in the
+CMS, then the website changes). Prices never go to the CMS. Who: **manager, MD, admin**, signed in with the
+authenticator app (`403` otherwise).
+
+Screen "Product workbook" (under Catalogue), three buttons and one result panel:
+
+1. **Download current catalogue**: `GET /v1/catalogue/workbook` returns `product-workbook.xlsx` with the sheets
+   *How to fill*, *Products*, *Price tiers*, *Categories*, already filled with today's data. Staff change
+   cells; they never start from an empty sheet.
+2. **Upload**: `POST /v1/catalogue/workbook/preview` with the `.xlsx` file itself as the request body
+   (`Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, max 10 MB). **Saves
+   nothing.** Show the answer:
+   * `summary`: new / updated / unchanged products, price lists changed, categories changed, website drafts.
+   * `errors[]` (`sheet`, `row`, `column`, `message`): a table "Sheet / Row / Column / Problem". If `ok` is
+     false, the Apply button stays disabled: staff fix the file and upload again.
+   * `warnings[]`: show, but Apply is allowed (e.g. "BOX-1 has no price tiers: it cannot be quoted yet").
+   * `products[]`: per product `code`, `is_new`, `changes[]` (`field`, `before`, `after`) and `website_draft`
+     (this product's details will be saved in the CMS as a draft). Show old -> new side by side.
+   * `price_lists[]`: per product the tiers `before` and `after` as rows `[from qty, to qty, list price,
+     minimum price]` (strings, exact; `null` = no upper limit / no minimum).
+   * `categories[]`.
+3. **Apply**: `POST /v1/catalogue/workbook/apply?token=<token from the preview>` with **the same file** as the
+   body. Saves everything or nothing and answers the counts. `409` = the catalogue changed since the preview
+   (someone else saved, or another file was sent): upload again to get a new preview. `422` = the file has
+   errors.
+
+After Apply show: "Saved. N product(s) were sent to the website as drafts: open the CMS, preview and publish
+them." Keep the uploaded file in browser memory between preview and apply (do not ask the user to pick it
+twice).
+
+Rules the screen can repeat to staff (they are also in the *How to fill* sheet): a blank cell keeps the current
+value and `-` clears it; never change a code; a product missing from the file is kept (Active = No stops
+selling it); in *Price tiers* list all tiers of a product, a product not in that sheet keeps its prices; no
+prices in text columns; photos and videos are added in the CMS.
+
+History: every workbook upload is in `GET /v1/price-list/history` (action `catalogue.workbook_applied`) and each
+product's changes in `GET /v1/products/{id}/history` (actions `product.created`, `product.updated`,
+`price_tier.created`). The MD reads these on the price-list history screen.
+
+
+### 5.2 Message texts and templates: editable by the manager and the MD (18 Nov)
+
+Client decisions: the **manager** edits the wording of the AI's fixed phrases, the buyer messages that carry
+quotes and summaries, and the staff alerts; the **MD** may edit too and sees every change; staff write
+**English only** and the AI translates the buyer and AI texts into Arabic, Hindi, Tamil, Chinese and Sinhala.
+Legal and opt-out wording is not editable and not listed.
+
+Screen "Message texts" (Settings), grouped by `group`: `ai` (what the AI says in fixed situations), `buyer`
+(quote and summary messages), `staff` (alerts, English only).
+
+* `GET /v1/texts` (manager, MD, admin): per text `key`, `note` (where it is used: show it), `en` (in use),
+  `builtin_en`, `placeholders` and `languages[]` with `status`: `built-in`, `edited`, `translated`,
+  `outdated` (the AI has not translated the new English yet: the previous text is still sent) or `missing`
+  (English is sent in that language).
+* **Edit** (manager / MD, authenticator sign-in): `PUT /v1/texts/{key}` `{"text": "..."}`. Live within 30
+  seconds. Show the placeholders as chips the user must keep, e.g. `{name}`, `{hours}`; a `422` with
+  `reason: "invalid_text"` lists the problem in `detail` (a placeholder missing or unknown, or an amount with a
+  currency: prices only ever come from the approved quote). After saving buyer / AI texts show "Translating
+  into 5 languages..." and refresh the list a minute later.
+* **Undo**: `POST /v1/texts/{key}/reset` brings back the built-in wording; or open the history and save an
+  older text again.
+* **History** (the MD's view): `GET /v1/texts/{key}/history`: who, when, old and new text, translations.
+* "Translate all missing languages" button: `POST /v1/texts/translate-missing` (manager / MD).
+
+**WhatsApp / email templates** (`/v1/admin/message-templates`, manager, MD, admin with the authenticator app):
+every edit is a version. Editing the **live** WhatsApp template creates a new version (`provider_status:
+submitted`, `provider_name` e.g. `quote_ready_v2`, the name to submit to Meta); the live version (`live: true`)
+keeps being sent until Meta approves the new one, then record Meta's decision with `POST
+/v1/admin/message-templates/{id}/status` `{"provider_status": "approved"}`: it becomes live and the previous
+one `superseded`. A version not yet approved is changed in place. Email templates go live at once. List with
+`?current_only=true` for the main table and without it for the version history.
+
+
+### 5.3 Company details: letterhead, logo and bank details on quotes (18 Nov)
+
+Client decision: **admin, MD and manager** change the company details printed on quotes and Requirement
+Summaries (authenticator sign-in to save). New documents use them within 30 seconds; quotes already sent keep
+their PDF.
+
+* `GET /v1/company`: `saved` (what staff set; an empty field means "use the default from company.yaml"),
+  `printed` (what quotes print now) and `has_logo`. Show `printed` as a live preview next to the form.
+* `PATCH /v1/company` with only the changed fields: `name`, `address`, `trn`, `phone`, `email` and `bank`
+  {`account_name`, `bank_name`, `iban`, `swift`}. `""` clears a field. `422` with `reason: "invalid_company"`
+  and `errors[]` (field + message): TRN must have 15 digits, the IBAN is checked (checksum), SWIFT 8 or 11
+  characters, email and phone format. Show each message under its field.
+* Logo: `PUT /v1/company/logo` with the PNG or JPEG file itself as the body (`Content-Type: image/png` or
+  `image/jpeg`, max 200 KB); `DELETE /v1/company/logo` removes it.
+* **Bank details:** changing any bank field sends an alert to the MD and the manager (payment-fraud
+  protection). Before saving, show a confirmation: "Buyers will pay to this account. The MD and manager will be
+  notified." Every change is in the settings history.
+
+
+### 5.4 FX rates are automatic (18 Nov)
+
+A daily job (06:05 Dubai) stores the rate of each quote currency (`source` = `auto:open-er-api`). The FX
+screen (`GET /v1/fx-rates`) shows `source` and `as_of`; label automatic rates "automatic" and manual ones
+"entered by manager". `POST /v1/fx-rates` still sets the manager's rate for a day, and an automatic update never
+replaces it. If a rate moves more than 10 % in a day it is not stored and the manager gets an alert; quotes
+then use the last rate (its date is printed on the quote).
 
 ---
 

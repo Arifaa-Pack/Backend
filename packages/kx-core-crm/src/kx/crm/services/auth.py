@@ -24,7 +24,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core import events as ev
-from kx.core.errors import NotFound, RuleViolation, Unavailable
+from kx.core.errors import Forbidden, NotFound, RuleViolation, Unavailable
 from kx.core.event_payloads import StaffNotice
 from kx.core.identity import new_id, normalise_email
 from kx.core.passwords import (
@@ -334,15 +334,33 @@ async def logout(session: AsyncSession, deps: CrmDeps, token: str) -> None:
 
 
 # ---------------------------------------------------------------- TOTP enrolment, passwords
-async def begin_totp(session: AsyncSession, deps: CrmDeps, user_id: uuid.UUID) -> tuple[str, str]:
-    """A new seed (not active until confirmed with a code). Returns (secret, otpauth URI) for the QR code."""
+async def begin_totp(
+    session: AsyncSession, deps: CrmDeps, user_id: uuid.UUID, *, mfa: bool
+) -> tuple[str, str, str | None]:
+    """A new seed (not active until confirmed with a code). Returns (secret, otpauth URI, address to warn).
+
+    D4 (architecture guide): replacing an ACTIVE authenticator needs a TOTP (MFA) session. Otherwise anyone
+    who can read the staff member's mailbox could sign in with an email code, swap the authenticator and gain
+    approval rights. A lost phone is reset by an admin (`reset_mfa`), after which enrolling works again from
+    an email-code session. A replacement is journalled and the user is told by email (third value)."""
     if deps.seed_box is None:
         raise Unavailable("TOTP is not configured (no KX_AUTH__ENCRYPTION_KEY)")
     user, cred = await _user_and_cred(session, user_id)
+    replacing = cred.totp_enabled_at is not None
+    if replacing and not mfa:
+        raise Forbidden(
+            "sign in with your authenticator app to replace it; if you lost it, ask an admin to reset it"
+        )
     secret = new_totp_secret()
     cred.totp_secret_enc, cred.totp_enabled_at, cred.totp_last_step = deps.seed_box.seal(secret), None, None
     await session.flush()
-    return secret, otpauth_uri(secret, str(user.email), deps.auth.totp_issuer)
+    if replacing:
+        await record(session, _as_user(user), "auth.totp_replacement_started", "user", user.id)
+    return (
+        secret,
+        otpauth_uri(secret, str(user.email), deps.auth.totp_issuer),
+        str(user.email) if replacing else None,
+    )
 
 
 async def confirm_totp(session: AsyncSession, deps: CrmDeps, user_id: uuid.UUID, code: str) -> bool:

@@ -35,11 +35,12 @@ from kx.automation.repo import advisory_lock, is_suppressed
 from kx.automation.settings import AutomationSettings
 from kx.core.contracts import MessageSender, OutboundKind, OutboundRequest
 from kx.core.db import Databases
-from kx.core.errors import RuleViolation
+from kx.core.errors import NotFound, RuleViolation
 from kx.core.event_payloads import ChangeRequested, NegotiationPaused, QuoteSubmitted, StaffContact
 from kx.core.identity import normalise_phone, recipient_hash
 from kx.core.logging import get_logger
 from kx.core.settings import LogicalDb
+from kx.core.texts import TEXTS
 
 log = get_logger(__name__)
 _REQUESTED_BY: Final = "system:alerts"
@@ -114,7 +115,7 @@ class CallBridge:
             s.add(attempt)
             await s.flush()
             attempt_id = attempt.id
-        intro = f"Connecting you to the buyer for {self._settings.company_name or 'the company'}."
+        intro = TEXTS.get("staff.call_intro", "en", company=self._settings.company_name or "the company")
         try:
             sid = await self._caller.place_call(
                 staff,
@@ -204,16 +205,21 @@ class VoiceAlerts:
             await s.execute(update(CallAttempt).where(CallAttempt.id == attempt_id).values(**values))
 
     async def record_digits(self, s: AsyncSession, attempt_id: uuid.UUID, digits: str) -> uuid.UUID | None:
-        """Store the key pressed; returns the approval to escalate when the approver pressed 2."""
-        approval_ref = (
+        """Store the key pressed; returns the approval to escalate when the approver pressed 2.
+
+        An unknown attempt raises NotFound: answering "the manager is being alerted" when nothing was recorded
+        would promise an escalation that never happens."""
+        row = (
             await s.execute(
                 update(CallAttempt)
                 .where(CallAttempt.id == attempt_id)
                 .values(digits_pressed=digits, status="answered")
                 .returning(CallAttempt.approval_ref)
             )
-        ).scalar_one_or_none()
-        return approval_ref if digits == Digit.ESCALATE.value else None
+        ).one_or_none()
+        if row is None:
+            raise NotFound("call attempt not found")
+        return row.approval_ref if digits == Digit.ESCALATE.value else None
 
     async def record_status(
         self, s: AsyncSession, attempt_id: uuid.UUID, call_sid: str, call_status: str
@@ -257,7 +263,7 @@ class LadderTicket(BaseModel):
 
     @classmethod
     def for_approval(cls, p: QuoteSubmitted) -> LadderTicket:
-        what = "A special price on quote" if p.kind == "special_price" else "Quote"
+        key = "staff.special_price_title" if p.kind == "special_price" else "staff.approval_title"
         return cls(
             ref=p.approval_ref,
             kind="approval",
@@ -266,7 +272,7 @@ class LadderTicket(BaseModel):
             escalate_to=p.escalate_to,
             remind_at=p.remind_at,
             escalate_at=p.due_at,
-            title=f"{what} {p.quote_number} for {p.total_display}",
+            title=TEXTS.get(key, "en", quote=p.quote_number, total=p.total_display),
         )
 
     @classmethod
@@ -279,7 +285,9 @@ class LadderTicket(BaseModel):
             escalate_to=p.escalate_to,
             remind_at=p.remind_at,
             escalate_at=p.escalate_at or p.sla_due_at,
-            title=f"A buyer {p.type} change request on deal {p.deal_number}".replace("  ", " "),
+            title=TEXTS.get("staff.change_request_title", "en", type=p.type, deal=p.deal_number).replace(
+                "  ", " "
+            ),
         )
 
     @property

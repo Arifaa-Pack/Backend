@@ -103,9 +103,11 @@ LiveKit's fallback adapters switch vendors inside a live call. In free STT mode 
 
 | Signal | Path | Where to look |
 | --- | --- | --- |
-| Logs (PII-masked JSON on stdout) | Docker log files → SigNoz collector (filelog receiver) | SigNoz → Logs |
-| Metrics (`VendorSwitch`, `QueueLagSeconds`, `SpendCap`, HTTP) | OpenTelemetry SDK → OTLP → SigNoz | SigNoz dashboards + alert rules (email via Stalwart) |
-| Traces (HTTP, jobs) | OpenTelemetry → SigNoz | SigNoz → Traces |
+| App logs (PII-masked JSON on stdout) | also OpenTelemetry → OTLP → SigNoz, after masking, with the trace id of the request / job and the exception type + stack trace | SigNoz → Logs (filter `service.name`) |
+| Other containers' logs (Postgres, Stalwart, LiveKit, …) | Docker json-file logs → SigNoz collector (filelog, named by compose service); app containers skipped (label `kx.logs=otlp`) | SigNoz → Logs |
+| Metrics (`VendorSwitch`, `QueueLagSeconds`, `SpendCap`, `OutboundStuck`; stored lowercase) from api, worker and voice | OpenTelemetry SDK → OTLP → SigNoz | SigNoz dashboards + alert rules (email via Stalwart) |
+| Traces: every API request (health checks excluded), Celery publish + run (Beat → job in one trace), Claude calls (metadata only) | OpenTelemetry FastAPI / Celery instrumentation → OTLP → SigNoz | SigNoz → Traces |
+| Server and container metrics (CPU, memory, disk, network, per container) | SigNoz collector: hostmetrics (`/hostfs`), docker_stats (Docker socket) | SigNoz → Infrastructure / dashboards |
 | AI audit trail (prompts masked, model, tokens, guard result) | OpenTelemetry → Phoenix (or Langfuse) | Phoenix UI |
 | Uptime | UptimeRobot (outside) → `/healthz`, `/healthz/beat` | UptimeRobot alerts |
 

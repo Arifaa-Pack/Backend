@@ -70,7 +70,7 @@ CLAUSES: Final[dict[str, tuple[str, ...]]] = {
         "Ex works (EXW) factory; freight can be quoted separately.",
     ),
     "ar": (
-        "يلزم دفع مقدم قبل بدء الإنتاج.",
+        "يلزم سداد دفعة مقدّمة قبل بدء الإنتاج.",
         "الأسعار صالحة لمدة {days} أيام من تاريخ عرض السعر.",
         "مواعيد التسليم تقديرية ويؤكدها فريقنا عند تأكيد الطلب.",
         "تسليم من المصنع (EXW)؛ يمكن تسعير الشحن بشكل منفصل.",
@@ -498,8 +498,11 @@ async def _after_draft(
     stage: DealStage,
     actor: Actor,
     now: datetime,
+    special: bool = False,
 ) -> QuoteVersion:
-    """Stage to QUOTATION (§5: NEGOTIATION -> QUOTATION when a revised quote is drafted), open approval 1."""
+    """Stage to QUOTATION (§5: NEGOTIATION -> QUOTATION when a revised quote is drafted), open approval 1.
+    `special` (D7): a catalogue product priced by hand has no minimum to check, so the manager approves the
+    price first (special_price), then the salesperson's approval follows as for a price below the minimum."""
     if stage is not DealStage.QUOTATION:
         await deal_svc.move_stage(
             session, deal, DealStage.QUOTATION, actor, now=now, reason="quote requested"
@@ -513,7 +516,7 @@ async def _after_draft(
         deal=deal,
         quote=quote,
         version=version,
-        kind="revision" if version.kind == "revision" else "initial",
+        kind="special_price" if special else ("revision" if version.kind == "revision" else "initial"),
         role=approvals.initial_role(version.total_aed, s),
         actor=actor,
         now=now,
@@ -704,7 +707,11 @@ async def manual_quote(
         .values(status="done", done_at=now, done_by=actor.user_id)
     )
     await session.flush()
-    return await _after_draft(session, deps, s, deal=deal, version=version, stage=stage, actor=actor, now=now)
+    # D7: a catalogue product priced by hand -> the manager approves the price first
+    hand_priced = any(ln.product_id is not None for ln in lines)
+    return await _after_draft(
+        session, deps, s, deal=deal, version=version, stage=stage, actor=actor, now=now, special=hand_priced
+    )
 
 
 async def pricing_needed(
@@ -794,6 +801,8 @@ async def revise_quote(
     price below the minimum first goes to the manager as a special price (§11.3, §12.2 rule 4, D3)."""
     now = deps.now()
     deal = await deal_svc.get_deal(session, deal_id, lock=True)
+    if DealStage(deal.stage) is DealStage.LOST:  # D10: a closed deal gets no new priced version
+        raise RuleViolation("this deal is LOST: reopen it before revising the quote", reason="deal_lost")
     s = await deps.settings.get(session)
     base = await latest_version(session, deal.id, (*LIVE, "expired"))
     if base is None:
@@ -824,6 +833,8 @@ async def revise_quote(
                 raise RuleViolation(f"line {line.line_no}: the unit price may not exceed the list price")
             special = special or price < snap.min_price
             new_snap = QuoteLineTier(**{c: getattr(snap, c) for c in _TIER_COLS})
+        elif line.product_id is not None:
+            special = True  # D7: a catalogue product with no tier is priced by hand -> the manager approves
         drafts.append(
             DraftLine(
                 LineValues(line.description, qty, line.unit, price, total, line.product_id), tier=new_snap

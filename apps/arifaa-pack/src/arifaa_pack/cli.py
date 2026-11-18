@@ -119,6 +119,109 @@ def _create_user(args: argparse.Namespace) -> None:
     asyncio.run(run())
 
 
+def _first_run(args: argparse.Namespace) -> None:
+    """18 Nov launch-day helper (docs/GO_LIVE_CHECKLIST.md C7): checks the databases are migrated, creates
+    the MD and the admin if they do not exist yet (each one-time password printed once), shows the platform
+    matrix and what is still missing. Safe to run again: existing users are left alone."""
+    import asyncio  # noqa: PLC0415
+
+    from sqlalchemy import func, select  # noqa: PLC0415
+
+    from arifaa_pack.container import build, configured_vendors  # noqa: PLC0415
+    from arifaa_pack.migrations import status  # noqa: PLC0415
+    from kx.core.platform import summary  # noqa: PLC0415
+    from kx.core.settings import get_settings  # noqa: PLC0415
+    from kx.crm.models import User  # noqa: PLC0415
+    from kx.crm.services import company  # noqa: PLC0415
+    from kx.crm.services.auth import create_user  # noqa: PLC0415
+    from kx.crm.services.journal import Actor  # noqa: PLC0415
+
+    print("1. databases")
+    behind = []
+    for db in LogicalDb:
+        current, head = status(db)
+        ok = current == head
+        state = "ok" if ok else f"BEHIND (head {head}): run kx migrate"
+        print(f"   {db.value:<11} {current or '-':<16} {state}")
+        if not ok:
+            behind.append(db.value)
+    if behind:
+        raise SystemExit("migrate first: kx migrate")
+
+    async def run() -> None:
+        async with build() as c:
+            print("2. staff")
+            for role, email, name in (
+                ("md", args.md_email, args.md_name),
+                ("admin", args.admin_email, args.admin_name),
+            ):
+                async with c.databases.transaction(LogicalDb.CRM) as s:
+                    found = (
+                        await s.execute(select(User).where(func.lower(User.email) == email.lower()))
+                    ).scalar_one_or_none()
+                    if found is not None:
+                        print(f"   {role:<6} {email}: exists ({found.role}), left as it is")
+                        continue
+                    user, password = await create_user(
+                        s, c.crm_deps, email=email, full_name=name, role=role, actor=Actor.system("first_run")
+                    )
+                print(f"   {role:<6} {user.email}: created, one-time password: {password}")
+            print("3. letterhead printed on quotes")
+            async with c.databases.transaction(LogicalDb.CRM) as s:
+                lh = await company.letterhead(s, c.crm_deps)
+            for field in ("name", "address", "trn", "phone", "email"):
+                value = getattr(lh, field)
+                flag = (
+                    "  <- set it in the CRM (Settings > Company details)"
+                    if not value or "REPLACE" in value
+                    else ""
+                )
+                print(f"   {field:<8} {value or '-'}{flag}")
+            print(f"   logo {'yes' if lh.logo else 'no'}, bank details {'yes' if lh.iban else 'no'}")
+
+    asyncio.run(run())
+    core = get_settings()
+    print(f"4. platform (KX_PLATFORM_PLAN={core.platform_plan})")
+    for r in summary(core.modes(), configured_vendors(core)):
+        print(f"   {r['field']:<12} {r['mode']:<9} {r['order']:<28} {r['missing']}")
+    print("Next: docs/GO_LIVE_CHECKLIST.md sections D (WhatsApp templates), E (data) and F (live tests).")
+
+
+def _evals(args: argparse.Namespace) -> None:
+    """18 Nov: run the eval scenarios live against ONE model vendor (e.g. the Gemini standby before switching
+    it on). Each scenario goes through the real graphs, guards and price guard; exits 1 if any fails."""
+    import asyncio  # noqa: PLC0415
+
+    from arifaa_pack.config import app_settings  # noqa: PLC0415
+    from kx.agents.evals.harness import run_suite  # noqa: PLC0415
+    from kx.agents.models import (  # noqa: PLC0415
+        AnthropicApiProvider,
+        GeminiApiProvider,
+        ModelProvider,
+        ModelRouter,
+        tier_options,
+    )
+
+    s = app_settings()
+    provider: ModelProvider
+    if args.vendor == "gemini":
+        if s.gemini_api_key is None:
+            raise SystemExit("set KX_APP_GEMINI_API_KEY (a paid key: the free tier allows 20 requests a day)")
+        provider = GeminiApiProvider(s.gemini_api_key)
+    else:
+        provider = AnthropicApiProvider(s.anthropic_api_key)
+    router = ModelRouter([provider], tier_options(s.llm_effort_fast, s.llm_effort_smart, s.llm_effort_judge))
+    results = asyncio.run(run_suite(models=router))
+    for r in results:
+        print(
+            f"{'PASS' if r.passed else 'FAIL'}  {r.id}" + ("" if r.passed else f"  {'; '.join(r.failures)}")
+        )
+    failed = sum(not r.passed for r in results)
+    print(f"{len(results) - failed}/{len(results)} passed ({args.vendor})")
+    if failed:
+        raise SystemExit(1)
+
+
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="kx")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -139,6 +242,15 @@ def main(argv: list[str] | None = None) -> None:
     m.add_argument("--db", nargs="*", choices=[d.value for d in LogicalDb])
     m.add_argument("--revision", default="head")
     m.set_defaults(fn=_migrate)
+    fr = sub.add_parser("first-run", help="launch day: check migrations, create the MD and admin (18 Nov)")
+    fr.add_argument("--md-email", required=True)
+    fr.add_argument("--md-name", required=True)
+    fr.add_argument("--admin-email", required=True)
+    fr.add_argument("--admin-name", required=True)
+    fr.set_defaults(fn=_first_run)
+    ev = sub.add_parser("evals", help="run the eval scenarios live against one model vendor (18 Nov)")
+    ev.add_argument("--vendor", choices=["claude", "gemini"], default="gemini")
+    ev.set_defaults(fn=_evals)
     u = sub.add_parser("create-user", help="a staff user with a one-time password (D26)")
     u.add_argument("--email", required=True)
     u.add_argument("--name", required=True)

@@ -187,3 +187,38 @@ async def test_a_blocked_send_says_nothing_about_the_number(databases: Any, deps
         CrmRuntime(databases, deps, publish=_noop), make_event(ev.MESSAGE_STATUS, "x", uuid.uuid4(), blocked)
     )
     assert (await _contact(databases, deal_id)).phone_status == "unknown"
+
+
+@pytest.mark.db
+@pytest.mark.usefixtures("price_list")
+async def test_an_unknown_delivery_tells_the_salesperson_and_keeps_the_phone_status(
+    databases: Any, deps: CrmDeps
+) -> None:
+    """D6: a message the sender died on (`unknown:stuck_sending`) may or may not have arrived: the salesperson
+    is told to check the conversation (timeline + staff notice); the buyer's phone status is not touched."""
+    deal_id = await _web_lead(databases, deps, email=None)
+    contact = await _contact(databases, deal_id)
+    stuck = MessageStatus(
+        message_ref=uuid.uuid4(),
+        status="failed",
+        provider_message_id=None,
+        error="unknown:stuck_sending",
+        at=datetime.now(UTC),
+        contact_ref=contact.id,
+        deal_ref=deal_id,
+        channel="whatsapp",
+        kind="quote",
+    )
+    await dispatch(
+        CrmRuntime(databases, deps, publish=_noop), make_event(ev.MESSAGE_STATUS, "x", uuid.uuid4(), stuck)
+    )
+    assert (await _contact(databases, deal_id)).phone_status == "unknown"
+    async with databases.transaction(CRM) as s:
+        lines = (
+            (await s.execute(select(m.TimelineEvent.summary).where(m.TimelineEvent.deal_id == deal_id)))
+            .scalars()
+            .all()
+        )
+    assert any(t.startswith("Delivery unknown: a quote on whatsapp") for t in lines)
+    (notice,) = await outbox(databases, ev.STAFF_NOTICE, deal_id)
+    assert "may not have been delivered" in notice["text"]

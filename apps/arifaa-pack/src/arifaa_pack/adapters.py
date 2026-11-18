@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Callable, Sequence
-from datetime import UTC, datetime
-from typing import Any, Literal, Protocol, cast
+from datetime import UTC, date, datetime
+from decimal import Decimal
+from types import MappingProxyType
+from typing import Any, Final, Literal, Protocol, cast
 
 import httpx
 from sqlalchemy import text
@@ -152,6 +154,104 @@ class PayloadContentSource:
             approved_at=datetime.fromisoformat(updated) if updated else datetime.now(UTC),
             url_path=doc.get("slug"),
         )
+
+
+class OpenRatesFx:
+    """kx.crm FxSource over a free public daily rates service (default open.er-api.com, no key; 18 Nov client
+    decision "automatic rates": the UAE Central Bank has no official machine-readable feed). The answer gives
+    units of each currency per 1 AED; the CRM stores AED per unit. Any failure raises (the daily job fails and
+    quotes keep the latest stored rate, dated on the PDF)."""
+
+    name = "open-er-api"
+
+    def __init__(self, http: httpx.AsyncClient, url: str = "https://open.er-api.com/v6/latest/AED") -> None:
+        self._http = http
+        self._url = url
+
+    async def latest(self) -> tuple[date, dict[str, Decimal]]:
+        r = await self._http.get(self._url, timeout=20.0)
+        r.raise_for_status()
+        data = r.json()
+        if data.get("result") != "success" or data.get("base_code", "AED") != "AED":
+            raise Unavailable(f"FX source answered {data.get('result')!r}")
+        as_of = datetime.fromtimestamp(int(data["time_last_update_unix"]), UTC).date()
+        out: dict[str, Decimal] = {}
+        for cur, per_aed in (data.get("rates") or {}).items():
+            value = Decimal(str(per_aed))
+            if value > 0:
+                out[str(cur).upper()] = Decimal(1) / value
+        return as_of, out
+
+
+class PayloadProductWriter:
+    """18 Nov product workbook -> CMS: saves a product's details in Payload **as a draft** (a manager previews
+    and publishes it in the CMS; the publish webhook then updates the website, the AI and the CRM mirror).
+
+    Contract with the CMS (docs/frontend/CMS.md §5): collection `products` with `code`, `name`, `title`,
+    `category` (relationship to `product-categories`, matched by `code`), `shortDescription`,
+    `descriptionText`, `moq`, `unit`, `customPrinting` and the group `specs` {material, capacity, dimensions,
+    thickness, colours, lidOptions}. Only the fields the workbook set are sent; existing `specs` are merged,
+    never replaced, and photos / videos / rich text are never touched. The payload carries no price by
+    construction (`kx.core.event_payloads.ProductContentChanged`)."""
+
+    SPEC_KEYS: Final = frozenset({"material", "capacity", "dimensions", "thickness", "colours", "lidOptions"})
+    RENAME: Final = MappingProxyType({"custom_printing": "customPrinting"})  # workbook key -> CMS field
+
+    def __init__(self, http: httpx.AsyncClient, base_url: str, api_key: str) -> None:
+        self._http = http
+        self._base = base_url.rstrip("/")
+        self._headers = {"Authorization": f"users API-Key {api_key}"}
+
+    async def _find(self, collection: str, code: str) -> dict[str, Any] | None:
+        r = await self._http.get(
+            f"{self._base}/api/{collection}",
+            params={"where[code][equals]": code, "limit": 1, "depth": 0, "draft": "true"},
+            headers=self._headers,
+        )
+        r.raise_for_status()
+        docs = r.json().get("docs") or []
+        return cast("dict[str, Any]", docs[0]) if docs else None
+
+    async def _save(self, collection: str, doc_id: str | None, body: dict[str, Any]) -> str:
+        url = f"{self._base}/api/{collection}" + (f"/{doc_id}" if doc_id else "")
+        r = await (self._http.patch if doc_id else self._http.post)(
+            url, params={"draft": "true"}, json={**body, "_status": "draft"}, headers=self._headers
+        )
+        r.raise_for_status()
+        data = r.json()
+        return str((data.get("doc") or data).get("id") or doc_id)
+
+    async def save_draft(self, p: Any) -> tuple[str, bool]:
+        """(Payload id, created) for a `ProductContentChanged` payload."""
+        body: dict[str, Any] = {"code": p.code, "name": p.name, "title": p.name}
+        if p.category_code:
+            cat = await self._find("product-categories", p.category_code)
+            cat_id = (
+                str(cat["id"])
+                if cat
+                else await self._save(
+                    "product-categories",
+                    None,
+                    {"code": p.category_code, "name": p.category_name or p.category_code},
+                )
+            )
+            body["category"] = cat_id
+        current = await self._find("products", p.code)
+        specs = dict((current or {}).get("specs") or {})
+        for key, value in p.fields.items():
+            if key in self.SPEC_KEYS:
+                specs[key] = value
+            else:
+                body[self.RENAME.get(key, key)] = value
+        for key in p.cleared:
+            if key in self.SPEC_KEYS:
+                specs[key] = None
+            else:
+                body[self.RENAME.get(key, key)] = None
+        if specs or current is not None:
+            body["specs"] = specs
+        doc_id = await self._save("products", str(current["id"]) if current else None, body)
+        return doc_id, current is None
 
 
 class PlatformVoicePlugins:

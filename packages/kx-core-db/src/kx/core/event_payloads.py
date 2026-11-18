@@ -276,6 +276,31 @@ class ProductPublished(EventPayload):
     custom_printing: bool | None = None
 
 
+class ProductContentChanged(EventPayload):
+    """18 Nov (client decision): the product workbook is the master for product details. After an upload is
+    applied, the content of each product sent to the website is saved in the CMS **as a draft**; a manager
+    previews and publishes it there. Descriptive fields only: this payload has no price, tier, minimum or cost
+    field. `fields` holds only what the workbook set (a blank cell is not sent); `cleared` names fields the
+    workbook cleared ("-")."""
+
+    code: str
+    name: str
+    category_code: str | None = None
+    category_name: str | None = None
+    fields: dict[str, str | int | bool] = {}
+    cleared: list[str] = []
+
+
+class MessageTextChanged(EventPayload):
+    """18 Nov: the English text of `key` (kx.core.texts) is now `english` (edit number `en_version`); the
+    translation job writes the other languages from it. `english` is None after a reset to the built-in
+    text."""
+
+    key: str
+    english: str | None
+    en_version: int
+
+
 class QuoteNotDelivered(EventPayload):
     """D32: a priced WhatsApp message was not delivered within the wait. Automation reports the exact content
     it sent (body, subject, PDF key, content hash) so the CRM can grant the same bytes on email."""
@@ -438,6 +463,8 @@ PAYLOADS: dict[str, type[EventPayload]] = {
     ev.STAFF_NOTICE: StaffNotice,
     ev.DEAL_REQUIREMENT_SUMMARY: RequirementSummary,
     ev.CATALOGUE_PRODUCT_PUBLISHED: ProductPublished,
+    ev.CATALOGUE_PRODUCT_CONTENT: ProductContentChanged,
+    ev.MESSAGE_TEXT_CHANGED: MessageTextChanged,
     ev.CONVERSATION_SUMMARY_UPDATED: ConversationSummaryUpdated,
     ev.QUOTE_NOT_DELIVERED: QuoteNotDelivered,
     ev.QUOTE_RESEND_REQUESTED: QuoteResendRequested,

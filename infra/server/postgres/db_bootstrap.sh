@@ -12,7 +12,7 @@
 #   connect    REVOKE CONNECT/TEMP FROM PUBLIC; each role may connect only to its own DB;
 #              reporting_ro may connect to <p>crm
 #   extensions crm: citext, pg_trgm, btree_gist | automation: citext | agents: vector, pg_trgm
-#   reporting  schema crm pre-created (owner crm_app) + read-only grants and default privileges
+#   reporting  schema crm pre-created (owner crm_app) + USAGE; table grants come from migration crm_0013 (D5)
 #
 # Environment:
 #   PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE=postgres                       (libpq; direct, not PgBouncer)
@@ -100,8 +100,8 @@ SQL
 SELECT format('SET ROLE %I', :'owner') \gexec
 CREATE SCHEMA IF NOT EXISTS crm;
 SELECT format('GRANT USAGE ON SCHEMA crm TO %I', :'ro') \gexec
-SELECT format('GRANT SELECT ON ALL TABLES IN SCHEMA crm TO %I', :'ro') \gexec
-SELECT format('ALTER DEFAULT PRIVILEGES IN SCHEMA crm GRANT SELECT ON TABLES TO %I', :'ro') \gexec
+-- D5: table grants are owned by the migrations (crm_0013: no credentials, cost or minimum prices). Never grant
+-- ALL TABLES here: this script is re-run on every deploy and would undo that.
 RESET ROLE;
 SQL
 }

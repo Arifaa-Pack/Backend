@@ -452,6 +452,50 @@ def _collect(published: list[Event]) -> Any:
     return publish
 
 
+async def test_a_message_stuck_in_sending_is_settled_once_and_never_resent(auto_db: Any) -> None:
+    """D6: the worker died after "sending" was committed. After 15 minutes the row becomes failed with
+    `unknown:stuck_sending` and one MessageStatus tells the CRM; a row only seconds into sending is left alone."""
+    deal, contact = uuid.uuid4(), uuid.uuid4()
+    now = datetime.now(UTC)
+    ids = {}
+    for key, started in (("stuck", now - timedelta(minutes=20)), ("busy", now - timedelta(seconds=30))):
+        (row,) = await sql(
+            auto_db,
+            "INSERT INTO outbound_messages (channel_account_id, to_address, kind, requested_by, idempotency_key, "
+            "status, sending_at, deal_ref, contact_ref) SELECT id, '+971501234567', 'reply', 'ai', :k, "
+            "'sending', :at, :d, :c FROM channel_accounts WHERE external_account_id = 'PNID1' RETURNING id",
+            k=f"d6-{key}-{uuid.uuid4()}",
+            at=started,
+            d=deal,
+            c=contact,
+        )
+        ids[key] = row[0]
+    rt = runtime(auto_db, [], FakeMedia(), FakeMedia())
+    assert await jobs.expire_stuck_sending(rt, now) == 1
+    assert await jobs.expire_stuck_sending(rt, now) == 0  # settled once
+    rows = dict(
+        await sql(
+            auto_db,
+            "SELECT id, status || '|' || coalesce(error, '') FROM outbound_messages WHERE id IN (:a, :b)",
+            a=ids["stuck"],
+            b=ids["busy"],
+        )
+    )
+    assert rows[ids["stuck"]] == "failed|unknown:stuck_sending"
+    assert rows[ids["busy"]] == "sending|"
+    events = await sql(
+        auto_db,
+        "SELECT payload->>'error', payload->>'deal_ref', payload->>'channel', payload->>'kind' FROM outbox_events "
+        "WHERE payload->>'message_ref' = :m",
+        m=str(ids["stuck"]),
+    )
+    assert events == [("unknown:stuck_sending", str(deal), "whatsapp", "reply")]
+    jobs_queued = await sql(
+        auto_db, "SELECT count(*) FROM scheduled_jobs WHERE args->>'message_id' = :m", m=str(ids["stuck"])
+    )
+    assert jobs_queued == [(0,)]  # never resent automatically
+
+
 async def test_media_ingest_then_relay_in_order(auto_db: Any) -> None:
     (thread,) = await sql(
         auto_db,
@@ -482,7 +526,8 @@ async def test_email_ingest_stores_attachments_and_announces(auto_db: Any) -> No
     await jobs._ingest_email(rt, "inbound/1")
     await jobs._ingest_email(rt, "inbound/1")
     assert len(media.objects) == 1 and next(iter(media.objects)).endswith("/0-po.pdf")
-    assert await sql(auto_db, "SELECT kind, provider FROM inbound_messages") == [("email", "ses")]
+    # D44: buyer replies arrive in the Stalwart mailbox (SES only relays outbound mail)
+    assert await sql(auto_db, "SELECT kind, provider FROM inbound_messages") == [("email", "stalwart")]
     await jobs.relay_all(rt)
     (event,) = published
     assert event.payload["channel"] == "email" and event.payload["text"].startswith("Re: Your quote Q-1045")

@@ -157,6 +157,18 @@ async def test_rrf_hybrid_search_ranks_and_flags_gaps(databases: Any) -> None:
         result = await fallback.search(f"PET bottles juice {tag}", "en")
         assert result.hits and result.hits[0].title == "PET bottles" and not result.weak
 
+    # 17 Nov: how buyers write. Not every word is in the content, so the strict query finds nothing; the any-word
+    # step still finds the right document. Operator characters in the question are plain text, never syntax.
+    down = KnowledgeBase(databases, Broken(), query_timeout_seconds=0.05)
+    asked = await down.search(
+        f"hi, do you make bottles suitable for my juice brand? {tag} (urgent) & thanks!", "en"
+    )
+    assert asked.hits and asked.hits[0].title == "PET bottles" and not asked.weak
+    cert = await down.search("which ISO certificate does the plant hold", "en")
+    assert "ISO 22000" in [h.title for h in cert.hits[:3]]  # the agent reads the top hits, not only the first
+    assert (await down.search("zzqx qqwv", "en")).weak  # nothing at all: still a gap for the content team
+    assert (await down.search("!!! :: &", "en")).weak  # no words: no query error
+
 
 async def test_quotation_waits_durably_and_resumes(databases: Any, pg_databases: dict[str, str]) -> None:
     deal = make_deal(DealStage.QUALIFIED)

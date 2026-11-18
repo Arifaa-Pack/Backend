@@ -13,18 +13,26 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
-from kx.core.errors import NotFound
+from kx.core.errors import Forbidden, NotFound
 from kx.crm.api.auth import StaffUserOut
 from kx.crm.api.context import ApiContext
 from kx.crm.models import StaffCredential, User
 from kx.crm.services import auth as auth_svc
 from kx.crm.services.journal import Actor, record
 
-# §3 "Admin / IT: users, roles, settings"; the manager and MD see the team (team board, reassign)
+# §3 "Admin / IT: users, roles, settings"; the manager and MD see the team (team board, reassign).
+# D12(a) (17 Nov): the MD may also manage users, because only an MD may give or remove the MD role, deactivate
+# an MD or reset an MD's authenticator (the MD role reads cost data); nobody changes their own role. The first
+# MD is created on the server with `kx create-user --role md`.
 Reader = Annotated[Principal, Depends(require_role(Role.ADMIN, Role.MANAGER))]
-Admin = Annotated[Principal, Depends(require_human_mfa(Role.ADMIN))]
+Admin = Annotated[Principal, Depends(require_human_mfa(Role.ADMIN, Role.MD))]
 StaffRole = Literal["md", "manager", "admin", "sales"]
 AlertChannel = Literal["whatsapp", "email", "call", "in_app"]
+
+
+def _md_only(p: Principal, what: str) -> None:
+    if p.role is not Role.MD:
+        raise Forbidden(f"only the MD may {what}")
 
 
 class UserCreateIn(BaseModel):
@@ -83,6 +91,8 @@ def router(ctx: ApiContext) -> APIRouter:
     @r.post("", response_model=UserCreatedOut, status_code=201)
     async def create(body: UserCreateIn, s: Session, p: Admin) -> UserCreatedOut:
         """Admin (MFA): a new staff user; the one-time password in the answer is shown once."""
+        if body.role == "md":
+            _md_only(p, "create an MD account")
         user, password = await auth_svc.create_user(
             s,
             deps,
@@ -103,6 +113,14 @@ def router(ctx: ApiContext) -> APIRouter:
         if user is None:
             raise NotFound("user not found")
         changes = body.model_dump(exclude_unset=True)
+        new_role = changes.get("role", user.role)
+        if new_role != user.role:
+            if user.id == p.user_id:
+                raise Forbidden("nobody may change their own role")
+            if "md" in (new_role, user.role):
+                _md_only(p, "give or remove the MD role")
+        if user.role == "md" and "is_active" in changes and changes["is_active"] != user.is_active:
+            _md_only(p, "activate or deactivate an MD")
         before = {k: getattr(user, k) for k in changes}
         for key, value in changes.items():
             setattr(user, key, value)
@@ -113,6 +131,11 @@ def router(ctx: ApiContext) -> APIRouter:
     @r.post("/{user_id}/reset-mfa", response_model=UserAdminOut)
     async def reset_mfa(user_id: uuid.UUID, s: Session, p: Admin) -> UserAdminOut:
         """A lost authenticator: sessions end; the person signs in with an email code and enrols again."""
+        target = await s.get(User, user_id)
+        if target is None:
+            raise NotFound("user not found")
+        if target.role == "md":
+            _md_only(p, "reset an MD's authenticator")
         await auth_svc.reset_mfa(s, deps, user_id, Actor.user(p))
         user = await s.get(User, user_id)
         assert user is not None

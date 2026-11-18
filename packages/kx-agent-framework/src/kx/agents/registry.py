@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict
 
 from kx.agents.language import DEFAULT_LANGUAGE, normalise_language
 from kx.core.contracts import AiRole, DealStage
+from kx.core.texts import CATALOG, TEXTS
 
 
 class ModelTier(StrEnum):
@@ -301,17 +302,9 @@ _ROLE_PROMPTS: Final[dict[str, str]] = {
     AiRole.ORCHESTRATOR.value: "Route messages.",
 }
 
-DEFAULT_PHRASES: Final[dict[tuple[Phrase, str], str]] = {
-    (Phrase.PRICE_FALLBACK, "en"): "Our team will confirm pricing shortly.",
-    (Phrase.PRICE_FALLBACK, "ar"): "سيؤكد فريقنا الأسعار قريباً.",
-    # §12.2 rule 4, verbatim: the AI pauses when the buyer insists below the minimum
-    (Phrase.MANAGER_60, "en"): (
-        "Let me check this with our sales team — you'll hear back within 60 minutes during working hours."
-    ),
-    (
-        Phrase.MANAGER_60,
-        "ar",
-    ): "دعني أتحقق من ذلك مع فريق المبيعات — ستتلقى رداً خلال 60 دقيقة خلال ساعات العمل.",
+# Legal / consent wording: never editable (18 Nov client decision); the recording notice is required before a
+# call, the opt-out questions are the SRS's own words (§8.1 steps 6 and 10).
+LOCKED_PHRASES: Final[dict[tuple[Phrase, str], str]] = {
     (Phrase.RECORDING_NOTICE, "en"): (
         "Hello, I'm the AI assistant of Arifaa Pack. This conversation is "
         "recorded for quality and to prepare your quotation."
@@ -320,51 +313,26 @@ DEFAULT_PHRASES: Final[dict[tuple[Phrase, str], str]] = {
         Phrase.RECORDING_NOTICE,
         "ar",
     ): "مرحباً، أنا المساعد الذكي. يتم تسجيل هذه المحادثة لضمان الجودة وإعداد عرض السعر.",
-    (Phrase.HANDOFF, "en"): "A member of our team will reply to you shortly.",
-    (Phrase.SAFE_REPLY, "en"): "Let me check with our sales team.",  # Fallback plan, AI brain row
-    (Phrase.QUOTE_IN_PREPARATION, "en"): (
-        "Thank you. Your quotation is being prepared and reviewed by our team; we will send it to you soon."
-    ),
-    (Phrase.QUOTE_REJECTED, "en"): "Our team is reviewing your request and will contact you shortly.",
-    # {name} = the deal's salesperson ("Sara from our sales team"), {hours} = change_request.sla_working_hours
-    (Phrase.CHANGE_REQUEST, "en"): (
-        "Good question — I've passed this to {name}. "
-        "You'll get an updated quotation within {hours} working hours."
-    ),
-    (Phrase.CHANGE_REQUEST, "ar"): (
-        "سؤال جيد — لقد أحلت طلبك إلى {name}. ستصلك عرض أسعار محدّث خلال {hours} ساعات عمل."
-    ),
-    (Phrase.REVISED_QUOTE, "en"): (
-        "Thank you — for that quantity I'm preparing a revised quotation; {name} will send it to you shortly."
-    ),
-    (
-        Phrase.REVISED_QUOTE,
-        "ar",
-    ): "شكراً لك — أقوم بإعداد عرض أسعار محدّث لهذه الكمية، وسيرسله لك {name} قريباً.",
-    # §14.6: outside working hours on a handed-over deal ("Thanks — Sara will reply in the morning.")
-    (Phrase.HANDOVER_ACK, "en"): "Thanks — {name} will reply in the morning.",
-    (Phrase.HANDOVER_ACK, "ar"): "شكراً لك — سيرد عليك {name} في الصباح.",
-    # §8.1 step 6 and step 10: the SRS's own English words; Arabic for native-speaker review (OPEN #41)
     (Phrase.OPTOUT_CHECK, "en"): "Just to check, should we stop messaging you?",
     (Phrase.OPTOUT_CHECK, "ar"): "للتأكد فقط، هل تريد أن نتوقف عن مراسلتك؟",
     (Phrase.VOICE_STOP_CHECK, "en"): "Sure, shall I wait, or would you like to end the call?",
     (Phrase.VOICE_STOP_CHECK, "ar"): "بالتأكيد، هل أنتظر، أم تفضّل إنهاء المكالمة؟",
-    (Phrase.VOICE_GOODBYE, "en"): "Of course. Thank you for calling, goodbye.",
-    (Phrase.VOICE_GOODBYE, "ar"): "بالتأكيد. شكراً لاتصالك، مع السلامة.",
-    # §8.2 steps 1 and 4, the SRS's own English words
-    (
-        Phrase.PHONE_NOT_MOBILE,
-        "en",
-    ): "Is that a mobile number on WhatsApp? I'd like to send you the summary there.",
-    (Phrase.PHONE_NOT_MOBILE, "ar"): "هل هذا رقم جوال على واتساب؟ أود أن أرسل لك الملخص هناك.",
-    (Phrase.SUMMARY_NOT_ARRIVED, "en"): (
-        "I've just sent the summary to your WhatsApp, but it doesn't seem to have arrived. "
-        "Could you check the number, or would email be easier?"
-    ),
-    (Phrase.SUMMARY_NOT_ARRIVED, "ar"): (
-        "لقد أرسلت لك الملخص على واتساب للتو، لكن يبدو أنه لم يصل. "
-        "هل يمكنك التحقق من الرقم، أم أن البريد الإلكتروني أسهل؟"
-    ),
+}
+
+
+def _text_key(key: Phrase) -> str:
+    return f"ai.{key.value}"
+
+
+# The other phrases are editable by the manager / MD (kx.core.texts, "ai.<phrase>"); built-in wording there.
+DEFAULT_PHRASES: Final[dict[tuple[Phrase, str], str]] = {
+    **LOCKED_PHRASES,
+    **{
+        (ph, lang): text
+        for ph in Phrase
+        if (d := CATALOG.get(_text_key(ph))) is not None
+        for lang, text in (("en", d.en), *d.builtin.items())
+    },
 }
 
 _TEAM: Final[dict[str, str]] = {"en": "our sales team", "ar": "فريق المبيعات"}
@@ -388,7 +356,8 @@ class DefaultPromptStore:
         version: str = "builtin-1",
     ) -> None:
         self._prompts = dict(prompts or {})
-        self._phrases = {**DEFAULT_PHRASES, **(phrases or {})}
+        self._custom = dict(phrases or {})
+        self._phrases = {**DEFAULT_PHRASES, **self._custom}
         self._version = version
 
     def system_prompt(self, spec: AgentSpec, language: str) -> PromptTemplate:
@@ -402,6 +371,9 @@ class DefaultPromptStore:
         )
 
     def phrase(self, key: Phrase, language: str) -> str:
-        return (
-            self._phrases.get((key, normalise_language(language))) or self._phrases[(key, DEFAULT_LANGUAGE)]
-        )
+        lang = normalise_language(language)
+        if (key, lang) in self._custom:  # an app's own map wins (tests, evals)
+            return self._custom[(key, lang)]
+        if _text_key(key) in CATALOG:  # editable: the manager's / MD's text (or the built-in one)
+            return TEXTS.raw(_text_key(key), lang)
+        return self._phrases.get((key, lang)) or self._phrases[(key, DEFAULT_LANGUAGE)]

@@ -25,7 +25,13 @@ from kx.crm.models import (
 from kx.crm.rules import OPEN_STAGES
 
 OPEN = [st.value for st in OPEN_STAGES]
-PRICE_LIST_ACTIONS = ("price_tier.created", "price_tier.updated", "price_tier.deleted", "price_list.imported")
+PRICE_LIST_ACTIONS = (
+    "price_tier.created",
+    "price_tier.updated",
+    "price_tier.deleted",
+    "price_list.imported",
+    "catalogue.workbook_applied",  # 18 Nov product workbook uploads (the MD sees every one)
+)
 
 
 class SalespersonBoard(BaseModel):

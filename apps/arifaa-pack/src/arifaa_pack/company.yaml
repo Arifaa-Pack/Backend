@@ -1,11 +1,15 @@
 # Arifaa Pack — company profile. Business rules (markups, limits, windows) live in crm.settings, editable by
 # the MD/admin in the CRM; this file only holds identity used at build time. A new client = copy this app.
+#
+# TEMPORARY letterhead (17 Nov 2026): taken from the public website www.arifapack.com (head office address, the
+# packaging division's phone, the public info address). Arifa confirms the exact quote letterhead before
+# production; the VAT TRN is not on the website. Production refuses to start while any value says REPLACE.
 code: pack
 name: Arifaa Pack
 letterhead:
-  name: Arifaa Pack
-  address: "REPLACE — factory address, UAE"
-  trn: "REPLACE — UAE VAT TRN"
-  phone: "REPLACE"
-  email: "sales@REPLACE"
+  name: "ARIFA PACKING & PACKAGING LLC"
+  address: "Al Jurf Industrial Area 2, Ajman, United Arab Emirates"
+  trn: "REPLACE — UAE VAT TRN (not on the website; Arifa to provide)"
+  phone: "+971 6 748 5384"
+  email: "info@arifapack.com"
 languages: [en, ar, hi, ta, zh, si]

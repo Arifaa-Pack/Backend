@@ -211,3 +211,54 @@ CONTEST_ALLOWED = [AED_UNIT, AED_TOTAL, USD_FREIGHT]
 )
 def test_fail_closed_cases(text: str, ok: bool) -> None:
     assert guard.check_prices(text, CONTEST_ALLOWED, default_currency="AED").ok is ok
+
+
+@pytest.mark.parametrize(
+    ("text", "ok"),
+    [
+        # D3 (architecture guide, re-checked 16 Nov): whole numbers after an offer phrase, Gulf currencies
+        ("I can do 450 for you", False),
+        ("Our final offer is 450.", False),
+        ("We could go down to 300 if you order today", False),
+        ("QAR 500 total", False),
+        ("OMR 12.5 per piece", False),
+        ("500 KD", False),
+        ("BHD 40", False),
+        ("السعر ٥٠٠ ر.ق", False),
+        # ...without flagging ordinary quantities, durations or counts
+        ("Only 3 colours are available", True),
+        ("We can do it in 12 working days", True),
+        ("I can do 20000 pieces by March", True),
+        ("We can offer 2 sizes: 750 ml and 1 litre", True),
+        ("The MOQ is 10000", True),
+        ("Delivery in 3 weeks", True),
+    ],
+)
+def test_d3_bare_offers_and_gulf_currencies(text: str, ok: bool) -> None:
+    assert guard.check_prices(text, CONTEST_ALLOWED, default_currency="AED").ok is ok
+
+
+@pytest.mark.parametrize(
+    ("text", "currency"),
+    [
+        ("٥٠ درهماً للقطعة", "AED"),  # Arabic "-an" ending after numbers 11-99 (found 18 Nov: was missed)
+        ("السعر 12 دينارًا", "KWD"),
+        ("50 ريالا فقط", "SAR"),
+        ("5 دولارات", "USD"),
+        ("0.25 दिरहम प्रति पीस", "AED"),
+        ("20 रुपये", "INR"),
+        ("每个0.25迪拉姆", "AED"),
+        ("விலை 0.25 திர்ஹம்", "AED"),
+        ("0.25 ඩිර්හම්", "AED"),
+    ],
+)
+def test_currency_words_in_the_languages_the_ai_speaks(text: str, currency: str) -> None:
+    """18 Nov translation check: an unapproved amount in grammatical Arabic, Hindi, Chinese, Tamil or Sinhala
+    is a price the guard must see."""
+    assert [m.currency for m in guard.extract_prices(text)] == [currency]
+    assert not guard.check_prices(text, []).ok
+
+
+@pytest.mark.parametrize("text", ["الكمية 5000 قطعة خلال 14 يوماً", "डिलीवरी 12 दिनों में", "交货 12 天"])
+def test_quantities_and_days_are_not_prices_in_other_languages(text: str) -> None:
+    assert guard.check_prices(text, []).ok

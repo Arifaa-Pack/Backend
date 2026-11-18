@@ -35,6 +35,7 @@ from kx.crm.models import (
     User,
 )
 from kx.crm.pdf import DocLine, QuoteDocument, SalesContact, pdf_key, quote_message
+from kx.crm.services import company as company_svc
 from kx.crm.services import deals as deal_svc
 from kx.crm.services import phone, staff
 from kx.crm.services.grants import GrantPolicy, SendChannel, issue_grant, recipient
@@ -92,7 +93,7 @@ async def build_document(
         incoterm=version.incoterm,
         clauses=tuple(version.clauses),
         estimated_delivery=(estimate.confirmed_date or estimate.estimated_delivery) if estimate else None,
-        letterhead=deps.letterhead,
+        letterhead=await company_svc.letterhead(session, deps),
         kind=version.kind,
         delivery_time_text=version.delivery_time_text,
         delivery_place=version.delivery_place,

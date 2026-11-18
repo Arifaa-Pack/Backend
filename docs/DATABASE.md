@@ -100,5 +100,10 @@ Order to move: `agents` + `automation` (Interactions) first, then Phoenix, then 
 
 - A new append-only log table: add it to the partition list or the prune list in the owning package's retention job, in the same change.
 - Unique keys that enforce exactly-once behaviour (send grants, idempotency keys, dedup keys) must not be partitioned by time.
+- A new `crm` table is **not** readable by the reporting role until a migration grants it (D5, `crm_0013`). In the
+  same change: add the table to one of the ALLOW / LIMITED / DENY lists in `crm_0013` (the test reads them) and, if
+  allowed, `GRANT SELECT` (or a column list) to `<prefix>reporting_ro` in your new migration. Never grant
+  credentials, cost, markup, minimum prices or ladder steps. `tests/db/test_reporting_grants.py` fails while a
+  table is unclassified.
 - Every foreign key column gets an index (the missing `tool_calls(run_id)` index is added by `agents_0004`).
 - Vectors: `agents.kb_chunks.embedding vector(1024)` with HNSW cosine; every chunk stores its `embedding_model`, and search only reads chunks of the configured model.

@@ -14,7 +14,9 @@ from kx.crm.api import (
     admin,
     assignment,
     auth,
+    catalogue_workbook,
     change_requests,
+    company,
     deal_actions,
     deals,
     operations,
@@ -22,6 +24,7 @@ from kx.crm.api import (
     records,
     reports,
     screens,
+    texts,
     users,
 )
 from kx.crm.api.context import ApiContext
@@ -40,10 +43,13 @@ def build_router(databases: Databases, deps: CrmDeps) -> APIRouter:
         quotes,
         change_requests,
         screens,
+        catalogue_workbook,
         admin,
+        company,
         operations,
         records,
         reports,
+        texts,
     ):
         root.include_router(module.router(ctx))
     return root

@@ -6,13 +6,20 @@ name: kx-pack
 x-app: &app
   image: ${KX_APP_IMAGE:-ghcr.io/kairox/app:latest}
   restart: unless-stopped
-  env_file: [${KX_ENV_FILE:-env/pack.env}]
+  env_file: ["${KX_ENV_FILE:-env/pack.env}"]  # quoted: a bare { inside [ ] is YAML flow-mapping syntax
   read_only: true
   tmpfs: [/tmp]
   networks: [kx]
-  logging: &logs
+  # the app sends its own logs to SigNoz over OTLP (with trace ids); this label tells the SigNoz collector
+  # to skip these containers' log files, so lines are not stored twice (infra/server/signoz/)
+  labels: { kx.logs: otlp }
+  logging:
     driver: json-file
-    options: { max-size: "50m", max-file: "3" }
+    options: { max-size: "50m", max-file: "3", labels: "kx.logs,com.docker.compose.service,com.docker.compose.project" }
+
+x-logs: &logs
+  driver: json-file
+  options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
 
 services:
   redis:
@@ -76,7 +83,7 @@ services:
     # Payload CMS (website admin, §7); image built from the CMS repo (not in this repo)
     image: ${KX_CMS_IMAGE:-ghcr.io/kairox/cms:latest}
     restart: unless-stopped
-    env_file: [${KX_CMS_ENV_FILE:-env/pack-cms.env}]
+    env_file: ["${KX_CMS_ENV_FILE:-env/pack-cms.env}"]
     expose: ["3000"]
     networks: [kx]
     logging: *logs

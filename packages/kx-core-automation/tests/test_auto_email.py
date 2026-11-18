@@ -6,7 +6,9 @@ from email import message_from_bytes, policy
 from email.message import EmailMessage
 from typing import Any
 
+import httpx
 import pytest
+from pydantic import SecretStr
 
 from kx.automation.channels import ChannelError
 from kx.automation.channels.email import (
@@ -18,7 +20,8 @@ from kx.automation.channels.email import (
     strip_quoted,
 )
 from kx.automation.channels.feedback import candidate_ids, parse_feedback
-from kx.automation.settings import SesSettings
+from kx.automation.channels.stalwart import JmapClient
+from kx.automation.settings import SesSettings, StalwartSettings
 
 PDF = Attachment("Q-1045.pdf", "application/pdf", b"%PDF-1.7 quote")
 
@@ -264,3 +267,107 @@ def test_from_display_name_keeps_the_company_address() -> None:
     parsed = message_from_bytes(msg.as_bytes(), policy=policy.default)
     assert parsed["From"].addresses[0].display_name == "Sara, Arifa Pack"
     assert parsed["From"].addresses[0].addr_spec == "sales@arifapack.com"
+
+
+async def test_jmap_session_follows_the_well_known_redirect() -> None:
+    """D44, both found on the local Stalwart 16 Nov: (1) /.well-known/jmap answers 307 -> /jmap/session (RFC 8620
+    §2.2 allows it); not following it failed every send and mail poll on a non-JSON body. (2) The session's
+    upload / download URLs are absolute templates on the container's own hostname; rewriting the host must keep
+    the {accountId} / {blobId} placeholders (they were percent-encoded, so every upload hit a 404)."""
+    seen: list[tuple[str, str | None]] = []
+
+    def stalwart(request: httpx.Request) -> httpx.Response:
+        seen.append((request.url.path, request.headers.get("Authorization")))
+        if request.url.path == "/.well-known/jmap":
+            location = "http://sales%40example.com:pw@stalwart:8080/jmap/session"  # what Stalwart sends
+            return httpx.Response(307, headers={"Location": location})
+        return httpx.Response(
+            200,
+            json={
+                # Stalwart v0.14 advertises its container hostname: rewritten to the internal URL we were given
+                "apiUrl": "http://5f047c78428d:8080/jmap/",
+                "uploadUrl": "http://5f047c78428d:8080/jmap/upload/{accountId}/",
+                "downloadUrl": "http://5f047c78428d:8080/jmap/download/{accountId}/{blobId}/{name}?accept={type}",
+                "primaryAccounts": {"urn:ietf:params:jmap:mail": "a1"},
+            },
+        )
+
+    settings = StalwartSettings(
+        url="http://stalwart:8080", username="sales@example.com", password=SecretStr("pw")
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(stalwart)) as http:
+        session = await JmapClient(http, settings).session()
+    assert session.account_id == "a1"
+    assert session.api_url == "http://stalwart:8080/jmap/"
+    assert session.upload_url == "http://stalwart:8080/jmap/upload/{accountId}/"
+    assert (
+        session.download_url == "http://stalwart:8080/jmap/download/{accountId}/{blobId}/{name}?accept={type}"
+    )
+    assert [path for path, _ in seen] == ["/.well-known/jmap", "/jmap/session"]
+    assert all(auth and auth.startswith("Basic ") for _, auth in seen)  # same origin: auth kept
+
+
+async def test_stalwart_v1_submission_cap_is_pruned_and_the_same_email_resubmitted() -> None:
+    """Measured 17 Nov on Stalwart v1.1.1: every JMAP send leaves an EmailSubmission record and the account refuses
+    new ones at `maxSubmissions` (500): all email stopped with `overQuota`. The sender deletes the finished records
+    and submits the Email already in Sent again (never a second copy). Deleting does not cancel delivery."""
+    import json
+
+    from kx.automation.channels.stalwart import StalwartSender
+
+    calls: list[str] = []
+    state = {"full": True}
+
+    def jmap(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/.well-known/jmap":
+            return httpx.Response(
+                200,
+                json={
+                    "apiUrl": "/jmap/",
+                    "uploadUrl": "/jmap/upload/{accountId}/",
+                    "downloadUrl": "/jmap/download/{accountId}/{blobId}/{name}",
+                    "primaryAccounts": {"urn:ietf:params:jmap:mail": "c"},
+                },
+            )
+        if request.url.path.startswith("/jmap/upload"):
+            return httpx.Response(200, json={"blobId": "b1"})
+        out = []
+        for name, args, tag in json.loads(request.content)["methodCalls"]:
+            calls.append(
+                name if name != "EmailSubmission/set" else f"{name}:{sorted(set(args) - {'accountId'})}"
+            )
+            if name == "Mailbox/get":
+                res: dict[str, Any] = {"list": [{"id": "s1", "role": "sent"}]}
+            elif name == "Identity/get":
+                res = {"list": [{"id": "i1", "email": "sales@example.com"}]}
+            elif name == "Email/import":
+                res = {"created": {"m": {"id": "e9"}}}
+            elif name == "EmailSubmission/query":
+                assert args["filter"] == {"undoStatus": "final"}
+                res = {"ids": ["x1", "x2"]}
+            elif name == "EmailSubmission/set" and "destroy" in args:
+                state["full"] = False
+                res = {"destroyed": args["destroy"]}
+            else:  # create
+                assert args["create"]["s"]["emailId"] in ("#m", "e9")
+                res = (
+                    {"notCreated": {"s": {"type": "overQuota"}}}
+                    if state["full"]
+                    else {"created": {"s": {"id": "new"}}}
+                )
+            out.append([name, res, tag])
+        return httpx.Response(200, json={"methodResponses": out})
+
+    settings = StalwartSettings(
+        url="http://stalwart:8080", username="sales@example.com", password=SecretStr("pw")
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(jmap)) as http:
+        sender = StalwartSender(JmapClient(http, settings), SesSettings(from_address="sales@example.com"))
+        message_id = await sender.send(to_address="buyer@x.ae", subject="Quote", body="hi")
+    assert message_id.endswith("@example.com")
+    assert calls.count("Email/import") == 1  # the email is never imported twice
+    assert calls[-3:] == [
+        "EmailSubmission/query",
+        "EmailSubmission/set:['destroy']",
+        "EmailSubmission/set:['create']",
+    ]

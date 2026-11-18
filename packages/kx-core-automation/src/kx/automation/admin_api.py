@@ -11,12 +11,11 @@
 
 import uuid
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Final, Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from kx.automation.models import ChannelAccount, MessageTemplate
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
@@ -26,8 +25,12 @@ from kx.core.logging import get_logger
 from kx.core.settings import LogicalDb
 
 log = get_logger(__name__)
-Reader = Annotated[Principal, Depends(require_role(Role.ADMIN, Role.MANAGER))]
+Reader = Annotated[Principal, Depends(require_role(Role.ADMIN, Role.MANAGER, Role.MD))]
 Admin = Annotated[Principal, Depends(require_human_mfa(Role.ADMIN))]
+# client decision 18 Nov: manager, MD and admin edit message templates (a person with MFA)
+TemplateEditor = Annotated[Principal, Depends(require_human_mfa(Role.MANAGER, Role.MD, Role.ADMIN))]
+LIVE: Final = "approved"
+NOT_YET_LIVE: Final = frozenset({"draft", "submitted", "rejected"})
 
 
 class ChannelAccountOut(BaseModel):
@@ -63,11 +66,16 @@ class TemplateOut(BaseModel):
     language: str
     category: str
     provider_status: (
-        str  # draft | submitted | approved | rejected | paused (DDL; Meta's decision for WhatsApp)
+        str  # draft | submitted | approved | rejected | paused | superseded (Meta's decision for WhatsApp)
     )
     subject: str | None
     body: str  # placeholders {{1}}, {{2}} ... in Meta's style
     variables: list[str]
+    version: int
+    provider_name: str | None  # the name submitted to Meta for this version (quote_ready_v2)
+    live: bool = False  # this version is the one being sent now
+    created_by: str | None
+    created_at: datetime
     updated_at: datetime
 
 
@@ -82,10 +90,27 @@ class TemplateIn(BaseModel):
 
 
 class TemplateStatusIn(BaseModel):
-    provider_status: Literal["draft", "submitted", "approved", "rejected", "paused"]
+    provider_status: Literal["draft", "submitted", "approved", "rejected", "paused", "superseded"]
 
 
-def build_router(databases: Databases) -> APIRouter:
+def _out(t: MessageTemplate) -> TemplateOut:
+    return TemplateOut.model_validate(t).model_copy(update={"live": t.provider_status == LIVE})
+
+
+async def _supersede(s: Any, channel: str, name: str, language: str) -> None:
+    """The live version steps down (kept as history) before another one becomes live."""
+    stmt = select(MessageTemplate).where(
+        MessageTemplate.channel == channel,
+        MessageTemplate.name == name,
+        MessageTemplate.language == language,
+        MessageTemplate.provider_status == LIVE,
+    )
+    for t in (await s.execute(stmt.with_for_update())).scalars().all():
+        t.provider_status = "superseded"
+    await s.flush()
+
+
+def build_router(databases: Databases) -> APIRouter:  # noqa: PLR0915 - one route table
     r = APIRouter(prefix="/v1/admin", tags=["admin: channels"])
 
     @r.get("/channel-accounts", response_model=list[ChannelAccountOut])
@@ -114,47 +139,100 @@ def build_router(databases: Databases) -> APIRouter:
             return ChannelAccountOut.model_validate(account)
 
     @r.get("/message-templates", response_model=list[TemplateOut])
-    async def templates(_: Reader) -> list[TemplateOut]:
-        """§20.11 message templates and Meta's approval state (only approved WhatsApp ones can be sent)."""
+    async def templates(_: Reader, current_only: bool = False) -> list[TemplateOut]:
+        """§20.11 message templates and Meta's approval state, every version (the history), newest first;
+        `live` marks the version being sent. `current_only=true`: the newest version of each template."""
         async with databases.transaction(LogicalDb.AUTOMATION) as s:
-            rows = (
-                await s.execute(
-                    select(MessageTemplate).order_by(MessageTemplate.name, MessageTemplate.language)
-                )
-            ).scalars()
-            return [TemplateOut.model_validate(t) for t in rows]
+            stmt = select(MessageTemplate).order_by(
+                MessageTemplate.name, MessageTemplate.language, MessageTemplate.version.desc()
+            )
+            rows = list((await s.execute(stmt)).scalars())
+        if current_only:
+            newest: dict[tuple[str, str, str], MessageTemplate] = {}
+            for t in rows:
+                newest.setdefault((t.channel, t.name, t.language), t)
+            rows = list(newest.values())
+        return [_out(t) for t in rows]
 
     @r.put("/message-templates", response_model=TemplateOut)
-    async def upsert_template(body: TemplateIn, p: Admin) -> TemplateOut:
-        """Add or change a template. A WhatsApp template waits for Meta's approval (`submitted`)."""
-        status = "submitted" if body.channel == "whatsapp" else "approved"
-        values = {**body.model_dump(), "provider_status": status}
+    async def upsert_template(body: TemplateIn, p: TemplateEditor) -> TemplateOut:
+        """Add or change a template. Editing the live (approved) WhatsApp version creates a NEW version that
+        waits for Meta under its own name; the approved one keeps sending until Meta approves the new one.
+        A version not yet approved (draft, submitted, rejected) is changed in place. Email templates go live
+        at once (no provider approval); the previous email version is kept as history."""
+        status = "submitted" if body.channel == "whatsapp" else LIVE
         async with databases.transaction(LogicalDb.AUTOMATION) as s:
-            stmt = (
-                pg_insert(MessageTemplate)
-                .values(**values)
-                .on_conflict_do_update(
-                    index_elements=["channel", "name", "language"],
-                    set_={k: v for k, v in values.items() if k not in ("channel", "name", "language")},
+            latest = (
+                (
+                    await s.execute(
+                        select(MessageTemplate)
+                        .where(
+                            MessageTemplate.channel == body.channel,
+                            MessageTemplate.name == body.name,
+                            MessageTemplate.language == body.language,
+                        )
+                        .order_by(MessageTemplate.version.desc())
+                        .with_for_update()
+                    )
                 )
-                .returning(MessageTemplate)
+                .scalars()
+                .first()
             )
-            row = (await s.execute(stmt)).scalar_one()
-            log.info("admin.template", name=body.name, language=body.language, by=p.subject, status=status)
-            return TemplateOut.model_validate(row)
+            fields = body.model_dump(exclude={"channel", "name", "language"})
+            if latest is not None and latest.provider_status in NOT_YET_LIVE:
+                row = latest
+                for k, v in fields.items():
+                    setattr(row, k, v)
+                row.provider_status, row.created_by = status, p.subject
+            else:
+                version = latest.version + 1 if latest is not None else 1
+                if status == LIVE:
+                    await _supersede(s, body.channel, body.name, body.language)
+                whatsapp_rename = body.channel == "whatsapp" and version > 1
+                row = MessageTemplate(
+                    channel=body.channel,
+                    name=body.name,
+                    language=body.language,
+                    version=version,
+                    provider_name=f"{body.name}_v{version}" if whatsapp_rename else None,
+                    provider_status=status,
+                    created_by=p.subject,
+                    **fields,
+                )
+                s.add(row)
+            await s.flush()
+            await s.refresh(row)
+            log.info(
+                "admin.template",
+                name=body.name,
+                language=body.language,
+                version=row.version,
+                by=p.subject,
+                status=status,
+            )
+            return _out(row)
 
     @r.post("/message-templates/{template_id}/status", response_model=TemplateOut)
-    async def template_status(template_id: uuid.UUID, body: TemplateStatusIn, p: Admin) -> TemplateOut:
-        """Record Meta's decision on a WhatsApp template (only `approved` templates can be sent)."""
+    async def template_status(
+        template_id: uuid.UUID, body: TemplateStatusIn, p: TemplateEditor
+    ) -> TemplateOut:
+        """Record Meta's decision on a WhatsApp template version. Approving it makes it the one that is sent;
+        the version sent before becomes `superseded` (kept as history)."""
         async with databases.transaction(LogicalDb.AUTOMATION) as s:
             row = await s.get(MessageTemplate, template_id, with_for_update=True)
             if row is None:
                 raise NotFound("template not found")
+            if body.provider_status == LIVE and row.provider_status != LIVE:
+                await _supersede(s, row.channel, row.name, row.language)
             row.provider_status = body.provider_status
             await s.flush()
             log.info(
-                "admin.template_status", template=str(template_id), by=p.subject, status=body.provider_status
+                "admin.template_status",
+                template=str(template_id),
+                version=row.version,
+                by=p.subject,
+                status=body.provider_status,
             )
-            return TemplateOut.model_validate(row)
+            return _out(row)
 
     return r

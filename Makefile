@@ -64,7 +64,7 @@ up-voice: ## LiveKit (dev) + the free speech server + the voice worker (free ver
 	docker compose --profile voice up --build -d livekit speech voice
 
 .PHONY: up-mail
-up-mail: ## Stalwart mail server (finish its web setup once on :8090)
+up-mail: ## Stalwart v1.1.1 (finish its web setup once on :8090, login admin / local-dev-only)
 	docker compose --profile mail up -d stalwart
 
 .PHONY: up-obs
@@ -80,8 +80,12 @@ platform: ## Show the resolved paid / free version per field (D41)
 	uv run kx platform show
 
 .PHONY: stacks-check
-stacks-check: ## docker compose config of every server stack (dummy env)
-	cd infra/server/stacks && for f in compose.*.yml; do echo "== $$f"; docker compose -f $$f config -q || exit 1; done
+stacks-check: ## docker compose config of every server stack (dummy env, the same values as CI)
+	cd infra/server/stacks && export KX_ENV_FILE=env/pack.env.example KX_CMS_ENV_FILE=env/pack-cms.env.example \
+	  POSTGRES_PASSWORD=x R2_BUCKET=x R2_ENDPOINT_URL=https://x R2_ACCESS_KEY_ID=x R2_SECRET_ACCESS_KEY=x \
+	  LIVEKIT_NODE_IP=203.0.113.1 LIVEKIT_API_KEY=x LIVEKIT_API_SECRET=x PHOENIX_DB_PASSWORD=x \
+	  CROWDSEC_CF_BOUNCER_KEY=x CROWDSEC_FW_BOUNCER_KEY=x CLOUDFLARE_API_TOKEN=x PUBLIC_API_URL=https://x && \
+	for f in compose.*.yml; do echo "== $$f"; docker compose -f $$f --profile selfhost-web config -q || exit 1; done
 
 .PHONY: down
 down: ## Stop the stack and DROP local data

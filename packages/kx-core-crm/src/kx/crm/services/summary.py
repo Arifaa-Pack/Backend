@@ -23,6 +23,7 @@ from kx.core.identity import phone_kind, sha256_hex
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Company, Contact, Deal, DealRequirement, Product
 from kx.crm.pdf import SummaryDocument, SummaryLine, summary_caption, summary_key, summary_phrase
+from kx.crm.services import company as company_svc
 from kx.crm.services import deals as deal_svc
 from kx.crm.services import phone
 from kx.crm.services.issuing import local_today
@@ -64,7 +65,7 @@ async def build_summary(
         delivery_country=first.delivery_country if first else None,
         delivery_city=first.delivery_city if first else None,
         needed_by=first.needed_by if first else None,
-        letterhead=deps.letterhead,
+        letterhead=await company_svc.letterhead(session, deps),
     )
 
 

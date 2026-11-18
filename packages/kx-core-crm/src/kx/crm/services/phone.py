@@ -79,6 +79,34 @@ async def apply_signal(
     return changed
 
 
+async def delivery_unknown(session: AsyncSession, deal: Deal, kind: str, channel: str) -> None:
+    """D6: the sender stopped while a message was being sent, so nobody knows whether the buyer got it. The
+    salesperson checks the conversation before resending (an automatic resend could send a quote twice). The
+    phone status is left alone: this says nothing about the number."""
+    owner = await staff.approver_for(session, deal)
+    what = f"a {kind.replace('_', ' ')} on {channel or 'its channel'}"
+    await record(
+        session,
+        Actor.system("delivery"),
+        "deal.delivery_unknown",
+        "deal",
+        deal.id,
+        timeline=Timeline("delivery", f"Delivery unknown: {what}", deal.id, deal.primary_contact_id),
+        emit=Emit(
+            ev.STAFF_NOTICE,
+            "deal",
+            deal.id,
+            StaffNotice(
+                deal_ref=deal.id,
+                notify=(staff.staff_contact(owner),),
+                text=f"Deal {deal.number}: {what} may not have been delivered. Please check the conversation "
+                "and resend if needed.",
+                key=f"delivery-unknown:{deal.id}:{kind}",
+            ),
+        ),
+    )
+
+
 async def tell_salesperson(session: AsyncSession, deal: Deal, why: str) -> None:
     """§8.2 step 4 "Otherwise the salesperson is told": a task on the deal and a notice (alert hours)."""
     owner = await staff.approver_for(session, deal)

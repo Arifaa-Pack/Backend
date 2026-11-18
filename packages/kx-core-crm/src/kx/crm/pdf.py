@@ -28,6 +28,7 @@ from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt,
 from kx.core.logging import get_logger
 from kx.core.metrics import emit_metric
 from kx.core.money import display
+from kx.core.texts import CATALOG, TEXTS
 
 log = get_logger(__name__)
 
@@ -55,6 +56,9 @@ LABELS: Final[dict[str, dict[str, str]]] = {
         "delivery_time": "Delivery time",
         "place": "Delivery place",
         "payment": "Payment terms",
+        "bank": "Bank details",
+        "account": "Account name",
+        "bank_name": "Bank",
         "fx": "Exchange rate",
         "contact": "Your contact",
     },
@@ -79,54 +83,48 @@ LABELS: Final[dict[str, dict[str, str]]] = {
         "delivery_time": "مدة التسليم",
         "place": "مكان التسليم",
         "payment": "شروط الدفع",
+        "bank": "البيانات المصرفية",
+        "account": "اسم الحساب",
+        "bank_name": "البنك",
         "fx": "سعر الصرف",
         "contact": "جهة الاتصال",
     },
 }
 
 # §11.4: short and natural, the PDF attached, inviting a reply, signed with the salesperson's name (D11).
-MESSAGES: Final[dict[str, tuple[str, str]]] = {
-    "en": (
-        "Quotation {number} from {seller}",
-        "Hi {name},\n\nHere is your {what} {number} for {summary}: {currency} {total}, valid until "
-        "{valid_until}. Advance payment is required to start production.{extra}\n\n— {signer}",
-    ),
-    "ar": (
-        "عرض السعر {number} من {seller}",
-        "مرحباً {name}،\n\nإليك {what} رقم {number} لـ {summary}: {currency} {total}، صالح حتى {valid_until}. "
-        "يلزم دفع مقدم لبدء الإنتاج.{extra}\n\n— {signer}",
-    ),
-}
-WHAT: Final[dict[str, dict[str, str]]] = {
-    "en": {"final": "final quotation", "revision": "updated quotation", "other": "quotation"},
-    "ar": {"final": "عرض السعر النهائي", "revision": "عرض السعر المحدّث", "other": "عرض السعر"},
-}
+# The wording is editable by the manager / MD (kx.core.texts "buyer.quote_*", 18 Nov); built-ins there.
+_WHAT_KEY: Final = {"final": "buyer.quote_what_final", "revision": "buyer.quote_what_revision"}
 # D9 fallback when the AI wrote no cover line before approval: approved, natural, varied per quote.
-OPEN_TO_DISCUSS: Final[dict[str, tuple[str, ...]]] = {
-    "en": (
-        "Better pricing is possible for larger quantities or repeat orders — just reply and we'll work it "
-        "out together.",
-        "If you're planning a bigger volume or regular orders, reply here and we can look at the price "
-        "together.",
-        "Happy to talk it through: if the quantity grows or you order regularly, let me know and I'll see "
-        "what I can do.",
-    ),
-    "ar": (
-        "يمكن تقديم سعر أفضل للكميات الأكبر أو الطلبات المتكررة — فقط رد على هذه الرسالة وسنتفق معاً.",
-        "إذا كنت تخطط لكمية أكبر أو طلبات منتظمة، رد هنا وسننظر في السعر معاً.",
-    ),
+OPEN_TO_DISCUSS_KEYS: Final = (
+    "buyer.open_to_discuss_1",
+    "buyer.open_to_discuss_2",
+    "buyer.open_to_discuss_3",
+)
+OPEN_TO_DISCUSS: Final[dict[str, tuple[str, ...]]] = {  # the built-in lines (tests, reference)
+    lang: tuple(
+        t
+        for k in OPEN_TO_DISCUSS_KEYS
+        if (t := CATALOG[k].en if lang == "en" else CATALOG[k].builtin.get(lang))
+    )
+    for lang in ("en", "ar")
 }
 
 
 @dataclass(frozen=True, slots=True)
 class Letterhead:
-    """Seller identity printed on quotes; the client app fills it from company.yaml."""
+    """Seller identity printed on quotes: company.yaml, overlaid with the details staff set in the CRM
+    (`kx.crm.services.company`, 18 Nov)."""
 
     name: str = "Kairox"
     address: str = ""
     trn: str = ""
     phone: str = ""
     email: str = ""
+    logo: str = ""  # data:image/png|jpeg;base64,...
+    bank_account_name: str = ""
+    bank_name: str = ""
+    iban: str = ""
+    swift: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -223,8 +221,9 @@ def open_to_discuss(doc: QuoteDocument) -> str:
     """D9: the AI's cover line, else one of the approved variants, picked per quote so it varies."""
     if doc.cover_note:
         return doc.cover_note
-    variants = OPEN_TO_DISCUSS.get(doc.lang, OPEN_TO_DISCUSS["en"])
-    return variants[sum(map(ord, f"{doc.number}/{doc.version_no}")) % len(variants)]
+    # only lines written in the buyer's language (Arabic has two built-in lines, English three)
+    keys = [k for k in OPEN_TO_DISCUSS_KEYS if TEXTS.has(k, doc.lang)] or list(OPEN_TO_DISCUSS_KEYS)
+    return TEXTS.raw(keys[sum(map(ord, f"{doc.number}/{doc.version_no}")) % len(keys)], doc.lang)
 
 
 def quote_message(doc: QuoteDocument) -> tuple[str, str]:
@@ -232,8 +231,6 @@ def quote_message(doc: QuoteDocument) -> tuple[str, str]:
 
     The "open to discuss" line is in the message only, not in the PDF (D9); a revised quote says what
     changed (§13.3); the final quote has no discuss line (the price is agreed, §14)."""
-    subject, body = MESSAGES.get(doc.lang, MESSAGES["en"])
-    what = WHAT.get(doc.lang, WHAT["en"])
     extra = ""
     if doc.change_summary:
         extra += f"\n\n{doc.change_summary}"
@@ -244,7 +241,7 @@ def quote_message(doc: QuoteDocument) -> tuple[str, str]:
         "number": doc.number,
         "seller": seller,
         "name": doc.buyer_name or "Customer",
-        "what": what.get(doc.kind, what["other"]),
+        "what": TEXTS.raw(_WHAT_KEY.get(doc.kind, "buyer.quote_what_other"), doc.lang),
         "summary": _summary(doc),
         "currency": doc.currency,
         "total": fmt_money(doc.total, doc.currency),
@@ -252,7 +249,10 @@ def quote_message(doc: QuoteDocument) -> tuple[str, str]:
         "extra": extra,
         "signer": f"{doc.salesperson.name}, {seller}" if doc.salesperson else seller,
     }
-    return subject.format(**values), body.format(**values)
+    return (
+        TEXTS.get("buyer.quote_subject", doc.lang, **values),
+        TEXTS.get("buyer.quote_body", doc.lang, **values),
+    )
 
 
 class PdfEngine(Protocol):
@@ -351,7 +351,7 @@ class QuoteRenderer:
 
     def summary_html(self, doc: SummaryDocument) -> str:
         return self._env.get_template("requirement_summary.html.j2").render(
-            doc=doc, t=SUMMARY_LABELS[doc.lang], css=self._css
+            doc=doc, t=summary_labels(doc.lang), css=self._css
         )
 
     async def pdf(self, doc: QuoteDocument) -> bytes:
@@ -388,18 +388,24 @@ SUMMARY_LABELS: Final[dict[str, dict[str, str]]] = {
         "delivery": "التسليم",
         "needed_by": "مطلوب بحلول",
         "next": "الخطوات التالية",
-        "next_text": "يقوم فريق المبيعات لدينا بإعداد عرض السعر. ستصلك على واتساب قريباً.",
+        "next_text": "يقوم فريق المبيعات لدينا بإعداد عرض السعر. سيصلك على واتساب قريباً.",
         "no_prices": "يعرض هذا الملخص ما طلبته. ستصلك الأسعار في عرض السعر.",
     },
 }
+
+
+def summary_labels(lang: str) -> dict[str, str]:
+    """The PDF's labels; its two sentences are editable texts (kx.core.texts, 18 Nov)."""
+    return {
+        **SUMMARY_LABELS.get(lang, SUMMARY_LABELS["en"]),
+        "next_text": TEXTS.raw("buyer.summary_next_text", lang),
+        "no_prices": TEXTS.raw("buyer.summary_no_prices", lang),
+    }
+
+
 # §8.2 step 2, worded as service: "Hi Ahmed, here's the summary of what we discussed — 50,000 aluminium
 # containers, 750 ml with lid, delivery to Riyadh. Our team is preparing your quotation."
-SUMMARY_CAPTION: Final[dict[str, str]] = {
-    "en": "Hi {name}, here's the summary of what we discussed — {summary}. "
-    "Our team is preparing your quotation.",
-    "ar": "مرحباً {name}، إليك ملخص ما ناقشناه — {summary}. يقوم فريقنا بإعداد عرض السعر.",
-}
-_DELIVERY_TO: Final = {"en": "delivery to {place}", "ar": "التسليم إلى {place}"}
+# Editable (kx.core.texts "buyer.summary_*", 18 Nov).
 
 
 @dataclass(frozen=True, slots=True)
@@ -443,7 +449,7 @@ def summary_phrase(doc: SummaryDocument) -> str:
     ]
     place = doc.delivery_city or doc.delivery_country
     if place:
-        parts.append(_DELIVERY_TO[doc.lang].format(place=place))
+        parts.append(TEXTS.get("buyer.summary_delivery_to", doc.lang, place=place))
     return ", ".join(p for p in parts if p)
 
 
@@ -455,9 +461,9 @@ def summary_caption(doc: SummaryDocument) -> str:
     ]
     place = doc.delivery_city or doc.delivery_country
     if place:
-        parts.append(_DELIVERY_TO[doc.lang].format(place=place))
-    return SUMMARY_CAPTION[doc.lang].format(
-        name=doc.buyer_name or "", summary=", ".join(p for p in parts if p)
+        parts.append(TEXTS.get("buyer.summary_delivery_to", doc.lang, place=place))
+    return TEXTS.get(
+        "buyer.summary_caption", doc.lang, name=doc.buyer_name or "", summary=", ".join(p for p in parts if p)
     )
 
 

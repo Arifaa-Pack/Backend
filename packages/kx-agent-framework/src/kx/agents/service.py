@@ -48,7 +48,7 @@ from kx.agents.tracing import Tracer
 from kx.core.contracts import AiRole, Channel, CrmGateway, OptOutScope
 from kx.core.db import Databases
 from kx.core.fallback import CircuitBreaker
-from kx.core.logging import get_logger
+from kx.core.logging import get_logger, mask_pii
 from kx.core.metrics import emit_metric
 from kx.core.settings import LogicalDb
 
@@ -262,7 +262,9 @@ class AgentService:
             summary=history.summary,
         )
         if looks_like_injection(turn.text):
-            ctx.log.guard_events.append(GuardEventRecord("injection", "flagged", {"text": turn.text[:200]}))
+            # D8: phones and emails are masked before the flag is stored (retention cannot reach every copy)
+            flagged = mask_pii(turn.text[:200])
+            ctx.log.guard_events.append(GuardEventRecord("injection", "flagged", {"text": flagged}))
         assert claim is not None
         return await self._execute(ctx, rt, claim.run_id, turn.text, history.messages, deliver=deliver)
 

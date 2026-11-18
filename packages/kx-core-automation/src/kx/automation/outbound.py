@@ -52,6 +52,10 @@ from kx.core.settings import LogicalDb
 
 log = get_logger(__name__)
 
+# D6: the error of a message the worker died while sending. "unknown:" = we cannot tell whether it arrived, so
+# the CRM tells the salesperson and does not read it as a phone signal (§8.2).
+STUCK_ERROR: Final = "unknown:stuck_sending"
+
 STAFF_KINDS: Final = frozenset({OutboundKind.APPROVAL_ALERT, OutboundKind.MD_NOTICE})
 # Proactive outreach the buyer did not just ask for: buyer contact hours + weekly cap apply.
 PROACTIVE_KINDS: Final = frozenset({OutboundKind.FOLLOWUP, OutboundKind.REORDER})
@@ -482,7 +486,7 @@ class OutboundService:
             if channel == "whatsapp" and template is None and not await self._thread_open(s, row):
                 await self._mark(s, row, "blocked", block_reason="window_closed")
                 return None
-            row.status = "sending"
+            row.status, row.sending_at = "sending", self._now()  # D6: the stuck-send sweep reads sending_at
             return row, channel, template
 
     async def _thread_open(self, s: AsyncSession, row: OutboundMessage) -> bool:
@@ -517,7 +521,7 @@ class OutboundService:
                 media_id = await self._whatsapp.upload_media(pdf, "application/pdf", filename)
                 document = DocumentRef(filename, media_id=media_id)
             return await self._whatsapp.send_template(
-                row.to_address, template.name, template.language, params, document
+                row.to_address, template.sent_as, template.language, params, document
             )
         if pdf is not None:
             media_id = await self._whatsapp.upload_media(pdf, "application/pdf", filename)

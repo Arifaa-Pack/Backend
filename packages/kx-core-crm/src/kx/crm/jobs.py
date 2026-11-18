@@ -39,7 +39,7 @@ from kx.core.events import Event, Publisher, inbox_once, relay_once
 from kx.core.logging import get_logger
 from kx.core.settings import LogicalDb
 from kx.crm.deps import CrmDeps
-from kx.crm.models import Contact, Deal
+from kx.crm.models import Contact, Deal, FxRate
 from kx.crm.models.base import SCHEMA
 from kx.crm.rules import OPEN_STAGES
 from kx.crm.services import (
@@ -47,6 +47,7 @@ from kx.crm.services import (
     catalogue,
     change_requests,
     consent,
+    fx,
     issuing,
     lost_proposals,
     phone,
@@ -75,6 +76,28 @@ class CrmRuntime:
 
 
 # ---------------------------------------------------------------- job bodies (plain async, testable)
+async def run_fx_update(rt: CrmRuntime) -> dict[str, int]:
+    """18 Nov: daily automatic FX rates (kx.crm.services.fx). Without a source configured, nothing happens."""
+    source = rt.deps.fx_source
+    if source is None:
+        return {"skipped": 1}
+    async with rt.databases.transaction(LogicalDb.CRM) as s:
+        settings = await rt.deps.settings.get(s)
+        stored = (await s.execute(select(FxRate.currency).distinct())).scalars().all()
+        run = await fx.update_rates(
+            s, source, fx.wanted(settings.currency_by_country.values(), stored, rt.deps.base_currency)
+        )
+    log.info(
+        "fx.updated",
+        as_of=str(run.as_of),
+        saved=len(run.saved),
+        refused=sorted(run.refused),
+        missing=run.missing,
+        kept_manual=run.kept_manual,
+    )
+    return {"saved": len(run.saved), "refused": len(run.refused), "missing": len(run.missing)}
+
+
 async def run_approval_sweep(rt: CrmRuntime) -> int:
     async with rt.databases.transaction(LogicalDb.CRM) as s:
         return await approvals.sweep_overdue(s, rt.deps) + await change_requests.sweep_escalations(s, rt.deps)
@@ -236,6 +259,12 @@ async def on_message_status(session: AsyncSession, deps: CrmDeps, event: Event) 
     """§8.2 step 3: read WhatsApp's signals silently (Delivered, Read, failed) for messages to the buyer. A
     message our own gate refused (blocked, cancelled) says nothing about the number."""
     p = parse_payload(event, MessageStatus)
+    if p.error and p.error.startswith("unknown:"):  # D6: delivery unknown (any channel): tell, never a signal
+        if p.deal_ref is not None and p.kind not in _STAFF_KINDS:
+            deal = await session.get(Deal, p.deal_ref)
+            if deal is not None:
+                await phone.delivery_unknown(session, deal, p.kind or "message", p.channel or "")
+        return
     if p.channel != "whatsapp" or p.contact_ref is None or p.kind in _STAFF_KINDS:
         return
     if p.error and p.error.startswith(("blocked:", "cancelled:")):
@@ -369,6 +398,9 @@ def periodic_jobs(rt: CrmRuntime) -> dict[str, Periodic]:
     async def reports(_: datetime) -> int:
         return await run_scheduled_reports(rt)
 
+    async def fx_rates(_: datetime) -> dict[str, int]:
+        return await run_fx_update(rt)
+
     return {
         "relay.crm": relay,
         "crm.approval_sweep": sweep,
@@ -376,4 +408,5 @@ def periodic_jobs(rt: CrmRuntime) -> dict[str, Periodic]:
         "crm.lost_proposals": lost,
         "crm.retention": retention_,
         "crm.scheduled_reports": reports,
+        "crm.fx_rates": fx_rates,
     }

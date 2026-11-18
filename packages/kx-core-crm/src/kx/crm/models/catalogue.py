@@ -226,3 +226,17 @@ class MarginRuleRow(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     updated_by: Mapped[uuid.UUID | None] = mapped_column(ref("users.id"))
     updated_at: Mapped[datetime] = mapped_column(TZ, server_default=DB_DEFAULT)
+
+
+class MessageText(Base):
+    """An edited message text in one language (crm_0014; catalogue and rules in kx.core.texts)."""
+
+    __tablename__ = "message_texts"
+
+    key: Mapped[str] = mapped_column(Text, primary_key=True)
+    language: Mapped[str] = mapped_column(Text, primary_key=True)
+    body: Mapped[str] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(Text)  # staff | ai
+    en_version: Mapped[int] = mapped_column(Integer)
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(ref("users.id"))
+    updated_at: Mapped[datetime] = mapped_column(TZ, server_default=DB_DEFAULT)

@@ -23,7 +23,7 @@ from kx.automation.ports import Clock, TaskScheduler, utc_now
 from kx.automation.repo import ALL_CHANNELS
 from kx.automation.settings import AutomationSettings
 from kx.core import events as ev
-from kx.core.contracts import MessageSender, OutboundKind, OutboundRequest
+from kx.core.contracts import DealStage, MessageSender, OutboundKind, OutboundRequest
 from kx.core.db import Databases
 from kx.core.errors import RuleViolation
 from kx.core.event_payloads import (
@@ -31,6 +31,7 @@ from kx.core.event_payloads import (
     ContactAnonymised,
     DealAssigned,
     DealNextActionSet,
+    DealStageChanged,
     DealWon,
     MessageStatus,
     NegotiationPaused,
@@ -49,6 +50,7 @@ from kx.core.identity import new_id, recipient_hash
 from kx.core.logging import get_logger
 from kx.core.optout import confirmation_text
 from kx.core.settings import LogicalDb
+from kx.core.texts import TEXTS
 
 log = get_logger(__name__)
 
@@ -138,6 +140,7 @@ class EventHandlers:
             ev.QUOTE_APPROVED: ("automation.send_approved_quote", self._quote_approved),
             ev.QUOTE_RESEND_REQUESTED: ("automation.resend_quote_by_email", self._quote_resend),
             ev.DEAL_NEXT_ACTION_SET: ("automation.schedule_followup", self._next_action_set),
+            ev.DEAL_STAGE_CHANGED: ("automation.lost_stops_followups", self._stage_changed),
             ev.NEGOTIATION_PAUSED: ("automation.negotiation_paused", self._negotiation_paused),
             ev.CONTACT_ANONYMISED: ("automation.anonymise_contact", self._contact_anonymised),
             ev.DEAL_ASSIGNED: ("automation.deal_assigned", self._deal_assigned),
@@ -230,7 +233,7 @@ class EventHandlers:
                 self.sender,
                 (p.salesperson,),
                 a.final_quote_template,
-                (f"{what} approved and sent. The buyer is yours for payment and the order.",),
+                (TEXTS.get("staff.final_quote_salesperson", "en", what=what),),
                 key=f"final:{event.event_id}:alert",
                 deal_ref=p.deal_ref,
                 not_before=at,
@@ -240,7 +243,7 @@ class EventHandlers:
                 self.sender,
                 (p.manager,),
                 a.notice_template,
-                (f"{what} approved and sent.",),
+                (TEXTS.get("staff.final_quote_manager", "en", what=what),),
                 key=f"final:{event.event_id}:notice",
                 deal_ref=p.deal_ref,
                 not_before=at,
@@ -250,6 +253,14 @@ class EventHandlers:
         action = parse_payload(event, DealNextActionSet)
         await self.scheduler.schedule_followup(action, max(action.due_at, self.clock()))
 
+    async def _stage_changed(self, _: AsyncSession, event: Event) -> None:
+        """D10: a deal closed as LOST gets no more day 2/5/10 reminders (the buyer chose a competitor, has no
+        budget ...). A reopened deal schedules its follow-ups again through the CRM."""
+        p = parse_payload(event, DealStageChanged)
+        if p.to_stage is DealStage.LOST:
+            cancelled = await self.scheduler.cancel_followups(p.deal_ref)
+            log.info("followups.cancelled_on_lost", deal_ref=str(p.deal_ref), cancelled=cancelled)
+
     async def _negotiation_paused(self, _: AsyncSession, event: Event) -> None:
         paused = parse_payload(event, NegotiationPaused)
         await self.scheduler.schedule_pause_alert(paused, self.settings.alert_window.next_open(self.clock()))
@@ -258,11 +269,12 @@ class EventHandlers:
         """§17 "New qualified deal assigned" (the salesperson: WhatsApp + CRM) and "MD takes over or deal
         reassigned" (salesperson and manager), in alert hours."""
         p = parse_payload(event, DealAssigned)
-        text = {
-            "takeover": f"The MD took over deal {p.deal_number}",
-            "hand_back": f"Deal {p.deal_number} was handed back to {p.assigned_to.name}",
-            "reassigned": f"Deal {p.deal_number} was reassigned to {p.assigned_to.name}",
-        }.get(p.reason, f"New deal {p.deal_number} assigned to you")
+        key = {
+            "takeover": "staff.deal_takeover",
+            "hand_back": "staff.deal_hand_back",
+            "reassigned": "staff.deal_reassigned",
+        }.get(p.reason, "staff.deal_assigned")
+        text = TEXTS.get(key, "en", deal=p.deal_number, name=p.assigned_to.name)
         # §17 "MD takes over": the salesperson and the manager are told; the MD did it, so not the MD
         to = p.notify if p.reason == "takeover" else (p.assigned_to, *p.notify)
         await notify_staff(
@@ -283,9 +295,9 @@ class EventHandlers:
             p.notify,
             self.settings.alerts.notice_template,
             (
-                f"Deal {p.deal_number} is WON"
-                + (f" by {p.salesperson_name}" if p.salesperson_name else "")
-                + ".",
+                TEXTS.get("staff.deal_won", "en", deal=p.deal_number, name=p.salesperson_name)
+                if p.salesperson_name
+                else TEXTS.get("staff.deal_won_unassigned", "en", deal=p.deal_number),
             ),
             key=f"won:{event.event_id}",
             deal_ref=p.deal_ref,
@@ -441,7 +453,12 @@ class EventHandlers:
                     channel="email",
                     to_address=p.email,
                     body=p.caption,
-                    subject=f"{self.settings.company_name or 'Your'} Requirement Summary {p.deal_number}",
+                    subject=TEXTS.get(
+                        "buyer.summary_email_subject",
+                        p.language,
+                        company=self.settings.company_name or "Your",
+                        deal=p.deal_number,
+                    ),
                     idempotency_key=f"summary:{p.deal_ref}:{p.pdf_s3_key}:email",
                     **common,
                 ),

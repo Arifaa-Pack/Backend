@@ -232,9 +232,17 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
 
     @r.post("/totp/enrol", response_model=TotpEnrolOut)
     async def totp_enrol(p: Signed) -> TotpEnrolOut:
-        """A new authenticator seed for the signed-in user (active only after /totp/confirm)."""
+        """A new authenticator seed for the signed-in user (active only after /totp/confirm). Replacing an
+        active authenticator needs a TOTP sign-in (D4) and the user is told by email."""
         async with tx() as s:
-            secret, uri = await svc.begin_totp(s, deps, _uid(p))
+            secret, uri, warn = await svc.begin_totp(s, deps, _uid(p), mfa=p.mfa)
+        if warn is not None and deps.mailer is not None:
+            await deps.mailer.send_code(
+                warn,
+                "Your authenticator app is being replaced",
+                "A new authenticator app is being set up for your CRM account. If this was not you, tell "
+                "your admin at once: approvals need the authenticator app.",
+            )
         return TotpEnrolOut(secret=secret, otpauth_uri=uri)
 
     @r.post("/totp/confirm", status_code=204)

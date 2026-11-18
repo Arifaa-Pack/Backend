@@ -332,7 +332,7 @@
           "auth"
         ],
         "summary": "Totp Enrol",
-        "description": "A new authenticator seed for the signed-in user (active only after /totp/confirm).",
+        "description": "A new authenticator seed for the signed-in user (active only after /totp/confirm). Replacing an\nactive authenticator needs a TOTP sign-in (D4) and the user is told by email.",
         "operationId": "totp_enrol_v1_auth_totp_enrol_post",
         "parameters": [
           {
@@ -3646,7 +3646,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ChangeOut"
+                    "$ref": "#/components/schemas/kx__crm__api__screens__ChangeOut"
                   },
                   "title": "Response Product History V1 Products  Product Id  History Get"
                 }
@@ -3712,7 +3712,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ChangeOut"
+                    "$ref": "#/components/schemas/kx__crm__api__screens__ChangeOut"
                   },
                   "title": "Response Price List History V1 Price List History Get"
                 }
@@ -3827,6 +3827,165 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StockOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalogue/workbook": {
+      "get": {
+        "tags": [
+          "product workbook"
+        ],
+        "summary": "Download",
+        "description": "Download the current catalogue (products, price tiers, categories, how-to sheet). Staff edit this\nfile and upload it back; it contains minimum prices, so only manager / MD / admin get it.",
+        "operationId": "download_v1_catalogue_workbook_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalogue/workbook/preview": {
+      "post": {
+        "tags": [
+          "product workbook"
+        ],
+        "summary": "Preview",
+        "description": "Body: the .xlsx file. Saves nothing: returns every change and every error (sheet, row, column),\nplus the `token` that `apply` needs.",
+        "operationId": "preview_v1_catalogue_workbook_preview_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalogue/workbook/apply": {
+      "post": {
+        "tags": [
+          "product workbook"
+        ],
+        "summary": "Apply",
+        "description": "Body: the SAME .xlsx file as the preview; `token` from the preview. Saves everything or nothing.\n409 when the catalogue changed since the preview (preview again); 422 when the file has errors.",
+        "operationId": "apply_v1_catalogue_workbook_apply_post",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "title": "Token"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppliedOut"
                 }
               }
             }
@@ -4446,6 +4605,212 @@
         }
       }
     },
+    "/v1/company": {
+      "get": {
+        "tags": [
+          "company details"
+        ],
+        "summary": "Show",
+        "description": "The company details printed on quotes and summaries, and what staff have set.",
+        "operationId": "show_v1_company_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "company details"
+        ],
+        "summary": "Edit",
+        "description": "Admin / MD / manager (MFA): change details; live on new quotes within 30 seconds. A change of bank\ndetails alerts the MD and the manager. 422 `invalid_company` lists the fields that are wrong (TRN 15\ndigits, IBAN checksum, SWIFT, email, phone).",
+        "operationId": "edit_v1_company_patch",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/kx__crm__api__company__CompanyIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/company/logo": {
+      "put": {
+        "tags": [
+          "company details"
+        ],
+        "summary": "Upload Logo",
+        "description": "Body: the PNG or JPEG file itself (`Content-Type: image/png` or `image/jpeg`), max 200 KB.",
+        "operationId": "upload_logo_v1_company_logo_put",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "company details"
+        ],
+        "summary": "Remove Logo",
+        "description": "Remove the logo from quotes.",
+        "operationId": "remove_logo_v1_company_logo_delete",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/kill-switch": {
       "get": {
         "tags": [
@@ -4899,7 +5264,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CompanyIn"
+                "$ref": "#/components/schemas/kx__crm__api__records__CompanyIn"
               }
             }
           }
@@ -4969,7 +5334,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CompanyIn"
+                "$ref": "#/components/schemas/kx__crm__api__records__CompanyIn"
               }
             }
           }
@@ -5766,6 +6131,313 @@
         }
       }
     },
+    "/v1/texts": {
+      "get": {
+        "tags": [
+          "message texts"
+        ],
+        "summary": "List Texts",
+        "description": "Every editable text: the English in use, the built-in English, its placeholders and the state of\neach language. Legal and opt-out wording is not here (not editable).",
+        "operationId": "list_texts_v1_texts_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TextOut"
+                  },
+                  "title": "Response List Texts V1 Texts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/texts/{key}": {
+      "put": {
+        "tags": [
+          "message texts"
+        ],
+        "summary": "Edit",
+        "description": "Manager / MD (MFA): new English text, live within 30 seconds; buyer and AI texts are then\ntranslated by the AI. 422 `invalid_text` when a placeholder is missing or added, or an amount with a\ncurrency is in it.",
+        "operationId": "edit_v1_texts__key__put",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/texts/{key}/reset": {
+      "post": {
+        "tags": [
+          "message texts"
+        ],
+        "summary": "Reset",
+        "description": "Manager / MD (MFA): back to the built-in wording in every language (the history keeps the\nedits).",
+        "operationId": "reset_v1_texts__key__reset_post",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/texts/{key}/history": {
+      "get": {
+        "tags": [
+          "message texts"
+        ],
+        "summary": "History",
+        "description": "Every change of one text, newest first: who, when, old and new text (the MD's view).",
+        "operationId": "history_v1_texts__key__history_get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/kx__crm__api__texts__ChangeOut"
+                  },
+                  "title": "Response History V1 Texts  Key  History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/texts/translate-missing": {
+      "post": {
+        "tags": [
+          "message texts"
+        ],
+        "summary": "Translate Missing",
+        "description": "Manager / MD (MFA): queue AI translations for every text without one (built-in texts included).",
+        "operationId": "translate_missing_v1_texts_translate_missing_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueuedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/channel-accounts": {
       "get": {
         "tags": [
@@ -5896,9 +6568,19 @@
           "admin: channels"
         ],
         "summary": "Templates",
-        "description": "\u00a720.11 message templates and Meta's approval state (only approved WhatsApp ones can be sent).",
+        "description": "\u00a720.11 message templates and Meta's approval state, every version (the history), newest first;\n`live` marks the version being sent. `current_only=true`: the newest version of each template.",
         "operationId": "templates_v1_admin_message_templates_get",
         "parameters": [
+          {
+            "name": "current_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Current Only"
+            }
+          },
           {
             "name": "authorization",
             "in": "header",
@@ -5948,7 +6630,7 @@
           "admin: channels"
         ],
         "summary": "Upsert Template",
-        "description": "Add or change a template. A WhatsApp template waits for Meta's approval (`submitted`).",
+        "description": "Add or change a template. Editing the live (approved) WhatsApp version creates a NEW version that\nwaits for Meta under its own name; the approved one keeps sending until Meta approves the new one.\nA version not yet approved (draft, submitted, rejected) is changed in place. Email templates go live\nat once (no provider approval); the previous email version is kept as history.",
         "operationId": "upsert_template_v1_admin_message_templates_put",
         "parameters": [
           {
@@ -6008,7 +6690,7 @@
           "admin: channels"
         ],
         "summary": "Template Status",
-        "description": "Record Meta's decision on a WhatsApp template (only `approved` templates can be sent).",
+        "description": "Record Meta's decision on a WhatsApp template version. Approving it makes it the one that is sent;\nthe version sent before becomes `superseded` (kept as history).",
         "operationId": "template_status_v1_admin_message_templates__template_id__status_post",
         "parameters": [
           {
@@ -6123,6 +6805,39 @@
         ],
         "title": "AiToggleIn",
         "description": "Pause the AI (any reason) or resume it. A deal paused for `opt_out` cannot be resumed here: the AI\nmay never remove a stop (\u00a78.1 step 6); only a fresh, logged consent from the buyer lifts it."
+      },
+      "AppliedOut": {
+        "properties": {
+          "products_created": {
+            "type": "integer",
+            "title": "Products Created"
+          },
+          "products_updated": {
+            "type": "integer",
+            "title": "Products Updated"
+          },
+          "price_lists_changed": {
+            "type": "integer",
+            "title": "Price Lists Changed"
+          },
+          "categories_changed": {
+            "type": "integer",
+            "title": "Categories Changed"
+          },
+          "website_drafts": {
+            "type": "integer",
+            "title": "Website Drafts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "products_created",
+          "products_updated",
+          "price_lists_changed",
+          "categories_changed",
+          "website_drafts"
+        ],
+        "title": "AppliedOut"
       },
       "ApprovalOut": {
         "properties": {
@@ -6260,6 +6975,60 @@
         "title": "AvailabilityIn",
         "description": "\u00a79.3 away / holiday and the backup who covers."
       },
+      "BankIn": {
+        "properties": {
+          "account_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Name"
+          },
+          "bank_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Name"
+          },
+          "iban": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 42
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iban"
+          },
+          "swift": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 11
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Swift"
+          }
+        },
+        "type": "object",
+        "title": "BankIn"
+      },
       "CallIn": {
         "properties": {
           "client_key": {
@@ -6288,6 +7057,32 @@
           "call_id"
         ],
         "title": "CallOut"
+      },
+      "CategoryChangeOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "is_new": {
+            "type": "boolean",
+            "title": "Is New"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/FieldChangeOut"
+            },
+            "type": "array",
+            "title": "Changes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "is_new",
+          "changes"
+        ],
+        "title": "CategoryChangeOut"
       },
       "ChallengeIn": {
         "properties": {
@@ -6339,72 +7134,6 @@
           "expires_at"
         ],
         "title": "ChallengeOut"
-      },
-      "ChangeOut": {
-        "properties": {
-          "at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "At"
-          },
-          "actor_type": {
-            "type": "string",
-            "title": "Actor Type"
-          },
-          "actor_id": {
-            "type": "string",
-            "title": "Actor Id"
-          },
-          "action": {
-            "type": "string",
-            "title": "Action"
-          },
-          "entity_type": {
-            "type": "string",
-            "title": "Entity Type"
-          },
-          "entity_id": {
-            "type": "string",
-            "title": "Entity Id"
-          },
-          "before": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Before"
-          },
-          "after": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "After"
-          }
-        },
-        "type": "object",
-        "required": [
-          "at",
-          "actor_type",
-          "actor_id",
-          "action",
-          "entity_type",
-          "entity_id",
-          "before",
-          "after"
-        ],
-        "title": "ChangeOut",
-        "description": "One logged change (\u00a73 \"every change is logged\"): who, when, what, old and new value."
       },
       "ChangeRequestOut": {
         "properties": {
@@ -6719,92 +7448,30 @@
         ],
         "title": "CodeIn"
       },
-      "CompanyIn": {
+      "CompanyOut": {
         "properties": {
-          "name": {
-            "type": "string",
-            "maxLength": 300,
-            "minLength": 1,
-            "title": "Name"
+          "saved": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Saved"
           },
-          "country_code": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[A-Z]{2}$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Country Code"
+          "printed": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Printed"
           },
-          "city": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 200
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "City"
-          },
-          "customer_type": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 64
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Customer Type"
-          },
-          "vat_trn": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 64
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Vat Trn"
-          },
-          "website": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Website"
-          },
-          "notes": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 4000
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Notes"
+          "has_logo": {
+            "type": "boolean",
+            "title": "Has Logo"
           }
         },
         "type": "object",
         "required": [
-          "name"
+          "saved",
+          "printed",
+          "has_logo"
         ],
-        "title": "CompanyIn"
+        "title": "CompanyOut"
       },
       "CompanyRow": {
         "properties": {
@@ -7643,6 +8310,27 @@
         ],
         "title": "DeclineIn"
       },
+      "FieldChangeOut": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "before": {
+            "title": "Before"
+          },
+          "after": {
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "before",
+          "after"
+        ],
+        "title": "FieldChangeOut"
+      },
       "FlagIn": {
         "properties": {
           "enabled": {
@@ -7845,6 +8533,34 @@
         ],
         "title": "InboxItemOut"
       },
+      "IssueOut": {
+        "properties": {
+          "sheet": {
+            "type": "string",
+            "title": "Sheet"
+          },
+          "row": {
+            "type": "integer",
+            "title": "Row"
+          },
+          "column": {
+            "type": "string",
+            "title": "Column"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sheet",
+          "row",
+          "column",
+          "message"
+        ],
+        "title": "IssueOut"
+      },
       "KillSwitchIn": {
         "properties": {
           "level": {
@@ -7904,6 +8620,36 @@
           "all_held"
         ],
         "title": "KillSwitchOut"
+      },
+      "LanguageOut": {
+        "properties": {
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "language",
+          "status",
+          "text"
+        ],
+        "title": "LanguageOut"
       },
       "LineCostOut": {
         "properties": {
@@ -8938,6 +9684,68 @@
         ],
         "title": "PaymentOut"
       },
+      "PreviewOut": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/SummaryOut"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/IssueOut"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/IssueOut"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/ProductChangeOut"
+            },
+            "type": "array",
+            "title": "Products"
+          },
+          "price_lists": {
+            "items": {
+              "$ref": "#/components/schemas/TierChangeOut"
+            },
+            "type": "array",
+            "title": "Price Lists"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryChangeOut"
+            },
+            "type": "array",
+            "title": "Categories"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "ok",
+          "summary",
+          "errors",
+          "warnings",
+          "products",
+          "price_lists",
+          "categories"
+        ],
+        "title": "PreviewOut"
+      },
       "PriceTierIn": {
         "properties": {
           "min_qty": {
@@ -9144,6 +9952,42 @@
         },
         "type": "object",
         "title": "PriceTierPatch"
+      },
+      "ProductChangeOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "row": {
+            "type": "integer",
+            "title": "Row"
+          },
+          "is_new": {
+            "type": "boolean",
+            "title": "Is New"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/FieldChangeOut"
+            },
+            "type": "array",
+            "title": "Changes"
+          },
+          "website_draft": {
+            "type": "boolean",
+            "title": "Website Draft"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "row",
+          "is_new",
+          "changes",
+          "website_draft"
+        ],
+        "title": "ProductChangeOut"
       },
       "ProductEditIn": {
         "properties": {
@@ -9368,6 +10212,19 @@
           "cms_synced_at"
         ],
         "title": "ProductRow"
+      },
+      "QueuedOut": {
+        "properties": {
+          "queued": {
+            "type": "integer",
+            "title": "Queued"
+          }
+        },
+        "type": "object",
+        "required": [
+          "queued"
+        ],
+        "title": "QueuedOut"
       },
       "QuoteEditsIn": {
         "properties": {
@@ -10486,6 +11343,44 @@
         ],
         "title": "StockOut"
       },
+      "SummaryOut": {
+        "properties": {
+          "new_products": {
+            "type": "integer",
+            "title": "New Products"
+          },
+          "updated_products": {
+            "type": "integer",
+            "title": "Updated Products"
+          },
+          "unchanged_products": {
+            "type": "integer",
+            "title": "Unchanged Products"
+          },
+          "price_lists_changed": {
+            "type": "integer",
+            "title": "Price Lists Changed"
+          },
+          "categories_changed": {
+            "type": "integer",
+            "title": "Categories Changed"
+          },
+          "website_drafts": {
+            "type": "integer",
+            "title": "Website Drafts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "new_products",
+          "updated_products",
+          "unchanged_products",
+          "price_lists_changed",
+          "categories_changed",
+          "website_drafts"
+        ],
+        "title": "SummaryOut"
+      },
       "TemplateIn": {
         "properties": {
           "channel": {
@@ -10603,6 +11498,42 @@
             "type": "array",
             "title": "Variables"
           },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "provider_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Name"
+          },
+          "live": {
+            "type": "boolean",
+            "title": "Live",
+            "default": false
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -10620,6 +11551,10 @@
           "subject",
           "body",
           "variables",
+          "version",
+          "provider_name",
+          "created_by",
+          "created_at",
           "updated_at"
         ],
         "title": "TemplateOut"
@@ -10633,7 +11568,8 @@
               "submitted",
               "approved",
               "rejected",
-              "paused"
+              "paused",
+              "superseded"
             ],
             "title": "Provider Status"
           }
@@ -10643,6 +11579,150 @@
           "provider_status"
         ],
         "title": "TemplateStatusIn"
+      },
+      "TextIn": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "TextIn"
+      },
+      "TextOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "group": {
+            "type": "string",
+            "title": "Group"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "placeholders": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Placeholders"
+          },
+          "builtin_en": {
+            "type": "string",
+            "title": "Builtin En"
+          },
+          "en": {
+            "type": "string",
+            "title": "En"
+          },
+          "en_version": {
+            "type": "integer",
+            "title": "En Version"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/LanguageOut"
+            },
+            "type": "array",
+            "title": "Languages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "group",
+          "note",
+          "placeholders",
+          "builtin_en",
+          "en",
+          "en_version",
+          "updated_by",
+          "updated_at",
+          "languages"
+        ],
+        "title": "TextOut"
+      },
+      "TierChangeOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "before": {
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Before"
+          },
+          "after": {
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "before",
+          "after"
+        ],
+        "title": "TierChangeOut"
       },
       "TimelineOut": {
         "properties": {
@@ -11228,6 +12308,291 @@
         },
         "type": "object",
         "title": "WonIn"
+      },
+      "kx__crm__api__company__CompanyIn": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 400
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "trn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trn"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "bank": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BankIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "CompanyIn",
+        "description": "Only the fields to change; \"\" clears a field (company.yaml's value is printed again)."
+      },
+      "kx__crm__api__records__CompanyIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "customer_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Type"
+          },
+          "vat_trn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vat Trn"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CompanyIn"
+      },
+      "kx__crm__api__screens__ChangeOut": {
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "actor_type": {
+            "type": "string",
+            "title": "Actor Type"
+          },
+          "actor_id": {
+            "type": "string",
+            "title": "Actor Id"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "entity_type": {
+            "type": "string",
+            "title": "Entity Type"
+          },
+          "entity_id": {
+            "type": "string",
+            "title": "Entity Id"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "at",
+          "actor_type",
+          "actor_id",
+          "action",
+          "entity_type",
+          "entity_id",
+          "before",
+          "after"
+        ],
+        "title": "ChangeOut",
+        "description": "One logged change (\u00a73 \"every change is logged\"): who, when, what, old and new value."
+      },
+      "kx__crm__api__texts__ChangeOut": {
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "actor_type": {
+            "type": "string",
+            "title": "Actor Type"
+          },
+          "actor_id": {
+            "type": "string",
+            "title": "Actor Id"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "at",
+          "actor_type",
+          "actor_id",
+          "action",
+          "before",
+          "after"
+        ],
+        "title": "ChangeOut"
       }
     }
   }

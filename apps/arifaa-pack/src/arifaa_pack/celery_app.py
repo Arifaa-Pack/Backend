@@ -63,9 +63,10 @@ class _Process:
 def _configure(**_: Any) -> None:
     core = get_settings()
     configure_logging(core.log_level, core.log_json)
-    from arifaa_pack.telemetry import init_telemetry  # noqa: PLC0415
+    from arifaa_pack.telemetry import init_telemetry, instrument_celery  # noqa: PLC0415
 
     init_telemetry(app_settings(), component="worker", company=core.company_code, environment=core.env.value)
+    instrument_celery()  # job spans, joined to the trace of the request that queued them
 
 
 @signals.worker_process_shutdown.connect
