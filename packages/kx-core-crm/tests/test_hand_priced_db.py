@@ -47,10 +47,12 @@ async def test_a_manual_quote_for_a_catalogue_product_goes_to_the_manager_first(
     assert (then.kind, then.required_role) == ("revision", "sales")  # the salesperson approves the quote
 
 
-async def test_a_custom_item_without_a_catalogue_product_stays_with_the_salesperson(
+async def test_a_custom_item_without_a_catalogue_product_also_goes_to_the_manager_first(
     databases: Databases, deps: CrmDeps
 ) -> None:
-    """§23 scenario 5: a printed / custom item (no product) is priced by the salesperson as before."""
+    """D-5 (live test 18 Nov, client decision): a "custom item" line without a product link skipped the
+    manager, so a catalogue product could be sold below its minimum on the salesperson's approval alone.
+    Every hand price now goes to the manager first, then to the salesperson."""
     deal = await sara_deal(databases, deps)
     async with databases.transaction(CRM) as s:
         await quotes.manual_quote(
@@ -62,7 +64,10 @@ async def test_a_custom_item_without_a_catalogue_product_stays_with_the_salesper
             actor=Actor.user(SARA),
         )
     a = await open_approval(databases, deal)
-    assert (a.kind, a.required_role) == ("revision", "sales")
+    assert (a.kind, a.required_role) == ("special_price", "manager")
+    await _decide(databases, deps, a.id, MGR)
+    then = await open_approval(databases, deal)
+    assert (then.kind, then.required_role) == ("revision", "sales")
 
 
 async def test_a_quantity_outside_every_tier_makes_the_revision_a_special_price(

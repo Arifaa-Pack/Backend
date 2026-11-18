@@ -301,6 +301,8 @@ async def test_scenario_5_custom_printed_product(world: World) -> None:
             delivery_time_text="18–21 working days after artwork approval and advance payment",
             actor=Actor.user(SARA),
         )
+    assert (await w.open_approval(deal)).kind == "special_price"  # D-5: every hand price -> manager first
+    await decide(w, deal, MGR)
     await decide(w, deal, SARA)
     assert await w.issued(deal) == [(1, "initial")]
     assert ("pricing_needed", "done") in await w.sql(

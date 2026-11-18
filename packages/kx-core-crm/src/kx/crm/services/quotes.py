@@ -647,9 +647,10 @@ async def manual_quote(
     actor: Actor,
     buyer_note: str | None = None,
 ) -> QuoteVersion:
-    """§10 / D8 / §23 scenario 5: the salesperson builds the quote by hand (unit price and delivery time),
-    then approves it like any other. The lines carry no price-list snapshot, so the AI never negotiates them.
-    Closes the open "Pricing needed" tasks of the deal."""
+    """§10 / D8 / §23 scenario 5: the salesperson builds the quote by hand (unit price and delivery time).
+    The manager approves the hand price first (special_price, D-5), then the salesperson approves the quote.
+    The lines carry no price-list snapshot, so the AI never negotiates them. Closes the open "Pricing needed"
+    tasks of the deal."""
     if not lines:
         raise RuleViolation("a quote needs at least one line")
     now = deps.now()
@@ -707,10 +708,11 @@ async def manual_quote(
         .values(status="done", done_at=now, done_by=actor.user_id)
     )
     await session.flush()
-    # D7: a catalogue product priced by hand -> the manager approves the price first
-    hand_priced = any(ln.product_id is not None for ln in lines)
+    # D7 + client decision 18 Nov (D-5): every price typed by hand goes to the manager first, with or without
+    # a product link. Before, a "custom item" line without a product skipped the manager, so a catalogue
+    # product could be sold below its minimum on the salesperson's approval alone (live test 18 Nov).
     return await _after_draft(
-        session, deps, s, deal=deal, version=version, stage=stage, actor=actor, now=now, special=hand_priced
+        session, deps, s, deal=deal, version=version, stage=stage, actor=actor, now=now, special=True
     )
 
 
