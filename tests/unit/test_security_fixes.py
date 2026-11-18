@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any
 
 import httpx
 from fastapi import FastAPI
 
 from arifaa_pack.adapters import RedisAuthThrottle
-from arifaa_pack.container import staff_auth
+from arifaa_pack.config import AppSettings
+from arifaa_pack.container import public_buckets, staff_auth
 from arifaa_pack.cors import SplitCors
 from kx.core.settings import AuthSettings, RateLimit
 from kx.crm.throttle import MemoryThrottle
@@ -104,3 +106,13 @@ async def test_memory_throttle_counters_expire_and_buckets_refill() -> None:
     assert await throttle.bump("c", 900) == 1
     now[0] += 901
     assert await throttle.count("c") == 0 and await throttle.bump("c", 900) == 1
+
+
+def test_public_buckets_add_a_global_turn_limit_and_sessions_per_ip_per_day() -> None:
+    """M6: defaults 60 website AI turns a minute in total and 20 new sessions per IP a day."""
+    buckets = public_buckets(AppSettings())
+    assert buckets["global"].capacity == 60 and buckets["global"].refill_per_minute == 60
+    assert buckets["ip_sessions"].capacity == 20
+    assert abs(buckets["ip_sessions"].refill_per_minute * 1440 - 20) < 1e-9  # 20 per 24 hours
+    assert {"ip", "session"} <= buckets.keys()
+    assert AppSettings().spend_public_ai_share == Decimal("0.30")

@@ -67,3 +67,21 @@ async def test_spend_cap_alerts_once_at_80_and_100_percent_then_degrades() -> No
     assert len(alerts) == 2 and not await meter.left("ai_usd")
     assert await meter.used("ai_usd") == Decimal("10.599999")
     assert await meter.left("voice_minutes")  # each kind is counted on its own
+
+
+async def test_the_website_has_its_own_sub_cap_inside_the_ai_cap() -> None:
+    """M6: website spend counts toward ai_usd and toward its own cap (30 % by default); reaching it leaves
+    the rest of the AI budget to WhatsApp and email."""
+    caps = SpendCaps(ai_usd=Decimal(10), voice_minutes=Decimal(60), wa_templates=Decimal(100))
+    assert caps.of("ai_usd_public") == Decimal(10)  # no sub-cap configured: the whole AI cap
+    meter = SpendMeter(
+        FakeRedis(),  # type: ignore[arg-type]
+        "pack",
+        SpendCaps(Decimal(10), Decimal(60), Decimal(100), ai_usd_public=Decimal(3)),
+        clock=lambda: NOW,
+    )
+    for _ in range(3):  # three website turns of 1 USD
+        await meter.add("ai_usd", Decimal(1))
+        await meter.add("ai_usd_public", Decimal(1))
+    assert not await meter.left("ai_usd_public") and await meter.left("ai_usd")
+    assert await meter.used("ai_usd") == Decimal(3)

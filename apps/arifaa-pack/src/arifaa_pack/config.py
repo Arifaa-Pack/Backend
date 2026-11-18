@@ -9,7 +9,7 @@ from functools import lru_cache
 from typing import Any, Literal
 
 import yaml  # type: ignore[import-untyped]  # types-PyYAML not in the lock yet
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from kx.agents.models import Effort
@@ -84,6 +84,11 @@ class AppSettings(BaseSettings):
     spend_ai_usd_per_day: Decimal = Decimal(25)  # defaults = Heavy column / 30 (OPEN_QUESTIONS #52)
     spend_voice_minutes_per_day: Decimal = Decimal(840)
     spend_wa_templates_per_day: Decimal = Decimal(870)
+    # M6: the anonymous website may use at most this share of the daily AI cap; then website turns get the
+    # safe reply + hand-over while WhatsApp and email keep working
+    spend_public_ai_share: Decimal = Field(default=Decimal("0.30"), gt=0, le=1)
+    public_turns_per_minute: int = Field(default=60, ge=1)  # website AI turns from all visitors together
+    public_sessions_per_ip_per_day: int = Field(default=20, ge=1)  # new website sessions per client IP
 
     # ---- quote PDFs (D37: headless Chromium, WeasyPrint backup)
     pdf_renderer: Literal["chromium", "weasyprint"] = "chromium"  # D37 primary engine

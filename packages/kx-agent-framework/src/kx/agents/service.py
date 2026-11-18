@@ -58,6 +58,8 @@ Deliver = Callable[[str, str], Awaitable[None]]  # (reply text, language)
 MODEL_ERRORS: Final = (anthropic.APIError, httpx.HTTPError, TimeoutError)
 # The CRM records these inbound messages itself (`message.received`); the service records the other channels.
 CRM_RECORDS_INBOUND: Final[frozenset[str]] = frozenset({"whatsapp", "email"})
+# M6: the anonymous website channels, with their own AI spend sub-cap
+PUBLIC_CHANNELS: Final[frozenset[str]] = frozenset({"web_chat", "web_voice"})
 # The Gemini standby raises its own errors once it is the last model tried (D-1, live test 18 Nov: they
 # escaped as HTTP 500 on the website). Matched by module so the Gemini client is imported only when used.
 _STANDBY_ERROR_MODULES: Final = ("google.", "langchain_google_genai")
@@ -187,6 +189,8 @@ class AgentService:
         llm_breaker: CircuitBreaker | None = None,
         on_spend: Callable[[Decimal], Awaitable[object]] | None = None,
         budget_left: Callable[[], Awaitable[bool]] | None = None,
+        on_public_spend: Callable[[Decimal], Awaitable[object]] | None = None,
+        public_budget_left: Callable[[], Awaitable[bool]] | None = None,
     ) -> None:
         self.db = databases
         self.gateway = gateway
@@ -200,6 +204,10 @@ class AgentService:
         self.llm_breaker = llm_breaker or CircuitBreaker()  # D30: 3 failures / 60 s -> 5 min
         self.on_spend = on_spend  # D34: the daily AI spend cap counts every run's cost
         self.budget_left = budget_left  # D34: at 100 % every channel degrades to hand-over
+        # M6: the website's own sub-cap (default 30 % of the AI cap): when reached, website turns degrade to
+        # the safe reply + hand-over while WhatsApp and email keep their budget
+        self.on_public_spend = on_public_spend
+        self.public_budget_left = public_budget_left
         self.deal_summaries = deal_summaries  # §7A.2 deal-page summary (one fast-model call when due)
         self.runner = GraphRunner(models, self.registry, checkpointer)
 
@@ -402,6 +410,12 @@ class AgentService:
             return await self._safe_handover(ctx, "circuit_open")
         if self.budget_left is not None and not await self.budget_left():
             return await self._safe_handover(ctx, "spend_cap")
+        if (
+            ctx.channel in PUBLIC_CHANNELS
+            and self.public_budget_left is not None
+            and not await self.public_budget_left()
+        ):
+            return await self._safe_handover(ctx, "public_spend_cap")
         try:
             if outcome is not None:
                 result = await self.runner.resume(ctx, outcome, config)
@@ -491,6 +505,8 @@ class AgentService:
         if self.on_spend is not None and ctx.log.cost_usd:
             try:
                 await self.on_spend(ctx.log.cost_usd)
+                if ctx.channel in PUBLIC_CHANNELS and self.on_public_spend is not None:
+                    await self.on_public_spend(ctx.log.cost_usd)  # M6 website sub-cap
             except Exception:  # metering must never fail the buyer's turn
                 log.warning("agents.spend_record_failed", exc_info=True)
         if ctx.conversation_id is not None:

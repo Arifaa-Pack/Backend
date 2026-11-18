@@ -20,8 +20,15 @@ from redis.asyncio import Redis
 
 from kx.core.metrics import emit_metric
 
-SpendKind = Literal["ai_usd", "voice_minutes", "wa_templates"]
-SCALE: Final[dict[SpendKind, int]] = {"ai_usd": 1_000_000, "voice_minutes": 60, "wa_templates": 1}
+# M6: "ai_usd_public" is the part of the AI spend the anonymous website (chat + voice) used; it counts toward
+# "ai_usd" too, and has its own smaller cap so visitors can never use up the budget of WhatsApp and email.
+SpendKind = Literal["ai_usd", "ai_usd_public", "voice_minutes", "wa_templates"]
+SCALE: Final[dict[SpendKind, int]] = {
+    "ai_usd": 1_000_000,
+    "ai_usd_public": 1_000_000,
+    "voice_minutes": 60,
+    "wa_templates": 1,
+}
 ALERT_AT: Final = (Decimal("0.8"), Decimal(1))
 TTL_SECONDS: Final = 3 * 86_400
 Alert = Callable[[SpendKind, Decimal, Decimal], Awaitable[None]]  # kind, used, cap
@@ -32,8 +39,11 @@ class SpendCaps:
     ai_usd: Decimal
     voice_minutes: Decimal
     wa_templates: Decimal
+    ai_usd_public: Decimal | None = None  # M6 website sub-cap; None = no sub-cap (the whole ai_usd cap)
 
     def of(self, kind: SpendKind) -> Decimal:
+        if kind == "ai_usd_public" and self.ai_usd_public is None:
+            return self.ai_usd
         cap: Decimal = getattr(self, kind)
         return cap
 

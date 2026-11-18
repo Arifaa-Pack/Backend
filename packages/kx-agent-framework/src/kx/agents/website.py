@@ -56,8 +56,13 @@ class HumanCheck(Protocol):
     async def verify(self, token: str, remote_ip: str | None) -> bool: ...
 
 
+# "ip" / "session": requests per minute (D39). M6: "global" = AI turns per minute from every visitor together,
+# "ip_sessions" = new sessions per client IP per day.
+PublicScope = Literal["ip", "session", "global", "ip_sessions"]
+
+
 class PublicLimits(Protocol):
-    async def allow(self, scope: Literal["ip", "session"], key: str) -> bool: ...
+    async def allow(self, scope: PublicScope, key: str) -> bool: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -159,7 +164,7 @@ def livekit_token(
 def build_router(deps: WebsiteDeps) -> APIRouter:  # noqa: PLR0915 - one small handler per step
     r = APIRouter(prefix="/v1/public", tags=["website"])
 
-    async def limit(scope: Literal["ip", "session"], key: str) -> None:
+    async def limit(scope: PublicScope, key: str) -> None:
         if not await deps.limits.allow(scope, key):
             raise TooManyRequests("too many requests; slow down")
 
@@ -183,6 +188,7 @@ def build_router(deps: WebsiteDeps) -> APIRouter:  # noqa: PLR0915 - one small h
         await limit("ip", ip)
         if deps.human_check is not None and not await deps.human_check.verify(body.turnstile_token, ip):
             raise Forbidden("the human check failed; reload the page")
+        await limit("ip_sessions", ip)  # M6: a few new sessions per IP per day (each one solved Turnstile)
         language = normalise_language(body.language)
         now = deps.clock()
         expires = now + timedelta(hours=deps.session_hours)
@@ -221,6 +227,7 @@ def build_router(deps: WebsiteDeps) -> APIRouter:  # noqa: PLR0915 - one small h
         claims = claims_for(session_id, authorization)
         await limit("ip", _ip(request, deps.trusted_ip_header))
         await limit("session", str(session_id))
+        await limit("global", "all")  # M6: AI turns per minute from all visitors together
         if not await deps.ai_budget_left():
             raise Unavailable("the assistant is busy; please continue on WhatsApp")
         deal_id = await deal_of(session_id)
@@ -253,6 +260,7 @@ def build_router(deps: WebsiteDeps) -> APIRouter:  # noqa: PLR0915 - one small h
         claims = claims_for(session_id, authorization)
         await limit("ip", _ip(request, deps.trusted_ip_header))
         await limit("session", str(session_id))
+        await limit("global", "all")  # M6
         if not claims.get("vc"):
             raise RuleViolation("press Enter the factory to start voice", reason="no_voice_consent")
         route = deps.voice.route(claims.get("lang"))

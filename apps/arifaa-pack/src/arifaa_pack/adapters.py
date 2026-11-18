@@ -15,6 +15,7 @@ from sqlalchemy import text
 from kx.agents.handlers import ReplyAddress
 from kx.agents.knowledge import KbSource
 from kx.agents.voice import VoiceRoute
+from kx.agents.website import PublicScope
 from kx.automation.ratelimit import Bucket
 from kx.core.db import Databases
 from kx.core.errors import Unavailable
@@ -382,13 +383,14 @@ class TurnstileVerifier:
 
 class PublicLimiter:
     """kx.agents.website.PublicLimits over automation's Redis token buckets (D39 app rate limits). Values per
-    OPEN_QUESTIONS #61 until Arifa sets them: 30 requests per minute per IP, 12 per minute per session."""
+    OPEN_QUESTIONS #61 until Arifa sets them: 30 requests per minute per IP, 12 per minute per session.
+    M6 adds "global" (AI turns a minute from all visitors) and "ip_sessions" (new sessions per IP a day)."""
 
     def __init__(self, limiter: Any, buckets: dict[str, Any]) -> None:
         self._limiter = limiter
         self._buckets = buckets
 
-    async def allow(self, scope: Literal["ip", "session"], key: str) -> bool:
+    async def allow(self, scope: PublicScope, key: str) -> bool:
         decision = await self._limiter.take(f"public_{scope}", key, self._buckets[scope])
         return bool(decision.allowed)
 

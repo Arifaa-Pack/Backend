@@ -39,9 +39,12 @@ class Human:
 @dataclass
 class Limits:
     ok: bool = True
+    refuse: set[str] = field(default_factory=set)  # scopes that are over their limit
+    seen: list[tuple[str, str]] = field(default_factory=list)
 
     async def allow(self, scope: str, key: str) -> bool:
-        return self.ok
+        self.seen.append((scope, key))
+        return self.ok and scope not in self.refuse
 
 
 @dataclass
@@ -170,3 +173,16 @@ async def test_identify_hands_the_details_to_the_crm_and_reveals_nothing(env: En
     )
     assert r.status_code == 200 and r.json() == {"ok": True}
     assert ("set_contact", ContactPatch(phone="+971501234567", name="Omar")) in env.gateway.calls
+
+
+async def test_sessions_per_ip_and_global_turns_are_limited(env: Env) -> None:
+    """M6: new sessions per IP per day and AI turns per minute from every visitor together."""
+    session = await start(env)
+    assert ("ip_sessions", "127.0.0.1") in env.limits.seen
+    url = f"/v1/public/sessions/{session['session_id']}/messages"
+    env.limits.refuse = {"global"}
+    assert (await env.client.post(url, json={"text": "hi"}, headers=auth(session))).status_code == 429
+    assert ("global", "all") in env.limits.seen
+    env.limits.refuse = {"ip_sessions"}
+    r = await env.client.post("/v1/public/sessions", json={"turnstile_token": "tok"})
+    assert r.status_code == 429

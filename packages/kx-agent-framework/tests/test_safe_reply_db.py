@@ -16,7 +16,7 @@ from pydantic import PrivateAttr
 
 from kx.agents.models import ModelRouter
 from kx.agents.service import AgentService, InboundTurn
-from kx.agents.testing import FakeCrmGateway, make_deal
+from kx.agents.testing import FakeCrmGateway, ScriptedChatModel, make_deal
 from kx.core.contracts import DealStage
 
 pytestmark = pytest.mark.db
@@ -107,3 +107,38 @@ async def test_every_model_down_gives_the_safe_reply_and_hands_over(databases: A
     fourth = await svc.handle_turn(turn(deal.deal_id), deliver)
     assert svc.llm_breaker.state == "open" and model.calls == before  # no call while Claude cools down
     assert fourth.reply == "Let me check with our sales team."
+
+
+async def test_website_sub_cap_hands_over_website_turns_only(databases: Any) -> None:
+    """M6: when the website's share of the AI budget is used up, website turns get the safe reply and go to
+    the sales team, while WhatsApp (and email) keep the AI."""
+
+    async def no_public_budget() -> bool:
+        return False
+
+    def service(gw: FakeCrmGateway, model: BaseChatModel) -> AgentService:
+        return AgentService(
+            databases=databases,
+            gateway=gw,
+            models=ModelRouter.static(model),
+            deal_summaries=False,
+            public_budget_left=no_public_budget,
+        )
+
+    web_gw, web_model = FakeCrmGateway(make_deal()), ScriptedChatModel(script=["Welcome to Arifa Pack!"])
+    web = InboundTurn(
+        channel="web_chat",
+        text="hello",
+        deal_id=web_gw.deal.deal_id,
+        thread_key=f"web_chat:{uuid.uuid7()}",
+        trigger_event="website.message",
+        trigger_event_id=uuid.uuid7(),
+    )
+    out = await service(web_gw, web_model).handle_turn(web)
+    assert out.status == "handoff" and out.reply == "Let me check with our sales team."
+    assert ("pause_ai", "exception") in web_gw.calls
+
+    wa_gw, wa_model = FakeCrmGateway(make_deal()), ScriptedChatModel(script=["Welcome to Arifa Pack!"])
+    wa = await service(wa_gw, wa_model).handle_turn(turn(wa_gw.deal.deal_id))
+    assert wa.status != "handoff" and wa.reply == "Welcome to Arifa Pack!"
+    assert ("pause_ai", "exception") not in wa_gw.calls

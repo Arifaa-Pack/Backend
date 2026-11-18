@@ -429,7 +429,12 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
         spend = SpendMeter(  # D34 daily caps (OPEN_QUESTIONS #52)
             redis,
             co.code,
-            SpendCaps(s.spend_ai_usd_per_day, s.spend_voice_minutes_per_day, s.spend_wa_templates_per_day),
+            SpendCaps(
+                s.spend_ai_usd_per_day,
+                s.spend_voice_minutes_per_day,
+                s.spend_wa_templates_per_day,
+                ai_usd_public=s.spend_ai_usd_per_day * s.spend_public_ai_share,  # M6 website sub-cap
+            ),
             timezone=core.company_timezone,
         )
         kill_switch = KillSwitch(redis, co.code)
@@ -496,6 +501,8 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             company=co.code,
             on_spend=partial(spend.add, "ai_usd"),  # D34 daily AI cap
             budget_left=partial(spend.left, "ai_usd"),
+            on_public_spend=partial(spend.add, "ai_usd_public"),  # M6 the website's own sub-cap
+            public_budget_left=partial(spend.left, "ai_usd_public"),
         )
         cms_key = s.cms_api_key.get_secret_value() if s.cms_api_key else None
         indexer = KnowledgeIndexer(dbs, embedder, PayloadContentSource(http, s.cms_url, cms_key))
@@ -644,6 +651,17 @@ _BACKGROUND: set[asyncio.Task[None]] = set()  # alert tasks started from LiveKit
 PUBLIC_BUCKETS = {"ip": Bucket(30, 30), "session": Bucket(12, 12)}  # OPEN_QUESTIONS #61
 
 
+def public_buckets(s: AppSettings) -> dict[str, Bucket]:
+    """D39 per-IP / per-session request limits, plus M6: website AI turns per minute from all visitors
+    together and new sessions per client IP per day (a token bucket refilling over 24 hours)."""
+    per_day = s.public_sessions_per_ip_per_day
+    return {
+        **PUBLIC_BUCKETS,
+        "global": Bucket(s.public_turns_per_minute, s.public_turns_per_minute),
+        "ip_sessions": Bucket(per_day, per_day / 1440),
+    }
+
+
 def _website(
     core: CoreSettings,
     s: AppSettings,
@@ -674,6 +692,7 @@ def _website(
     async def voice_allowed() -> bool:  # D34 voice-minute cap, D35 kill switch at `text_only`, D52 slots
         return (
             await spend.left("voice_minutes")
+            and await spend.left("ai_usd_public")  # M6: a voice call spends the website's AI share
             and not await kill_switch.engaged("voice")
             and await slots.available()
         )
@@ -688,7 +707,7 @@ def _website(
             if s.turnstile_secret_key
             else None
         ),
-        limits=PublicLimiter(limiter, PUBLIC_BUCKETS),
+        limits=PublicLimiter(limiter, public_buckets(s)),
         ai_budget_left=ai_budget_left,
         voice_allowed=voice_allowed,
         voice=VoiceRouter(routes),
