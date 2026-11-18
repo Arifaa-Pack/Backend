@@ -414,7 +414,7 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             kill_switch=kill_switch,
             limiter=limiter,
             scheduler=scheduler,
-            media=media,
+            media=quote_pdf_store(s3, st.bucket),
             whatsapp=whatsapp,
             email=email_sender,
             unsubscribe_link=unsubscribe_links,
@@ -570,6 +570,13 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             voice_routes=routes,
             voice_switch=voice_switch,
         )
+
+
+def quote_pdf_store(s3: Any, bucket: str) -> S3MediaStore:
+    """The store the sender reads quote PDFs from. The CRM uploads them at their full key (`pdf_key`:
+    `{company}/quotes/...`), so no prefix: with the `media/` prefix of the inbound-media store every approved
+    quote failed with 404 and was never sent (D-2, live test 18 Nov)."""
+    return S3MediaStore(s3, bucket)
 
 
 def _seed_box(core: CoreSettings) -> SeedBox:
