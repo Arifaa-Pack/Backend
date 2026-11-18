@@ -20,6 +20,7 @@ from typing import Any, Final
 
 import aioboto3
 import httpx
+from pydantic import SecretStr
 from redis.asyncio import Redis
 from sqlalchemy import func, update
 
@@ -320,10 +321,34 @@ def _periodic(d: _PeriodicDeps) -> dict[str, Periodic]:
     }
 
 
+_PLACEHOLDER_SECRETS: Final = frozenset({"", "dev-only-change-me", "CHANGE", "CHANGE_ME", "changeme"})
+MIN_SECRET_CHARS: Final = 32
+
+
+def check_secrets(env: Environment, secrets: Mapping[str, SecretStr]) -> None:
+    """M1 (live test 18 Nov): these secrets sign website-session, unsubscribe and Telnyx callback tokens; with
+    the code default anyone can forge them. Staging and production refuse to start while one is a placeholder
+    or shorter than 32 characters (`openssl rand -hex 32`); local and test only warn."""
+    plain = {name: value.get_secret_value() for name, value in secrets.items()}
+    weak = sorted(n for n, v in plain.items() if v in _PLACEHOLDER_SECRETS or len(v) < MIN_SECRET_CHARS)
+    if not weak:
+        return
+    if env in {Environment.STAGING, Environment.PRODUCTION}:
+        raise RuntimeError(f"weak or default signing secrets: {', '.join(weak)} (set 32+ random characters)")
+    log.warning("security.weak_secrets", settings=weak)
+
+
 @asynccontextmanager
 async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # noqa: PLR0915 - composition root
     """Every process builds the same container. `kicker` defaults to Celery (API, worker, voice)."""
     core, s, co = get_settings(), app_settings(), company()
+    check_secrets(
+        core.env,
+        {
+            "KX_SERVICE_TOKEN_SECRET": core.service_token_secret,
+            "KX_AUTO_TELNYX__CALLBACK_SECRET": AutomationSettings().telnyx.callback_secret,
+        },
+    )
     async with AsyncExitStack() as stack:
         dbs = Databases(core)
         stack.push_async_callback(dbs.dispose)

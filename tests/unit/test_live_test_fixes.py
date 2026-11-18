@@ -6,8 +6,12 @@ import contextlib
 from collections.abc import AsyncIterator
 from typing import Any
 
-from arifaa_pack.container import quote_pdf_store
+import pytest
+from pydantic import SecretStr
+
+from arifaa_pack.container import check_secrets, quote_pdf_store
 from kx.automation.media import S3MediaStore
+from kx.core.settings import Environment
 from kx.crm.pdf import S3PdfUploader, pdf_key
 
 
@@ -48,3 +52,16 @@ async def test_inbound_media_keeps_its_own_prefix() -> None:
     s3 = FakeS3()
     await S3MediaStore(s3, "bucket", prefix="media/").put("wa/123.jpg", b"img", "image/jpeg")
     assert ("bucket", "media/wa/123.jpg") in s3.objects
+
+
+@pytest.mark.parametrize("env", [Environment.STAGING, Environment.PRODUCTION])
+@pytest.mark.parametrize("value", ["dev-only-change-me", "CHANGE", "short-but-random-1234"])
+def test_production_refuses_default_or_short_signing_secrets(env: Environment, value: str) -> None:
+    """M1: the code defaults let anyone forge website-session, unsubscribe and Telnyx callback tokens."""
+    with pytest.raises(RuntimeError, match="KX_SERVICE_TOKEN_SECRET"):
+        check_secrets(env, {"KX_SERVICE_TOKEN_SECRET": SecretStr(value)})
+
+
+def test_strong_secrets_start_and_local_only_warns() -> None:
+    check_secrets(Environment.PRODUCTION, {"KX_SERVICE_TOKEN_SECRET": SecretStr("a1" * 16)})
+    check_secrets(Environment.LOCAL, {"KX_SERVICE_TOKEN_SECRET": SecretStr("dev-only-change-me")})
