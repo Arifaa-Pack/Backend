@@ -503,6 +503,7 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             budget_left=partial(spend.left, "ai_usd"),
             on_public_spend=partial(spend.add, "ai_usd_public"),  # M6 the website's own sub-cap
             public_budget_left=partial(spend.left, "ai_usd_public"),
+            price_second_opinion=s.price_second_opinion,  # M7 layer 3
         )
         cms_key = s.cms_api_key.get_secret_value() if s.cms_api_key else None
         indexer = KnowledgeIndexer(dbs, embedder, PayloadContentSource(http, s.cms_url, cms_key))

@@ -56,6 +56,9 @@ class AppSettings(BaseSettings):
     llm_effort_fast: Effort | None = None  # None = kx.agents.models.DEFAULT_OPTIONS (OPEN_QUESTIONS #76)
     llm_effort_smart: Effort | None = None
     llm_effort_judge: Effort | None = None
+    # M7 layer 3: a FAST-model second opinion on replies that talk about money or quantities but passed the
+    # deterministic price guard; "yes" or an error fails closed (regenerate once, then the safe reply)
+    price_second_opinion: bool = True
 
     # ---- knowledge search (D47: BGE-M3 or Qwen3 on TEI, chosen by KX_PLATFORM__EMBEDDINGS; full-text
     # fallback)

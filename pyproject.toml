@@ -67,6 +67,8 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Query", 
 "packages/kx-core-db/src/kx/core/price_guard.py" = ["RUF001", "PLR0917"]  # hot path: positional args
 # §8.1 stop words and confirmations in Arabic, Hindi, Tamil, Chinese and Sinhala are the point of this module
 "packages/kx-core-db/src/kx/core/optout.py" = ["RUF001"]
+# M7 number words and money words in Arabic, Hindi and Chinese are the point of this module
+"packages/kx-core-db/src/kx/core/price_words.py" = ["RUF001"]
 
 [tool.mypy]
 python_version = "3.14"

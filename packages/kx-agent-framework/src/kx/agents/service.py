@@ -24,11 +24,11 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.types import Checkpointer, Command
 from pydantic import BaseModel
 
-from kx.agents.context import AgentContext, GuardEventRecord, RunLog
+from kx.agents.context import AgentContext, GuardEventRecord, PriceCheck, RunLog
 from kx.agents.graphs.conversation import build_conversation_agent, final_reply
 from kx.agents.graphs.deal import build_deal_graph
 from kx.agents.graphs.quotation import build_quotation_graph
-from kx.agents.guard import clip_for_channel, looks_like_injection
+from kx.agents.guard import PriceSecondOpinion, clip_for_channel, looks_like_injection
 from kx.agents.knowledge import KnowledgeSearch
 from kx.agents.language import reply_language
 from kx.agents.memory import TurnStore
@@ -191,6 +191,7 @@ class AgentService:
         budget_left: Callable[[], Awaitable[bool]] | None = None,
         on_public_spend: Callable[[Decimal], Awaitable[object]] | None = None,
         public_budget_left: Callable[[], Awaitable[bool]] | None = None,
+        price_second_opinion: bool = False,
     ) -> None:
         self.db = databases
         self.gateway = gateway
@@ -210,6 +211,11 @@ class AgentService:
         self.public_budget_left = public_budget_left
         self.deal_summaries = deal_summaries  # §7A.2 deal-page summary (one fast-model call when due)
         self.runner = GraphRunner(models, self.registry, checkpointer)
+        # M7 layer 3: the app turns it on (KX_APP_PRICE_SECOND_OPINION, default on); off by default here, so
+        # tests with scripted models do not spend a script line on it unless they ask for it
+        self.price_check: PriceCheck | None = (
+            PriceSecondOpinion(models.for_tier(ModelTier.FAST)) if price_second_opinion else None
+        )
 
     def _config(self, ctx: AgentContext, graph: str, run_id: uuid.UUID) -> RunnableConfig:
         return {
@@ -284,6 +290,7 @@ class AgentService:
             knowledge=self.knowledge,
             conversation_id=conv_id,
             summary=history.summary,
+            price_check=self.price_check,
         )
         if looks_like_injection(turn.text):
             # D8: phones and emails are masked before the flag is stored (retention cannot reach every copy)
@@ -391,6 +398,7 @@ class AgentService:
             language=language,
             gateway=self.gateway,
             prompts=self.prompts,
+            price_check=self.price_check,
         )
         return await self._execute(ctx, rt, claim.run_id, None, (), deliver=deliver, outcome=outcome)
 

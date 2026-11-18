@@ -8,15 +8,18 @@ in one transaction when the run ends (no DB round-trips inside the agent loop).
 from __future__ import annotations
 
 import uuid
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, Literal
 
 from kx.agents.knowledge import KnowledgeSearch
 from kx.agents.registry import AgentSpec, PromptStore
-from kx.core.contracts import Channel, CrmGateway, DealContext
+from kx.core.contracts import AllowedPrice, Channel, CrmGateway, DealContext
 
 GuardKind = Literal["price_number", "injection", "disclosure", "cost_leak", "language"]
+# (reply, allowed prices, run log) -> True when the reply states or implies a price not in the allowed list
+type PriceCheck = Callable[[str, Sequence[AllowedPrice], RunLog], Awaitable[bool]]
 GuardAction = Literal["blocked", "rewritten", "flagged"]
 
 
@@ -64,6 +67,8 @@ class AgentContext:
     knowledge: KnowledgeSearch | None = None
     conversation_id: uuid.UUID | None = None
     summary: str | None = None  # rolling summary of turns older than the window
+    # M7 layer 3: the FAST-model second opinion on a reply the deterministic guard found clean (None = off)
+    price_check: PriceCheck | None = None
 
     @property
     def deal_id(self) -> uuid.UUID:
