@@ -21,6 +21,6 @@ for n in 10 30 50; do
   drain
   curl -s -X POST localhost:39100/_reset >/dev/null
   echo "$(date +%T) === $n users, worker 3 + worker-ai 10 threads"
-  .venv/Scripts/python.exe live-test/scripts/load_live.py --users $n --minutes 8 --label c${n}_w3a10 < /dev/null 2>&1 | head -1
+  .venv/Scripts/python.exe live-test/scripts/load_live.py --users $n --minutes 8 --label c${n}_w3a10${LABEL_SUFFIX:-} < /dev/null 2>&1 | head -1
 done
 echo "$(date +%T) done"

@@ -20,6 +20,8 @@ x-env: &env
   KX_REDIS_URL: redis://redis:6379/0
   KX_APP_CELERY_BROKER_URL: redis://redis:6379/8
   KX_APP_WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-3}
+  # capacity runs only: the synthetic buyers write ~4 messages a minute, above the 2-a-minute recipient cap
+  KX_AUTO_RATE_LIMIT__RECIPIENT_REFILL_PER_MINUTE: ${RECIPIENT_REFILL:-2.0}
   KX_SERVICE_TOKEN_SECRET: live-test-service-token-secret-0123456789abcdef
   KX_AUTH__ENCRYPTION_KEY: "ZM0ARi02VXefvmtu5V-p8vcIb2VUBgm3w8l9przEtm8="
   KX_APP_CHROMIUM_PATH: /usr/bin/chromium
