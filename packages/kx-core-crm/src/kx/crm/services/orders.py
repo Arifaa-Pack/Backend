@@ -151,6 +151,15 @@ async def mark_won(
     return order
 
 
+async def deal_of_order(session: AsyncSession, order_id: uuid.UUID) -> Deal:
+    """The deal an order belongs to, so the API can apply the §3 edit rule (own deal, covering colleague,
+    manager / MD) before an order update."""
+    order = await session.get(Order, order_id)
+    if order is None:
+        raise NotFound(f"order {order_id} not found")
+    return await deal_svc.get_deal(session, order.deal_id)
+
+
 async def update_order_status(
     session: AsyncSession,
     deps: CrmDeps,

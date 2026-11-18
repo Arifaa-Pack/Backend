@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
+from kx.core.errors import Forbidden
 from kx.crm.api.context import MANAGERS, STAFF, ApiContext
 from kx.crm.api.deals import deal_detail
 from kx.crm.api.schemas import (
@@ -37,7 +38,7 @@ from kx.crm.services.journal import Actor
 Staff = Annotated[Principal, Depends(require_role(*STAFF))]
 HumanManager = Annotated[Principal, Depends(require_human_mfa(Role.MANAGER))]
 HumanStaff = Annotated[Principal, Depends(require_human_mfa(Role.SALES, Role.MANAGER))]
-Manager = Annotated[Principal, Depends(require_role(*MANAGERS))]
+OrderStaff = Annotated[Principal, Depends(require_role(Role.SALES, *MANAGERS))]  # not Admin / IT (§3)
 
 
 def router(ctx: ApiContext) -> APIRouter:
@@ -128,9 +129,14 @@ def router(ctx: ApiContext) -> APIRouter:
         return OrderOut.model_validate(order)
 
     @r.patch("/orders/{order_id}", response_model=OrderOut)
-    async def order_status(order_id: uuid.UUID, body: OrderStatusIn, s: Session, p: Manager) -> OrderOut:
+    async def order_status(order_id: uuid.UUID, body: OrderStatusIn, s: Session, p: OrderStaff) -> OrderOut:
         """§15.3 order tracking: in production -> ready -> shipped -> delivered (the buyer is told if
-        configured)."""
+        configured). §3 / §5 step 14: the deal's salesperson (or the colleague covering them) updates it, as
+        do the manager and the MD; cancelling an order is not in the SRS's salesperson list, so it stays with
+        the manager / MD."""
+        if body.status == "cancelled" and p.role is Role.SALES:
+            raise Forbidden("only the manager or the MD cancels an order")
+        await access.check_edit(s, p, await orders.deal_of_order(s, order_id))
         order = await orders.update_order_status(
             s,
             deps,
