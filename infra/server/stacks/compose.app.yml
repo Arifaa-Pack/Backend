@@ -1,15 +1,19 @@
 # One project's app stack (company `pack` today; docs/MULTI_PROJECT.md for more later).
 # Coolify: Docker Compose resource with the env file of env/pack.env.example filled in (secrets encrypted).
 # Order: migrate (one-off, exits 0) -> api, worker, worker-ai, beat, voice. Beat is exactly one: never scale it.
+# Secrets live outside the Git checkout (H5): KX_ENV_FILE / KX_CMS_ENV_FILE default to /opt/kx/secrets/ (root, 0600).
+# Networks (H1, infra/server/README.md §1): redis is on this stack's own internal network, so only the app reaches
+# it; kx-data / kx-ai / kx-obs / kx-mail / kx-proxy are created once on the host (docker network create).
 name: kx-pack
 
 x-app: &app
   image: ${KX_APP_IMAGE:-ghcr.io/kairox/app:latest}
   restart: unless-stopped
-  env_file: ["${KX_ENV_FILE:-env/pack.env}"]  # quoted: a bare { inside [ ] is YAML flow-mapping syntax
+  env_file: ["${KX_ENV_FILE:-/opt/kx/secrets/pack.env}"]  # quoted: a bare { inside [ ] is YAML flow-mapping syntax
   read_only: true
   tmpfs: [/tmp]
-  networks: [kx]
+  # default: this stack's own network, for egress to the vendors (Anthropic, Meta, Telnyx, SES, R2)
+  networks: [default, app-internal, kx-data, kx-ai, kx-obs, kx-mail]
   # the app sends its own logs to SigNoz over OTLP (with trace ids); this label tells the SigNoz collector
   # to skip these containers' log files, so lines are not stored twice (infra/server/signoz/)
   labels: { kx.logs: otlp }
@@ -23,40 +27,53 @@ x-logs: &logs
 
 services:
   redis:
-    image: ${KX_IMG_REDIS:-redis:8.2}
+    # pinned patch release: 8.2.0-8.2.1 carry the Lua use-after-free RCE (CVE-2025-49844)
+    image: ${KX_IMG_REDIS:-redis:8.2.3}
     restart: unless-stopped
-    # Celery broker: never evict; AOF so queued jobs survive a restart (Options by field §11)
-    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "noeviction"]
+    # Celery broker: never evict; AOF so queued jobs survive a restart (Options by field §11).
+    # Password required (H1): the same value is in KX_REDIS_URL / KX_APP_CELERY_BROKER_URL of the env file.
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "noeviction",
+              "--requirepass", "${REDIS_PASSWORD:?Redis password (openssl rand -hex 32), also in the app's redis URLs}"]
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?}   # redis-cli (healthcheck) reads the password from here
     volumes: [redis-data:/data]
-    networks: [kx]
+    networks: [app-internal]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       retries: 20
     logging: *logs
 
+  # KX_ENV is set here as well as in the env file (H6): a missing or mistyped value fails closed, so the
+  # production guards (no default signing secrets, persistent JWT / TOTP keys) can never be switched off silently.
   migrate:
     <<: *app
     command: ["migrate"]
     restart: "no"
     environment:
+      KX_ENV: production
       KX_PROCESS: migrate
 
   api:
     <<: *app
     command: ["api"]
     environment:
+      KX_ENV: production
       KX_PROCESS: api
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
-    # routed by the Coolify proxy: https://api.<domain> -> api:8000
+    # routed by the Coolify proxy: https://api.<domain> -> api:8000 over kx-proxy (the only network on which
+    # forwarded headers are trusted: KX_APP_FORWARDED_ALLOW_IPS = the proxy's fixed address)
+    networks: [default, app-internal, kx-data, kx-ai, kx-obs, kx-mail, kx-proxy]
+    labels: { kx.logs: otlp, traefik.docker.network: kx-proxy }
     expose: ["8000"]
 
   worker:
     <<: *app
     command: ["worker", "--queues", "kx"]  # sends, CRM and automation events, PDFs (prefork)
     environment:
+      KX_ENV: production
       KX_PROCESS: worker
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -69,6 +86,7 @@ services:
     <<: *app
     command: ["worker", "--queues", "kx.ai", "--pool", "threads"]
     environment:
+      KX_ENV: production
       KX_PROCESS: worker
       KX_APP_WORKER_CONCURRENCY: ${KX_AI_WORKER_THREADS:-10}
     depends_on:
@@ -79,6 +97,7 @@ services:
     <<: *app
     command: ["beat"]
     environment:
+      KX_ENV: production
       KX_PROCESS: beat
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -88,6 +107,7 @@ services:
     <<: *app
     command: ["voice"]
     environment:
+      KX_ENV: production
       KX_PROCESS: voice
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -96,9 +116,11 @@ services:
     # Payload CMS (website admin, §7); image built from the CMS repo (not in this repo)
     image: ${KX_CMS_IMAGE:-ghcr.io/kairox/cms:latest}
     restart: unless-stopped
-    env_file: ["${KX_CMS_ENV_FILE:-env/pack-cms.env}"]
+    env_file: ["${KX_CMS_ENV_FILE:-/opt/kx/secrets/pack-cms.env}"]
     expose: ["3000"]
-    networks: [kx]
+    # kx-proxy: routed by the Coolify proxy, and calls api:8000/webhooks/cms; kx-data: its own database
+    networks: [kx-proxy, kx-data]
+    labels: { traefik.docker.network: kx-proxy }
     logging: *logs
 
   # Free hosting version of the website and CRM screens (v2 §2 alternative to Vercel Pro):
@@ -110,7 +132,8 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?}
     expose: ["3000"]
-    networks: [kx]
+    networks: [kx-proxy]
+    labels: { traefik.docker.network: kx-proxy }
     logging: *logs
 
   crm-web:
@@ -120,12 +143,24 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?}
     expose: ["3000"]
-    networks: [kx]
+    networks: [kx-proxy]
+    labels: { traefik.docker.network: kx-proxy }
     logging: *logs
 
 volumes:
   redis-data:
 
 networks:
-  kx:
+  default:
+  app-internal:
+    internal: true   # redis: the app only, no egress
+  kx-data:
+    external: true
+  kx-ai:
+    external: true
+  kx-obs:
+    external: true
+  kx-mail:
+    external: true
+  kx-proxy:
     external: true

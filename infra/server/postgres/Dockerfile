@@ -15,6 +15,6 @@ RUN apt-get update \
  && rm -f /tmp/walg.tar.gz \
  && apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
-COPY --chmod=0644 postgresql.conf /etc/postgresql/postgresql.conf
+COPY --chmod=0644 postgresql.conf pg_hba.conf pg_ident.conf /etc/postgresql/
 COPY --chmod=0755 db_bootstrap.sh /kx/db_bootstrap.sh
 CMD ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]

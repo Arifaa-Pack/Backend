@@ -1,4 +1,6 @@
-# AI services on our server: knowledge-search embeddings (D47) and the free speech server (D52). Private only.
+# AI services on our server: knowledge-search embeddings (D47) and the free speech server (D52). Private only:
+# neither has authentication, so they sit on kx-ai (external, created with --internal, infra/server/README.md §2),
+# which only the app joins. `default` (this stack's own network) is for the model downloads on first start.
 name: kx-ai
 
 services:
@@ -11,7 +13,7 @@ services:
               "--max-batch-tokens", "1024"]
     volumes:
       - tei-cache:/data
-    networks: [kx]
+    networks: [default, kx-ai]
     deploy:
       resources:
         limits: { memory: 6g }
@@ -31,7 +33,7 @@ services:
       PIPER_VOICES: en,ar,hi,zh
     volumes:
       - speech-models:/models
-    networks: [kx]
+    networks: [default, kx-ai]
     deploy:
       resources:
         limits: { memory: 4g }
@@ -42,5 +44,6 @@ volumes:
   speech-models:
 
 networks:
-  kx:
+  default:
+  kx-ai:
     external: true

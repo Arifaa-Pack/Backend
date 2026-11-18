@@ -4,8 +4,10 @@
 # * our collector config (OTLP + host metrics + container metrics + container logs)
 # * read-only views of the host (/hostfs), the Docker socket and the container log files
 # * root inside the collector: the log files and the socket are root-only on the host
-# * the shared `kx` network, so the app reaches http://signoz-otel-collector:4318
+# * the `kx-obs` network (H1), so the app reaches http://signoz-otel-collector:4318
 # * OTLP ports only on the Docker networks, never on the public interface
+# * the SigNoz UI on 127.0.0.1:3301 (H2): upstream publishes 8080:8080 on every interface, which is also the
+#   Coolify proxy's port (README §2); open it with ssh -L 3301:127.0.0.1:3301 <server>
 # * SigNoz's own containers name themselves in SigNoz -> Logs (compose service label), like our stacks
 x-logs: &logs
   options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
@@ -13,7 +15,10 @@ x-logs: &logs
 services:
   clickhouse: { logging: *logs }
   zookeeper-1: { logging: *logs }
-  signoz: { logging: *logs }
+  signoz:
+    logging: *logs
+    ports: !override
+      - "127.0.0.1:3301:8080"
   otel-collector:
     logging: *logs
     user: "0:0"
@@ -32,9 +37,9 @@ services:
     ports: !override
       - "127.0.0.1:4317:4317"
       - "127.0.0.1:4318:4318"
-    networks: [signoz-net, kx]
+    networks: [signoz-net, kx-obs]
 
 networks:
-  kx:
-    name: ${KX_NETWORK:-kx}
+  kx-obs:
+    name: ${KX_NETWORK:-kx-obs}
     external: true

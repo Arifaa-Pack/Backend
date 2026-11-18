@@ -19,7 +19,10 @@
 #   KX_BOOTSTRAP_PREFIXES   comma-separated prefixes (e.g. "pack_"); empty string = no prefix (tests)
 #   KX_BOOTSTRAP_LOGICALS   space-separated logical DBs (default "cms crm automation agents")
 #   KX_PW_<ROLE>            e.g. KX_PW_PACK_CRM_APP, KX_PW_PACK_REPORTING_RO
-# Server: docker compose -f infra/server/stacks/compose.data.yml exec postgres /kx/db_bootstrap.sh
+# Server: docker compose -f infra/server/stacks/compose.data.yml exec -e KX_BOOTSTRAP_PREFIXES=pack_ -e KX_PW_... \
+#           postgres /kx/db_bootstrap.sh
+#   (inside the container PGHOST / PGUSER are the local socket and `postgres`: the superuser may log in over the
+#   socket only, infra/server/postgres/pg_hba.conf)
 # =====================================================================================
 set -euo pipefail
 

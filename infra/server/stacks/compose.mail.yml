@@ -1,7 +1,10 @@
 # Email (D44): Stalwart mail server v1.1.1 (pinned; tested locally 17 Nov with the app's JMAP code and a relay
-# that requires STARTTLS + SMTP AUTH like SES). MX on :25 (public); JMAP / admin on :8080 (kx network + SSH tunnel).
+# that requires STARTTLS + SMTP AUTH like SES). MX on :25 (public); JMAP / admin on :8080, never published: the app
+# reaches it on kx-mail (external, created with --internal: Stalwart + the app only, H1), admins through a tunnel.
+# `default` (this stack's own network) carries :25 and the relay out to SES.
 #
-# First start (bootstrap mode): open the web admin through the tunnel (ssh -L 8080:<stalwart ip>:8080) and log in
+# First start (bootstrap mode): open the web admin through the tunnel (ssh -L 8080:<stalwart ip>:8080, the
+# container's address on this stack's default network: docker inspect <container>) and log in
 # as admin / KX_STALWART_RECOVERY_ADMIN's password, then finish the wizard: hostname mail.<domain>, domain
 # <domain>, DKIM keys on (RSA + Ed25519 are both created), logging = Console, DNS = manual (copy the records into
 # Cloudflare). Then, in Settings (or over JMAP, infra/server/README.md §4):
@@ -30,7 +33,7 @@ services:
       # in /var/lib/stalwart. Both are backed up nightly (backup/volumes-to-r2.sh).
       - stalwart-etc:/etc/stalwart
       - stalwart-data:/var/lib/stalwart
-    networks: [kx]
+    networks: [default, kx-mail]
     logging:
       driver: json-file
       options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
@@ -40,5 +43,6 @@ volumes:
   stalwart-data:
 
 networks:
-  kx:
+  default:
+  kx-mail:
     external: true

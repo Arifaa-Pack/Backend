@@ -1,5 +1,8 @@
 # Data tier (D48): PostgreSQL 18 + pgvector with WAL-G to R2, and PgBouncer in front of it.
-# Coolify: Docker Compose resource, base directory infra/server/stacks. Network `kx` is external (docker network create kx).
+# Coolify: Docker Compose resource, base directory infra/server/stacks. Network `kx-data` is external and internal
+# (docker network create --internal --subnet 10.201.0.0/24 kx-data, infra/server/README.md §2): only the app and the
+# CMS join it. pg_hba.conf (../postgres) lets the superuser in over the local socket only and the app roles over TCP
+# from kx-data only.
 # Telemetry has its own Postgres (compose.obs.yml); Redis belongs to each project's app stack (compose.app.yml).
 name: kx-data
 
@@ -13,7 +16,11 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in Coolify}
-      # WAL-G -> Cloudflare R2 (S3 API)
+      # psql / wal-g / db_bootstrap.sh inside the container: local socket as `postgres` (pg_hba.conf, pg_ident.conf)
+      PGHOST: /var/run/postgresql
+      PGUSER: postgres
+      # WAL-G -> Cloudflare R2 (S3 API). This key only pushes; deleting old backups uses a separate key from the
+      # host (runbooks/restore.md), and the bucket lock on backups/ refuses early deletes (README §7).
       WALG_S3_PREFIX: s3://${R2_BUCKET:?}/backups/postgres
       AWS_ENDPOINT: ${R2_ENDPOINT_URL:?}
       AWS_REGION: auto
@@ -21,10 +28,15 @@ services:
       AWS_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:?}
       AWS_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:?}
       WALG_COMPRESSION_METHOD: zstd
+      # H4: every base backup and WAL segment is encrypted before upload. openssl rand -hex 32; keep a copy
+      # offline (password manager + paper): without it no backup can be restored.
+      WALG_LIBSODIUM_KEY: ${WALG_LIBSODIUM_KEY:?32-byte key, openssl rand -hex 32 (keep a copy offline)}
+      WALG_LIBSODIUM_KEY_TRANSFORM: hex
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - pgdata:/var/lib/postgresql/data
-    networks: [kx]
+    # default: this stack's own network, for WAL-G's egress to R2 (nobody else is on it)
+    networks: [default, kx-data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -39,16 +51,18 @@ services:
     restart: unless-stopped
     volumes:
       - ../postgres/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
-      - ${PGBOUNCER_USERLIST:-./secrets/userlist.txt}:/etc/pgbouncer/userlist.txt:ro
+      # outside the Git checkout (H5): SCRAM verifiers never go near the repo
+      - ${PGBOUNCER_USERLIST:-/opt/kx/secrets/userlist.txt}:/etc/pgbouncer/userlist.txt:ro
     depends_on:
       postgres:
         condition: service_healthy
-    networks: [kx]
+    networks: [kx-data]
     logging: *logs
 
 volumes:
   pgdata:
 
 networks:
-  kx:
+  default:
+  kx-data:
     external: true

@@ -17,7 +17,7 @@ Server stacks and runbooks: `infra/server/README.md`. Platforms, paid / free ver
 | `phoenix-postgres` | `compose.obs.yml` | Phoenix's own database (Telemetry tier) |
 | `embeddings` | `compose.ai.yml` | TEI `cpu-1.8`: BGE-M3 (or Qwen3), private |
 | `speech` | `compose.ai.yml` | faster-whisper Small + Piper (free STT / TTS), private |
-| `livekit` | `compose.voice.yml` | LiveKit server (media ports open) |
+| `livekit` | `compose.voice.yml` | LiveKit server (signalling through Cloudflare + Coolify proxy; media ports open) |
 | `stalwart` | `compose.mail.yml` | mail server: MX, JMAP for the app, relays out through SES |
 | `phoenix`, `signoz` | `compose.obs.yml` | AI audit trail; logs / metrics / traces + alerts |
 | `safeline`, `crowdsec` | `compose.edge.yml` | WAF on 80/443 in front of Coolify's proxy; IP bans |
@@ -27,12 +27,12 @@ Outside the server (processors Arifa must approve): Anthropic (Claude), Meta (Wh
 ## First deploy (once per server)
 
 1. Order the server (v2 §5), Ubuntu 24.04, reverse DNS for the public IP; harden SSH (keys only, admin IPs).
-2. Install Coolify (`infra/server/README.md` §2). Create a project *pack* with environments *staging* / *production*.
-3. Cloudflare: DNS records (`api.`, `cms.`, `voice.` DNS-only for media, `mail.` + MX), origin certificate for SafeLine; R2 buckets + an access key.
-4. Deploy `compose.data.yml`; run `infra/server/postgres/db_bootstrap.sh` (prefix `pack_`): roles, databases, extensions, per-role `search_path` / `statement_timeout`. Confirm WAL-G pushes to R2.
+2. Install Coolify (`infra/server/README.md` §2): dashboard and realtime ports on 127.0.0.1, proxy on 127.0.0.1:8080 / 8443 and on `kx-proxy`, the trust-zone networks (`kx-data`, `kx-ai`, `kx-obs`, `kx-mail`, `kx-proxy`), the `DOCKER-USER` backstop (Docker-published ports bypass ufw), secrets in `/opt/kx/secrets/` outside the checkout. Create a project *pack* with environments *staging* / *production*.
+3. Cloudflare: DNS records (`api.`, `cms.`, `voice.` **proxied** like the others: signalling goes through Cloudflare, only the media ports are direct; `mail.` + MX), origin certificate for SafeLine, Authenticated Origin Pulls; R2 buckets, an app access key, and separate backup tokens with a bucket lock (`infra/server/README.md` §7).
+4. Deploy `compose.data.yml` (needs `WALG_LIBSODIUM_KEY`: backups are encrypted; keep the key offline); run `infra/server/postgres/db_bootstrap.sh` inside the postgres container (prefix `pack_`; the superuser logs in over the local socket only): roles, databases, extensions, per-role `search_path` / `statement_timeout`. Confirm WAL-G pushes to R2.
 5. Deploy `compose.ai.yml`, `compose.voice.yml`, `compose.mail.yml`, `compose.obs.yml`, `compose.edge.yml`. Finish Stalwart's setup wizard: domain, DKIM, SES smarthost, the sending account (`sales@`, the JMAP login of the app), sending limits.
-6. Fill the app environment in Coolify (below; secrets as *encrypted*), including `KX_PLATFORM_PLAN`.
-7. Deploy `compose.app.yml`: `migrate` runs first (Alembic for every DB + checkpointer tables), then api / worker / beat / voice.
+6. Fill the app environment (below) into `/opt/kx/secrets/pack.env` (root, 0600; never in the Git checkout), including `KX_PLATFORM_PLAN`; compose variables such as `REDIS_PASSWORD` and `PHOENIX_SECRET` in Coolify as *encrypted*.
+7. Deploy `compose.app.yml`: `migrate` runs first (Alembic for every DB + checkpointer tables), then api / worker / worker-ai / beat / voice, each with `KX_ENV=production` set by the compose file itself.
 8. `kx platform show` in the api terminal: check the resolved matrix.
 9. `kx first-run --md-email … --md-name … --admin-email … --admin-name …` (18 Nov): checks every database is at the code's head, creates the MD and the admin (one-time passwords printed once; each person enrols an authenticator app), shows the letterhead still missing (TRN) and the platform matrix; safe to run again. Then create the break-glass admin with `kx create-user --break-glass` and store its TOTP seed offline. The ordered launch list is `docs/GO_LIVE_CHECKLIST.md`.
 10. UptimeRobot: HTTP monitors on `https://api.<domain>/healthz` and `/healthz/beat` (2-minute interval).

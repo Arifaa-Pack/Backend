@@ -1,7 +1,8 @@
 # Edge (D53): CrowdSec reads the logs of SafeLine, Stalwart and SSH and bans abusers. SafeLine itself is installed
 # from its official compose at a pinned 9.2.x release (host networking on 80 / 443; README §6).
 # Bans: proxied traffic -> the Cloudflare bouncer (ban at Cloudflare, never ban Cloudflare's IPs on the host);
-# direct ports (22, 25) -> the host firewall bouncer (installed on the host with apt, crowdsec-firewall-bouncer).
+# direct ports (22, 25, LiveKit) -> the host firewall bouncer (installed on the host with apt,
+# crowdsec-firewall-bouncer), with iptables_chains INPUT and DOCKER-USER: Docker-published ports never pass INPUT (H2).
 name: kx-edge
 
 services:
@@ -21,7 +22,8 @@ services:
       - crowdsec-config:/etc/crowdsec
     ports:
       - "127.0.0.1:8081:8080"   # local API for the host firewall bouncer
-    networks: [kx]
+    # this stack's own network only: nothing else needs CrowdSec, and CrowdSec needs no other service (H1)
+    networks: [default]
     logging:
       driver: json-file
       options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
@@ -34,12 +36,11 @@ services:
       CROWDSEC_LAPI_KEY: ${CROWDSEC_CF_BOUNCER_KEY:?}
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?}
     depends_on: [crowdsec]
-    networks: [kx]
+    networks: [default]
 
 volumes:
   crowdsec-db:
   crowdsec-config:
 
 networks:
-  kx:
-    external: true
+  default:

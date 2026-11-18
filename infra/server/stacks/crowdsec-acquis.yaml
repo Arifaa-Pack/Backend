@@ -10,7 +10,9 @@ labels:
   type: syslog
 ---
 source: docker
-container_name:
-  - kx-mail-stalwart-1
+# by pattern, not by exact name (H3): Coolify names containers after its resource UUID, not `kx-mail-stalwart-1`.
+# Check after deploy that exactly the Stalwart container matches: docker ps --format '{{.Names}}' | grep stalwart
+container_name_regexp:
+  - stalwart
 labels:
   type: syslog

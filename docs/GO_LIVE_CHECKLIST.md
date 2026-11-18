@@ -10,7 +10,7 @@ Flash as the Claude standby, MD and admin created at launch (the admin adds ever
 | # | Account | What exactly | Goes into |
 |---|---|---|---|
 | A1 | **Server** | Namecheap dedicated server (v2 §5: Xeon E-2236, 64 GB, 2 x 960 GB RAID 1), Ubuntu 24.04, reverse DNS = `mail.arifapack.com` | SSH for Kairox |
-| A2 | **Cloudflare** | arifapack.com on Cloudflare; an R2 bucket (location hint `weur` or `apac`) + R2 access key; origin certificate | `KX_STORAGE__*`, DNS |
+| A2 | **Cloudflare** | arifapack.com on Cloudflare; an R2 bucket (location hint `weur` or `apac`) + R2 access key; a separate backup bucket with bucket lock, its push token(s) and a delete-only-for-retention token; origin certificate; Authenticated Origin Pulls on | `KX_STORAGE__*`, DNS; backup keys (`infra/server/README.md` §7) |
 | A3 | **Claude API** (Anthropic) | Account in Arifa's name, prepaid credit, monthly spend cap | `KX_APP_ANTHROPIC_API_KEY` |
 | A4 | **Gemini** (Google AI, **paid**) | Billing on (the free tier allows 20 requests a day) | `KX_APP_GEMINI_API_KEY` |
 | A5 | **WhatsApp** (Meta) | Business verification, a number per region, a System User token; submit the templates in section D | `KX_AUTO_WHATSAPP__*` |
@@ -26,7 +26,7 @@ Flash as the Claude standby, MD and admin created at launch (the admin adds ever
 |---|---|---|---|
 | `api` | A | server IP | proxied |
 | `crm`, `cms`, `www` / apex | as the frontend hosting says (Vercel or the self-hosted `web` / `crm-web`) | | proxied |
-| `voice` | A | server IP | **DNS only** (media) |
+| `voice` | A | server IP | **proxied** (signalling WebSocket through Cloudflare; media goes to the server IP directly, `infra/server/README.md` §4) |
 | `mail` | A | server IP | DNS only |
 | `@` | MX 10 | `mail.arifapack.com` | — |
 | `@` | TXT (SPF) | `v=spf1 include:amazonses.com mx -all` | — |
@@ -36,20 +36,41 @@ Flash as the Claude standby, MD and admin created at launch (the admin adds ever
 
 ## C. Server deploy (Kairox; `docs/DEPLOYMENT.md` "First deploy")
 
-1. Harden SSH, install Coolify, create the `kx` Docker network.
-2. `compose.data.yml` -> `infra/server/postgres/db_bootstrap.sh` (prefix `pack_`); confirm WAL-G pushes to R2.
+1. Harden SSH, install Coolify with its dashboard (8000) and realtime (6001 / 6002) bound to 127.0.0.1, its proxy
+   on 127.0.0.1:8080 / 8443 with the Traefik dashboard port removed and joined to `kx-proxy` at 10.200.0.2; create
+   the `kx-data`, `kx-ai`, `kx-obs`, `kx-mail`, `kx-proxy` networks; ufw + the `DOCKER-USER` backstop; the CrowdSec
+   firewall bouncer on `INPUT` and `DOCKER-USER` (`infra/server/README.md` §2, steps 2-7).
+   Secrets in `/opt/kx/secrets/` (root, 0700; files 0600), never in the checkout: `git status` on the server shows
+   no `env/*.env` or `userlist.txt`.
+2. `compose.data.yml` (with `WALG_LIBSODIUM_KEY`; key also stored offline) -> `infra/server/postgres/db_bootstrap.sh`
+   (prefix `pack_`); confirm WAL-G pushes to R2 and that the objects are encrypted (a downloaded WAL file does not
+   decompress with `zstd -t`); from another container on `kx-data`, `psql -h postgres -U postgres` is refused.
+   R2: bucket lock on `backups/` (7 days postgres, 14 days volumes); separate push and delete tokens
+   (`infra/server/README.md` §7).
 3. `compose.ai.yml`, `compose.voice.yml`, `compose.edge.yml`, `compose.obs.yml`.
 4. **SigNoz**: v0.129.0 compose **with** `infra/server/signoz/compose.signoz-overrides.yml`; create the SigNoz
    admin straight away (else it accepts no data); add the alert rules (`infra/server/README.md` §5).
 5. **Stalwart v1.1.1** (`compose.mail.yml`): web wizard (hostname `mail.arifapack.com`, DKIM on, logging Console,
    DNS manual), account `sales@arifapack.com`, relay route `ses` + outbound strategy (steps in the file), raise the
    25-per-hour throttle; then remove `KX_STALWART_RECOVERY_ADMIN` from the env.
-6. App env in Coolify from `infra/server/stacks/env/pack.env.example` (secrets encrypted); deploy
-   `compose.app.yml` (migrate runs first).
+6. App env from `infra/server/stacks/env/pack.env.example` into `/opt/kx/secrets/pack.env` (and
+   `pack-cms.env`), Coolify variables `REDIS_PASSWORD` (same value as in the redis URLs) and the rest marked
+   encrypted; deploy `compose.app.yml` (migrate runs first). Every app container runs with `KX_ENV=production`.
 7. **`kx first-run --md-email … --md-name … --admin-email … --admin-name …`** in the api terminal: checks the
    databases are migrated, creates the MD and the admin (prints each one-time password once), shows the platform
    matrix and what is still missing.
-8. UptimeRobot monitors: `https://api.arifapack.com/healthz` and `/healthz/beat` (2 minutes).
+8. UptimeRobot monitors: `https://api.arifapack.com/healthz` and `/healthz/beat` (2 minutes), plus a heartbeat
+   monitor for the nightly volume backup (`KX_BACKUP_HEARTBEAT_URL`); run `volumes-to-r2.sh` once by hand and
+   check it names the Stalwart volumes Coolify created (`docker volume ls`) and the heartbeat arrives.
+9. **Exposure check, recorded here** (`infra/server/README.md` §2 step 8): `ss -lntup` on the server (public
+   listeners only 22, 25, 80, 443, 7881, 3478/udp, 50000-50100/udp; 8000, 6001, 6002, 8080, 8443, 8081, 3301, 4317,
+   4318, 6006, 9443 on 127.0.0.1 only) and, from an outside machine, `nmap -Pn -p- <ip>` +
+   `sudo nmap -Pn -sU -p 3478,50000-50100 <ip>` (open: 25, 7881, the UDP media ports; everything else filtered).
+   `iptables -L DOCKER-USER -n -v` shows the backstop rules. Each `kx-*` network holds only its members
+   (`docker network inspect`). Date + result: ______________________
+10. Isolation spot checks: Redis refuses a connection without its password (`NOAUTH`); Phoenix UI asks for a login
+    (default admin password changed) and traces still arrive with the API key in `KX_APP_AI_TRACE_HEADERS`;
+    SafeLine console only on 127.0.0.1:9443; Cloudflare Authenticated Origin Pulls on.
 
 ## D. WhatsApp templates to submit to Meta (EN; AR for the buyer ones)
 
@@ -81,7 +102,7 @@ creates a new version (`name_v2`) for Meta; the approved one keeps sending.
 | WhatsApp | message the number; the AI replies; a quote goes out after approval | delivered, read status back |
 | Email | a quote by email; a reply comes back into the deal | received, threaded, DKIM pass |
 | Calls | `click-to-call` to a du and an e& mobile; an approval-alert call | both connect |
-| Voice (website) | a browser call in English and Arabic | agent answers within 2 s |
+| Voice (website) | a browser call in English and Arabic, from a network outside the office (signalling through Cloudflare, media direct); one call held 5+ minutes | agent answers within 2 s; no drop |
 | Workbook | download -> change one price -> upload -> apply | new price on the next quote |
 | Monitoring | stop the worker 3 minutes | UptimeRobot `/healthz/beat` alert, SigNoz shows it |
 | Backup | restore test (`infra/server/runbooks/restore.md`) | data back |

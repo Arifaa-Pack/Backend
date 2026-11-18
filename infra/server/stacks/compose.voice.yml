@@ -1,5 +1,8 @@
 # Live voice (v2 §2): LiveKit server, self-hosted. The `voice` agent worker is in compose.app.yml.
-# Public: 7880 (signalling, via Coolify proxy at wss://voice.<domain>), 7881/tcp, 3478/udp (TURN), 50000-50100/udp.
+# Signalling (H7): 7880 is not published. Browsers reach wss://voice.<domain> through Cloudflare (proxied DNS,
+# WebSockets) -> SafeLine :443 -> Coolify proxy -> livekit:7880 over kx-proxy, like api. / cms., so 443 stays
+# open to Cloudflare only and the origin certificate is never shown to a browser.
+# Media goes direct to the server IP (--node-ip, not the hostname): 7881/tcp, 3478/udp (TURN), 50000-50100/udp.
 name: kx-voice
 
 services:
@@ -11,15 +14,19 @@ services:
       LIVEKIT_KEYS: "${LIVEKIT_API_KEY:?}: ${LIVEKIT_API_SECRET:?}"
     volumes:
       - ./livekit.yaml:/etc/livekit.yaml:ro
+    expose: ["7880"]   # signalling, routed by the Coolify proxy (https://voice.<domain> -> livekit:7880)
     ports:
       - "7881:7881/tcp"
       - "3478:3478/udp"
       - "50000-50100:50000-50100/udp"
-    networks: [kx]
+    # default: this stack's own network, carries the published media ports; kx-proxy: signalling (H1)
+    networks: [default, kx-proxy]
+    labels: { traefik.docker.network: kx-proxy }
     logging:
       driver: json-file
       options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
 
 networks:
-  kx:
+  default:
+  kx-proxy:
     external: true

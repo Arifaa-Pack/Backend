@@ -10,5 +10,9 @@ __pycache__/
 .env
 .env.*
 !.env.example
+# server secrets never live in the checkout (H5); the *.env.example files stay tracked
+infra/server/stacks/env/*.env
+infra/server/stacks/secrets/
+**/userlist.txt
 dist/
 build/

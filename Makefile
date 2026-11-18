@@ -84,7 +84,8 @@ stacks-check: ## docker compose config of every server stack (dummy env, the sam
 	cd infra/server/stacks && export KX_ENV_FILE=env/pack.env.example KX_CMS_ENV_FILE=env/pack-cms.env.example \
 	  POSTGRES_PASSWORD=x R2_BUCKET=x R2_ENDPOINT_URL=https://x R2_ACCESS_KEY_ID=x R2_SECRET_ACCESS_KEY=x \
 	  LIVEKIT_NODE_IP=203.0.113.1 LIVEKIT_API_KEY=x LIVEKIT_API_SECRET=x PHOENIX_DB_PASSWORD=x \
-	  CROWDSEC_CF_BOUNCER_KEY=x CROWDSEC_FW_BOUNCER_KEY=x CLOUDFLARE_API_TOKEN=x PUBLIC_API_URL=https://x && \
+	  CROWDSEC_CF_BOUNCER_KEY=x CROWDSEC_FW_BOUNCER_KEY=x CLOUDFLARE_API_TOKEN=x PUBLIC_API_URL=https://x \
+	  REDIS_PASSWORD=x WALG_LIBSODIUM_KEY=x PHOENIX_SECRET=x KX_SES_SMTP_PASSWORD=x && \
 	for f in compose.*.yml; do echo "== $$f"; docker compose -f $$f --profile selfhost-web config -q || exit 1; done
 
 .PHONY: down

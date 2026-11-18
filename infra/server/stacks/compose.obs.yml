@@ -1,6 +1,8 @@
 # Telemetry tier (D46, D48): the AI audit trail (Arize Phoenix) on its own Postgres. SigNoz is installed from its
-# official Docker compose at a pinned release on the same `kx` network (infra/server/README.md §5); its collector
-# is then reachable as http://signoz-otel-collector:4318 (KX_APP_OTLP_ENDPOINT).
+# official Docker compose at a pinned release; its collector joins the `kx-obs` network (infra/server/README.md §5)
+# and is then reachable as http://signoz-otel-collector:4318 (KX_APP_OTLP_ENDPOINT).
+# Networks (H1): phoenix-postgres is on this stack's own internal network (Phoenix only); Phoenix is on kx-obs for
+# the app's traces. Phoenix requires a login (H1): the app sends a Phoenix system API key (KX_APP_AI_TRACE_HEADERS).
 name: kx-obs
 
 services:
@@ -15,7 +17,7 @@ services:
       # Postgres 18 images: one mount at /var/lib/postgresql (a mount at .../data makes the container refuse to
       # start, found on the local stack 16 Nov)
       - phoenix-pg:/var/lib/postgresql
-    networks: [kx]
+    networks: [phoenix-db]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U phoenix"]
       interval: 10s
@@ -32,15 +34,24 @@ services:
       PHOENIX_PORT: "6006"
       # 30-90 days (D48); traces are re-creatable, never backed up
       PHOENIX_DEFAULT_RETENTION_POLICY_DAYS: "${PHOENIX_RETENTION_DAYS:-60}"
+      # login for the UI and an API key for trace ingest (H1: traces may hold buyer PII)
+      PHOENIX_ENABLE_AUTH: "true"
+      PHOENIX_SECRET: ${PHOENIX_SECRET:?32+ random characters (openssl rand -hex 32)}
     depends_on:
       phoenix-postgres:
         condition: service_healthy
-    networks: [kx]
+    # UI on the host's loopback only: ssh -L 6006:127.0.0.1:6006 <server> (H2)
+    ports:
+      - "127.0.0.1:6006:6006"
+    networks: [default, phoenix-db, kx-obs]
     logging: *logs
 
 volumes:
   phoenix-pg:
 
 networks:
-  kx:
+  default:          # publishes the loopback UI port
+  phoenix-db:
+    internal: true  # phoenix-postgres: Phoenix only
+  kx-obs:
     external: true
