@@ -612,18 +612,56 @@ async def test_lost_requires_reason_and_optimistic_lock(
     assert changed[-1]["to_stage"] == "LOST" and changed[-1]["reason"] == "price_too_high"
 
 
-async def test_contact_merge_on_known_phone(databases: Databases, seed: Seed, deps: CrmDeps) -> None:
-    gw = CrmGatewayImpl(databases, deps)
-    phone = new_phone()
-    known = await gw.resolve_deal("whatsapp", phone, None)
+async def _known_buyer(gw: CrmGatewayImpl, phone: str, email: str) -> uuid.UUID:
+    deal = await gw.resolve_deal("whatsapp", phone, None)  # WhatsApp proves the number
+    await gw.set_contact(deal, ContactPatch(name="Real Buyer", email=email), AiRole.CONTACT_CAPTURE)
+    return deal
+
+
+async def test_contact_merge_needs_phone_and_email(databases: Databases, seed: Seed, deps: CrmDeps) -> None:
+    """D-4 (client rule 18 Nov): a website visitor joins an existing buyer only when the phone AND the email
+    both match; the existing buyer's details are never overwritten."""
+    gw, phone, email = CrmGatewayImpl(databases, deps), new_phone(), f"{uuid.uuid4().hex[:8]}@buyer.ae"
+    known = await _known_buyer(gw, phone, email)
     visitor = uuid.uuid4()
     web = await gw.resolve_deal("web_chat", None, visitor)
-    await gw.set_contact(web, ContactPatch(name="Ravi", phone=phone), AiRole.CONTACT_CAPTURE)
+    await gw.set_contact(
+        web, ContactPatch(name="Ravi", phone=phone, email=email.upper()), AiRole.CONTACT_CAPTURE
+    )
     async with databases.transaction(CRM) as s:
         a, b = await deals.get_deal(s, known), await deals.get_deal(s, web)
         assert a.primary_contact_id == b.primary_contact_id
         contact = await deals.contact_of(s, b)
-        assert (contact.full_name, contact.visitor_ref) == ("Ravi", visitor)
+        assert (contact.full_name, contact.email, contact.visitor_ref) == ("Real Buyer", email, visitor)
+
+
+@pytest.mark.parametrize("given", ["phone_only", "phone_and_other_email"])
+async def test_a_known_phone_alone_does_not_take_over_the_buyer(
+    databases: Databases, seed: Seed, deps: CrmDeps, given: str
+) -> None:
+    """D-4 (live test 18 Nov): an anonymous visitor typed a real buyer's phone and overwrote their name and
+    email, so the buyer's next quote would go to the attacker. Now nothing is linked or overwritten, and the
+    salesperson gets a note to check."""
+    gw, phone, email = CrmGatewayImpl(databases, deps), new_phone(), f"{uuid.uuid4().hex[:8]}@buyer.ae"
+    known = await _known_buyer(gw, phone, email)
+    web = await gw.resolve_deal("web_chat", None, uuid.uuid4())
+    other = "attacker@evil.example" if given == "phone_and_other_email" else None
+    await gw.set_contact(web, ContactPatch(name="Mallory", phone=phone, email=other), AiRole.CONTACT_CAPTURE)
+    async with databases.transaction(CRM) as s:
+        a, b = await deals.get_deal(s, known), await deals.get_deal(s, web)
+        assert a.primary_contact_id != b.primary_contact_id
+        real = await deals.contact_of(s, a)
+        assert (real.full_name, real.email, real.phone_e164) == ("Real Buyer", email, phone)
+        visitor = await deals.contact_of(s, b)
+        assert (visitor.full_name, visitor.phone_e164, visitor.email) == ("Mallory", None, other)
+        notes = (
+            await s.execute(
+                select(m.TimelineEvent.summary).where(
+                    m.TimelineEvent.deal_id == web, m.TimelineEvent.kind == "contact_match"
+                )
+            )
+        ).scalars()
+        assert any("NOT linked" in n for n in notes)
 
 
 # ---------------------------------------------------------------- events in, settings, retention

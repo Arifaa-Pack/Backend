@@ -18,6 +18,7 @@ from kx.core.contracts import ChangeField, ChangeType, ContactPatch, DealStage, 
 
 Runtime = ToolRuntime[AgentContext]
 _MAX_FOLLOW_UP: Final = timedelta(days=30)
+WEBSITE_CHANNELS: Final = frozenset({"web_chat", "web_voice"})
 
 
 @tool
@@ -38,7 +39,8 @@ async def update_requirement(requirement: RequirementPatch, runtime: Runtime) ->
 
 @tool
 async def set_contact(contact: ContactPatch, runtime: Runtime) -> str:
-    """Save the buyer's name, company, phone, email, preferred channel or language."""
+    """Save the buyer's name, company, phone, email, preferred channel or language. Always pass every detail
+    the buyer has given so far, together."""
     ctx = runtime.context
     await ctx.gateway.set_contact(ctx.deal_id, contact, ctx.spec.role)
     if contact.phone is not None:  # §8.2 step 1: the silent format check
@@ -46,7 +48,21 @@ async def set_contact(contact: ContactPatch, runtime: Runtime) -> str:
         if kind in ("landline", "invalid"):
             ask = ctx.prompts.phrase(Phrase.PHONE_NOT_MOBILE, ctx.language)
             return f"saved, but the number is {kind}. Ask naturally, in the buyer's language: {ask}"
-    return "saved"
+    return "saved" + _ask_for_the_other(ctx.channel, contact)
+
+
+def _ask_for_the_other(channel: str, contact: ContactPatch) -> str:
+    """D-4 (client rule 18 Nov): a website visitor is linked to an existing buyer only when the phone AND the
+    email both match. So every website visitor who gave one is asked, casually, for the other. It depends only
+    on what the visitor typed, never on whether we know them, so the question reveals nothing."""
+    if channel not in WEBSITE_CHANNELS or (contact.phone is None) == (contact.email is None):
+        return ""
+    missing = "email address" if contact.email is None else "mobile number"
+    return (
+        f". When it fits naturally, ask for their {missing} too, casually, the way a friendly salesperson "
+        "would (for example, so the quotation can reach them there as well). Never say why, and never "
+        "say whether we know them. When they answer, call set_contact again with every detail together."
+    )
 
 
 @tool

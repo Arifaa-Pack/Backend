@@ -64,9 +64,11 @@ async def env(databases: Any, seed: Seed, deps: CrmDeps) -> Env:
     sender, caller = Sender(), Caller()
     wired = replace(deps, sender=sender, caller=caller)
     gw = CrmGatewayImpl(databases, wired)
-    deal_id = await gw.resolve_deal("whatsapp", new_phone(), None)
+    phone = new_phone()
+    deal_id = await gw.resolve_deal("whatsapp", phone, None)
+    # one email per buyer: an email already used by another contact is no longer linked on its own (D-4)
     await gw.set_contact(
-        deal_id, ContactPatch(name="Omar", email="omar@buyer.example"), AiRole.CONTACT_CAPTURE
+        deal_id, ContactPatch(name="Omar", email=f"omar.{phone[-7:]}@buyer.example"), AiRole.CONTACT_CAPTURE
     )
     await assign(databases, deal_id, SALES_ID)
     return Env(databases, wired, sender, caller, deal_id)
@@ -147,7 +149,8 @@ async def test_after_24_hours_the_reopen_template_restarts_the_chat(env: Env) ->
 async def test_email_reply_uses_the_company_address_with_the_salespersons_name(env: Env) -> None:
     await reply(env, channel="email", text="Please find the PO details below.")
     (sent,) = env.sender.sent
-    assert sent.channel == "email" and sent.to_address == "omar@buyer.example"
+    assert sent.channel == "email" and sent.to_address.startswith("omar.")
+    assert sent.to_address.endswith("@buyer.example")
     assert sent.sender_name == "Sara, Arifaa Pack (test)" and sent.body == "Please find the PO details below."
     assert sent.subject is not None and (await deal_row(env)).number in sent.subject
 

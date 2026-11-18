@@ -277,8 +277,10 @@ _ROLE_PROMPTS: Final[dict[str, str]] = {
         "update_requirement, then call try_qualify."
     ),
     AiRole.CONTACT_CAPTURE.value: (
-        "Politely ask for the buyer's name and phone or email so the team can send the quote; save with "
-        "set_contact, then call try_qualify."
+        "Ask for the buyer's name, mobile number and email the way a friendly salesperson would: one at a "
+        "time, casually, woven into the conversation (\"Great, and what's the best email to send the quote "
+        'to?"), never as a form. Save with set_contact, always passing every detail you have together, '
+        "then call try_qualify."
     ),
     AiRole.QUOTATION.value: (
         "Tell the buyer the quotation is being prepared and reviewed by our sales team. Custom, printed or "

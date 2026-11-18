@@ -270,35 +270,55 @@ def _req_snapshot(r: DealRequirement) -> dict[str, object]:
 
 
 async def patch_contact(session: AsyncSession, deal: Deal, patch: ContactPatch, actor: Actor) -> Contact:
-    """Capture buyer details. If the phone/email already belongs to another contact, the deal moves to
-    that contact (auto-merge key from the DDL) instead of failing on the unique index."""
+    """Capture buyer details. A phone or email the buyer types is a claim, not proof (D-4, live test 18 Nov:
+    an anonymous website visitor typed a real buyer's phone and took over that buyer's name and email).
+
+    Client rule (18 Nov): when a typed phone or email already belongs to another contact, the deal moves to
+    that contact only if the phone AND the email both match it (the AI casually asks every visitor for the
+    missing one). The existing contact is never overwritten: only its empty fields are filled. A partial
+    match is not linked; the salesperson gets a note to check and merge by hand."""
     contact = await contact_of(session, deal)
     try:
         phone = normalise_phone(patch.phone) if patch.phone else None
         email = normalise_email(patch.email) if patch.email else None
     except ValueError as exc:
         raise RuleViolation(str(exc)) from exc
+    taken: dict[str, Contact] = {}
     for kind, value in (("phone", phone), ("email", email)):
         other = await find_contact(session, kind, value) if value else None  # type: ignore[arg-type]
         if other is not None and other.id != contact.id:
-            contact = await _merge_into(session, deal, contact, other, actor)
+            taken[kind] = other
+    known_only = False  # merged into an existing buyer: fill blanks, never overwrite
+    if taken:
+        target = taken.get("phone") or taken["email"]
+        claim_phone = phone or contact.phone_e164 or contact.whatsapp_e164
+        claim_email = email or contact.email
+        if claim_phone and claim_email and _has_identity(target, claim_phone, claim_email):
+            contact, known_only = await _merge_into(session, deal, contact, target, actor), True
+        else:
+            await _note_possible_match(session, deal, stub=contact, existing=target, taken=taken, actor=actor)
+            phone = None if "phone" in taken else phone  # never copied onto a second contact
+            email = None if "email" in taken else email
     before = {"name": contact.full_name, "phone": contact.phone_e164, "email": contact.email}
-    if phone:
+    if phone and not (known_only and contact.phone_e164):
         contact.phone_e164 = phone
         if contact.source == "whatsapp" and contact.whatsapp_e164 is None:
             contact.whatsapp_e164 = phone
-    if email:
+    if email and not (known_only and contact.email):
         contact.email = email
+    if patch.name is not None and not (known_only and contact.full_name):
+        contact.full_name = patch.name
     for attr, key in (
-        ("full_name", "name"),
         ("preferred_channel", "preferred_channel"),
         ("language", "language"),
         ("timezone", "timezone"),
     ):
         if (value := getattr(patch, key)) is not None:
             setattr(contact, attr, value)
-    if patch.company:
+    if patch.company and not (known_only and contact.company_id):
         await _set_company(session, deal, contact, patch.company)
+    elif known_only:
+        deal.company_id = deal.company_id or contact.company_id
     await session.flush()
     await record(
         session,
@@ -311,6 +331,41 @@ async def patch_contact(session: AsyncSession, deal: Deal, patch: ContactPatch, 
         timeline=Timeline("contact", "Contact details captured", deal.id, contact.id),
     )
     return contact
+
+
+def _has_identity(contact: Contact, phone: str, email: str) -> bool:
+    """The contact's own phone (or WhatsApp number) AND email are the ones the buyer gave."""
+    same_email = (contact.email or "").lower() == email.lower()
+    return same_email and phone in (contact.phone_e164, contact.whatsapp_e164)
+
+
+async def _note_possible_match(
+    session: AsyncSession,
+    deal: Deal,
+    *,
+    stub: Contact,
+    existing: Contact,
+    taken: dict[str, Contact],
+    actor: Actor,
+) -> None:
+    """A partial match is never linked automatically; the salesperson decides (the buyer is not told)."""
+    which = " and ".join(sorted(taken))
+    await record(
+        session,
+        actor,
+        "contact.possible_match",
+        "contact",
+        stub.id,
+        after={"existing_contact_id": existing.id, "matched": sorted(taken)},
+        timeline=Timeline(
+            "contact_match",
+            f"The buyer gave the {which} of an existing contact ({existing.full_name or 'no name'}), but not "
+            "both their phone and email, so the deal was NOT linked to them. Check with the buyer and merge "
+            "by hand if it is the same person.",
+            deal.id,
+            stub.id,
+        ),
+    )
 
 
 async def _merge_into(

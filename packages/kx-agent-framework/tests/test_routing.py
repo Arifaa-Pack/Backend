@@ -217,3 +217,15 @@ def test_a_gemini_failure_counts_as_every_model_failing() -> None:
 
     assert is_model_error(ChatGoogleGenerativeAIError("429 quota"))
     assert not is_model_error(KeyError("bug in our code"))
+
+
+def test_every_website_visitor_who_gave_one_identifier_is_asked_for_the_other() -> None:
+    """D-4 (client rule 18 Nov): linking to a known buyer needs the phone AND the email, so the AI casually
+    asks for the missing one. It depends only on what the visitor typed, so it reveals nothing about us."""
+    from kx.agents.tools import _ask_for_the_other
+    from kx.core.contracts import ContactPatch
+
+    assert "email address" in _ask_for_the_other("web_chat", ContactPatch(phone="+971501234567"))
+    assert "mobile number" in _ask_for_the_other("web_voice", ContactPatch(email="a@b.ae"))
+    assert _ask_for_the_other("web_chat", ContactPatch(phone="+971501234567", email="a@b.ae")) == ""
+    assert _ask_for_the_other("whatsapp", ContactPatch(email="a@b.ae")) == ""  # WhatsApp proves the number
