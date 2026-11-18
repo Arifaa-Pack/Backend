@@ -94,6 +94,11 @@ class CeleryKicker:
         return sent
 
     def waiting(self, queue: str) -> int:
-        """Messages waiting in `queue` (not yet taken by a worker)."""
+        """Messages waiting in `queue` (not yet taken by a worker). Redis deletes an empty list, and the
+        passive declare then raises NOT_FOUND: that is an empty queue, the very case where a lost job must be
+        resent (live test 19 Nov: raising there left a retried job stuck for hours)."""
         with self._app.connection_for_read() as conn:
-            return int(conn.default_channel.queue_declare(queue=queue, passive=True).message_count)
+            try:
+                return int(conn.default_channel.queue_declare(queue=queue, passive=True).message_count)
+            except conn.channel_errors:
+                return 0

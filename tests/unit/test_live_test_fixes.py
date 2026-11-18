@@ -101,3 +101,14 @@ def test_a_resend_is_skipped_while_its_queue_still_holds_messages() -> None:
     assert kicker._send([ai, send], resend=True) == [send.job_id]  # the AI queue is busy, not lost
     assert kicker._send([ai], resend=False) == [ai.job_id]  # a first kick always goes
     assert ("kx.ai", str(ai.job_id)) in app.sent and ("kx", str(send.job_id)) in app.sent
+
+
+def test_an_empty_broker_queue_counts_as_empty_not_as_an_error() -> None:
+    """Live test 19 Nov: Redis deletes an empty list and the passive declare raised NOT_FOUND, so every resend
+    of a lost job failed and the job stayed due for hours. A missing queue is an empty queue."""
+    from celery import Celery
+
+    from arifaa_pack.jobqueue import CeleryKicker
+
+    app = Celery("t", broker="memory://")
+    assert CeleryKicker(app).waiting("kx-never-declared") == 0
