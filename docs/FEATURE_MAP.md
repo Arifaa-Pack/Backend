@@ -1,0 +1,275 @@
+# Feature map
+
+Where each business feature lives, who implements each contract, and who reacts to each event.
+
+- The tables below the line are **generated** by `kx map --format md` from the real container (ADR-0001); CI
+  fails when they are stale. Refresh: `uv run kx map --write docs/FEATURE_MAP.md`. Narrow a question with
+  `uv run kx map --feature quotes` (or `--format json` for a diff-friendly dump).
+- The SRS table is **hand-maintained**: update it when a feature moves (Phase 1 / 2 slice moves, see
+  `docs/arch/PROGRESS.md`). Business rules: the SRS (`docs/Arifaa Pack — Detailed Business Flow v1 (SRS basis) (2).md`).
+
+## SRS sections → code (hand-maintained)
+
+Paths are relative to each package's `src/` folder (`kx/crm/...` is `packages/kx-core-crm/src/kx/crm/...`).
+
+| SRS | Feature | Main code today | Events | Planned slice (Phase 1/2) |
+| --- | --- | --- | --- | --- |
+| §8 | Lead capture and qualification; §8.1 opt-out; §8.2 phone status; Requirement Summary | `kx/crm/services/deals.py`, `kx/crm/rules.py`, `kx/crm/services/consent.py`, `kx/crm/services/phone.py`, `kx/crm/services/summary.py`, `kx/crm/gateway.py` (`try_qualify`, `record_opt_out`); `kx/core/optout.py`, `kx/automation/optout.py`, `kx/automation/unsubscribe.py`; `kx/agents/graphs/conversation.py` | `deal.qualified.v1`, `consent.opted_out.v1`, `consent.stop_unclear.v1`, `deal.requirement_summary.v1` | crm `deals/`, `consent/`; automation `optout/` |
+| §9 | Deal assignment (round robin, rules, backup, takeover, hand-back) | `kx/crm/services/assignment.py`, `kx/crm/services/staff.py`, `kx/crm/api/assignment.py`, `kx/crm/api/admin.py` (availability) | `deal.assigned.v1` | crm `assignment/` |
+| §10–11 | Price list and quotation (build, approve, issue, send) | `kx/crm/pricing/price_list.py`, `kx/crm/pricing/engine.py`, `kx/crm/services/pricing.py`, `kx/crm/services/price_lists.py`, `kx/crm/services/quotes.py`, `kx/crm/services/approvals.py`, `kx/crm/services/issuing.py`, `kx/crm/services/grants.py`, `kx/crm/pdf.py`, `kx/crm/api/quotes.py`, `kx/crm/api/deals.py`, `kx/crm/api/screens.py`; `kx/automation/outbound.py`; `kx/agents/graphs/quotation.py` | `quote.submitted.v1`, `quote.approved.v1`, `quote.rejected.v1`, `quote.correction_requested.v1`, `quote.not_delivered.v1`, `quote.resend_requested.v1` | crm `pricing/`, `quotes/`, `approvals/` |
+| §12 | Negotiation inside the range (AI) | `kx/crm/pricing/engine.py` (`ladder_between`, `evaluate_ladder_counter`), `kx/crm/services/negotiation.py`, `kx/crm/gateway.py` (`evaluate_counter`); `kx/agents/graphs/deal.py`, `kx/agents/guard.py`; `kx/core/price_guard.py` | `negotiation.paused.v1` | crm `negotiation/`; agents `graphs/`, `guard/` |
+| §13 | Change requests (to the salesperson) | `kx/crm/services/change_requests.py`, `kx/crm/api/change_requests.py`, `kx/crm/gateway.py` (`raise_change_request`); `kx/agents/tools.py`; `kx/automation/handlers.py` + `kx/automation/alerts.py` (`ApprovalLadder`) | `change_request.raised.v1`, `change_request.closed.v1` | crm `change_requests/` |
+| §14 | Final quotation and handover (AI off, staff reply, click-to-call) | `kx/crm/services/deals.py` (`hand_over`), `kx/crm/services/handover.py`, `kx/crm/api/deal_actions.py`; `kx/automation/alerts.py` (`CallBridge`); `kx/agents/orchestrator.py` | `quote.approved.v1` (final) | crm `handover/` |
+| §15 | Payment, WON, orders and stock; LOST proposals | `kx/crm/services/orders.py`, `kx/crm/services/lost_proposals.py`, `kx/crm/api/deal_actions.py`, `kx/crm/api/screens.py` (stock) | `deal.won.v1`, `order.status_changed.v1` | crm `orders/` |
+| §16 | Follow-ups and reminders (day 2/5/10; 30/60/120-minute ladder) | `kx/automation/handlers.py` (`FollowUps`), `kx/automation/jobs.py`, `kx/automation/alerts.py`, `kx/automation/contact_hours.py`; `kx/crm/rules.py`, `kx/crm/services/approvals.py` (`sweep_overdue`) | `deal.next_action_set.v1`, `deal.stage_changed.v1` | automation `followups/`, `alerts/` |
+| §17 | Notifications matrix (event → recipients) | `kx/automation/handlers.py` (`EventHandlers.registry()`), `kx/automation/alerts.py` (`notify_staff`); table test `packages/kx-core-automation/tests/test_notifications_matrix_db.py` | every event in "Events: who reacts" below | automation `alerts/` |
+
+"Planned slice" names follow the brief's suggestions; Phase 1 / 2 fix them in `docs/arch/CRM_SLICES.md` and the
+other mapping files, and this table is updated with each move.
+
+---
+
+<!-- BEGIN GENERATED: kx map --format md (do not edit by hand) -->
+
+## Contracts (`kx.core.contracts`)
+
+| Protocol | Implemented by | File |
+| --- | --- | --- |
+| `kx.core.contracts:BlobStore` | `kx.automation.media:S3MediaStore` | `packages/kx-core-automation/src/kx/automation/media.py` |
+| `kx.core.contracts:ClickToCall` | `kx.automation.alerts:CallBridge` | `packages/kx-core-automation/src/kx/automation/alerts.py` |
+| `kx.core.contracts:CrmGateway` | `kx.crm.gateway:CrmGatewayImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
+| `kx.core.contracts:GrantConsumer` | `kx.crm.gateway:GrantConsumerImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
+| `kx.core.contracts:MessageSender` | `kx.automation.outbound:OutboundService` | `packages/kx-core-automation/src/kx/automation/outbound.py` |
+| `kx.core.contracts:StaffMailer` | `arifaa_pack.adapters:StaffCodeMailer` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+
+## Other ports (Protocols inside a package)
+
+| Protocol | Implemented by | File |
+| --- | --- | --- |
+| `kx.agents.handlers:ReplyAddressBook` | `arifaa_pack.adapters:ThreadAddressBook` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.knowledge:ContentSource` | `arifaa_pack.adapters:PayloadContentSource` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.knowledge:Embedder` | `arifaa_pack.adapters:HttpEmbedder` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.knowledge:KnowledgeSearch` | `kx.agents.knowledge:KnowledgeBase` | `packages/kx-agent-framework/src/kx/agents/knowledge.py` |
+| `kx.agents.models:ModelProvider` | `kx.agents.models:AnthropicApiProvider`<br>`kx.agents.models:GeminiApiProvider` | `packages/kx-agent-framework/src/kx/agents/models.py`<br>`packages/kx-agent-framework/src/kx/agents/models.py` |
+| `kx.agents.registry:PromptStore` | `kx.agents.registry:DefaultPromptStore` | `packages/kx-agent-framework/src/kx/agents/registry.py` |
+| `kx.agents.voice:VoicePlugins` | `arifaa_pack.adapters:PlatformVoicePlugins` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.website:HumanCheck` | `arifaa_pack.adapters:TurnstileVerifier` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.website:PublicLimits` | `arifaa_pack.adapters:PublicLimiter` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.automation.alerts:Caller` | `kx.automation.channels.calls:TelnyxCaller` | `packages/kx-core-automation/src/kx/automation/channels/calls.py` |
+| `kx.automation.alerts:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
+| `kx.automation.channels.email:SesV2Client` | - | - |
+| `kx.automation.channels.email_chain:EmailVendor` | `kx.automation.channels.email:EmailSender`<br>`kx.automation.channels.email_chain:EmailChain`<br>`kx.automation.channels.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/channels/email.py`<br>`packages/kx-core-automation/src/kx/automation/channels/email_chain.py`<br>`packages/kx-core-automation/src/kx/automation/channels/stalwart.py` |
+| `kx.automation.jobs:MediaDownloader` | `kx.automation.channels.whatsapp:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/channels/whatsapp.py` |
+| `kx.automation.media:S3Client` | - | - |
+| `kx.automation.outbound:EmailTransport` | `kx.automation.channels.email:EmailSender`<br>`kx.automation.channels.email_chain:EmailChain`<br>`kx.automation.channels.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/channels/email.py`<br>`packages/kx-core-automation/src/kx/automation/channels/email_chain.py`<br>`packages/kx-core-automation/src/kx/automation/channels/stalwart.py` |
+| `kx.automation.outbound:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
+| `kx.automation.outbound:RateLimiter` | `kx.automation.ratelimit:TokenBucketLimiter` | `packages/kx-core-automation/src/kx/automation/ratelimit.py` |
+| `kx.automation.outbound:TemplateSpend` | `kx.core.spend:SpendMeter` | `packages/kx-core-db/src/kx/core/spend.py` |
+| `kx.automation.outbound:WhatsAppTransport` | `kx.automation.channels.whatsapp:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/channels/whatsapp.py` |
+| `kx.automation.ports:ApprovalStatusReader` | `kx.crm.gateway:ApprovalStatusReaderImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
+| `kx.automation.ports:MediaStore` | `kx.automation.media:S3MediaStore` | `packages/kx-core-automation/src/kx/automation/media.py` |
+| `kx.automation.ports:TaskScheduler` | `kx.automation.jobs:JobScheduler` | `packages/kx-core-automation/src/kx/automation/jobs.py` |
+| `kx.core.jobs:Kicker` | `arifaa_pack.jobqueue:CeleryKicker` | `apps/arifaa-pack/src/arifaa_pack/jobqueue.py` |
+| `kx.crm.pdf:PdfEngine` | `kx.crm.pdf:ChromiumEngine`<br>`kx.crm.pdf:WeasyPrintEngine` | `packages/kx-core-crm/src/kx/crm/pdf.py`<br>`packages/kx-core-crm/src/kx/crm/pdf.py` |
+| `kx.crm.pdf:PdfUploader` | `kx.crm.pdf:S3PdfUploader` | `packages/kx-core-crm/src/kx/crm/pdf.py` |
+| `kx.crm.services.fx:FxSource` | `arifaa_pack.adapters:OpenRatesFx` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+
+## Events: who reacts
+
+| Event | Payload | Handlers |
+| --- | --- | --- |
+| `agent.run_completed.v1` | `kx.core.event_payloads:AgentRunCompleted` | - |
+| `approval.overdue.v1` | `kx.core.event_payloads:ApprovalOverdue` | - |
+| `catalogue.product_content_changed.v1` | `kx.core.event_payloads:ProductContentChanged` | `app: arifaa_pack.container:cms_product_draft` |
+| `catalogue.product_published.v1` | `kx.core.event_payloads:ProductPublished` | `crm: kx.crm.jobs:on_product_published` |
+| `change_request.closed.v1` | `kx.core.event_payloads:ChangeRequestClosed` | - |
+| `change_request.raised.v1` | `kx.core.event_payloads:ChangeRequested` | `automation: kx.automation.handlers:EventHandlers._change_requested` |
+| `consent.opted_out.v1` | `kx.core.event_payloads:OptedOut` | `automation: kx.automation.handlers:EventHandlers._opted_out`<br>`crm: kx.crm.jobs:on_opted_out` |
+| `consent.stop_unclear.v1` | `kx.core.event_payloads:StopUnclear` | `automation: kx.automation.handlers:EventHandlers._stop_unclear` |
+| `contact.anonymised.v1` | `kx.core.event_payloads:ContactAnonymised` | `agents: kx.agents.handlers:AgentHandlers._anonymise`<br>`automation: kx.automation.handlers:EventHandlers._contact_anonymised` |
+| `conversation.summary_updated.v1` | `kx.core.event_payloads:ConversationSummaryUpdated` | `crm: kx.crm.jobs:on_summary_updated` |
+| `deal.assigned.v1` | `kx.core.event_payloads:DealAssigned` | `automation: kx.automation.handlers:EventHandlers._deal_assigned` |
+| `deal.next_action_set.v1` | `kx.core.event_payloads:DealNextActionSet` | `automation: kx.automation.handlers:EventHandlers._next_action_set` |
+| `deal.qualified.v1` | `kx.core.event_payloads:DealQualified` | `crm: kx.crm.jobs:on_deal_qualified` |
+| `deal.requirement_summary.v1` | `kx.core.event_payloads:RequirementSummary` | `automation: kx.automation.handlers:EventHandlers._requirement_summary` |
+| `deal.stage_changed.v1` | `kx.core.event_payloads:DealStageChanged` | `automation: kx.automation.handlers:EventHandlers._stage_changed` |
+| `deal.won.v1` | `kx.core.event_payloads:DealWon` | `automation: kx.automation.handlers:EventHandlers._deal_won` |
+| `kb.content_published.v1` | `kx.core.event_payloads:KbContentPublished` | `agents: kx.agents.handlers:AgentHandlers._kb` |
+| `lane.risk_assessed.v1` | `kx.core.event_payloads:LaneRiskAssessed` | - |
+| `message.received.v1` | `kx.core.event_payloads:MessageReceived` | `agents: kx.agents.handlers:AgentHandlers._message`<br>`crm: kx.crm.jobs:on_message_received` |
+| `message.status.v1` | `kx.core.event_payloads:MessageStatus` | `crm: kx.crm.jobs:on_message_status` |
+| `negotiation.paused.v1` | `kx.core.event_payloads:NegotiationPaused` | `automation: kx.automation.handlers:EventHandlers._negotiation_paused` |
+| `order.status_changed.v1` | `kx.core.event_payloads:OrderStatusChanged` | `automation: kx.automation.handlers:EventHandlers._order_status_changed` |
+| `price.proposed.v1` | `kx.core.event_payloads:PriceProposed` | `crm: kx.crm.jobs:on_price_proposed` |
+| `price.stale.v1` | `kx.core.event_payloads:PriceStale` | - |
+| `quote.approved.v1` | `kx.core.event_payloads:QuoteApproved` | `agents: kx.agents.handlers:AgentHandlers._quote`<br>`automation: kx.automation.handlers:EventHandlers._quote_approved` |
+| `quote.correction_requested.v1` | `kx.core.event_payloads:QuoteCorrectionRequested` | `agents: kx.agents.handlers:AgentHandlers._quote` |
+| `quote.not_delivered.v1` | `kx.core.event_payloads:QuoteNotDelivered` | `crm: kx.crm.jobs:on_quote_not_delivered` |
+| `quote.rejected.v1` | `kx.core.event_payloads:QuoteRejected` | `agents: kx.agents.handlers:AgentHandlers._quote` |
+| `quote.resend_requested.v1` | `kx.core.event_payloads:QuoteResendRequested` | `automation: kx.automation.handlers:EventHandlers._quote_resend` |
+| `quote.submitted.v1` | `kx.core.event_payloads:QuoteSubmitted` | `automation: kx.automation.handlers:EventHandlers._quote_submitted` |
+| `settings.changed.v1` | `kx.core.event_payloads:SettingsChanged` | - |
+| `staff.notice_requested.v1` | `kx.core.event_payloads:StaffNotice` | `automation: kx.automation.handlers:EventHandlers._staff_notice` |
+| `texts.text_changed.v1` | `kx.core.event_payloads:MessageTextChanged` | `app: arifaa_pack.texts_sync:translate_text` |
+
+## HTTP routes
+
+| Method | Path | Endpoint | Calls |
+| --- | --- | --- | --- |
+| GET | `/.well-known/jwks.json` | `arifaa_pack.api:create_app.<locals>.jwks` | - |
+| GET | `/healthz` | `arifaa_pack.api:create_app.<locals>.healthz` | - |
+| GET | `/healthz/beat` | `arifaa_pack.api:create_app.<locals>.healthz_beat` | `arifaa_pack.telemetry:beat_health` |
+| GET | `/v1/admin/channel-accounts` | `kx.automation.admin_api:build_router.<locals>.accounts` | - |
+| PATCH | `/v1/admin/channel-accounts/{account_id}` | `kx.automation.admin_api:build_router.<locals>.edit_account` | - |
+| GET | `/v1/admin/kill-switch` | `kx.crm.api.operations:router.<locals>.get_level` | - |
+| PUT | `/v1/admin/kill-switch` | `kx.crm.api.operations:router.<locals>.set_level` | `kx.crm.services.journal:record` |
+| GET | `/v1/admin/message-templates` | `kx.automation.admin_api:build_router.<locals>.templates` | - |
+| PUT | `/v1/admin/message-templates` | `kx.automation.admin_api:build_router.<locals>.upsert_template` | - |
+| POST | `/v1/admin/message-templates/{template_id}/status` | `kx.automation.admin_api:build_router.<locals>.template_status` | - |
+| GET | `/v1/approvals` | `kx.crm.api.quotes:router.<locals>.list_approvals` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
+| POST | `/v1/approvals/{approval_id}/decision` | `kx.crm.api.quotes:router.<locals>.decide` | `kx.crm.services.approvals:decide` |
+| POST | `/v1/auth/login` | `kx.crm.api.auth:router.<locals>.login` | `kx.crm.services.auth:login` |
+| POST | `/v1/auth/logout` | `kx.crm.api.auth:router.<locals>.logout` | `kx.crm.services.auth:logout` |
+| GET | `/v1/auth/me` | `kx.crm.api.auth:router.<locals>.me` | - |
+| POST | `/v1/auth/mfa/email/send` | `kx.crm.api.auth:router.<locals>.mfa_email_send` | `kx.crm.services.auth:send_email_code` |
+| POST | `/v1/auth/mfa/email/verify` | `kx.crm.api.auth:router.<locals>.mfa_email_verify` | `kx.crm.services.auth:verify_second_step` |
+| POST | `/v1/auth/mfa/totp` | `kx.crm.api.auth:router.<locals>.mfa_totp` | `kx.crm.services.auth:verify_second_step` |
+| POST | `/v1/auth/password` | `kx.crm.api.auth:router.<locals>.password_change` | `kx.crm.services.auth:change_password` |
+| POST | `/v1/auth/password/reset/finish` | `kx.crm.api.auth:router.<locals>.reset_finish` | `kx.crm.services.auth:finish_reset` |
+| POST | `/v1/auth/password/reset/start` | `kx.crm.api.auth:router.<locals>.reset_start` | `kx.crm.services.auth:start_reset` |
+| POST | `/v1/auth/refresh` | `kx.crm.api.auth:router.<locals>.refresh` | `kx.crm.services.auth:refresh` |
+| POST | `/v1/auth/totp/confirm` | `kx.crm.api.auth:router.<locals>.totp_confirm` | `kx.crm.services.auth:confirm_totp` |
+| POST | `/v1/auth/totp/enrol` | `kx.crm.api.auth:router.<locals>.totp_enrol` | `kx.crm.services.auth:begin_totp` |
+| GET | `/v1/catalogue/workbook` | `kx.crm.api.catalogue_workbook:router.<locals>.download` | `kx.crm.services.workbook:download` |
+| POST | `/v1/catalogue/workbook/apply` | `kx.crm.api.catalogue_workbook:router.<locals>.apply` | `kx.crm.services.workbook:apply` |
+| POST | `/v1/catalogue/workbook/preview` | `kx.crm.api.catalogue_workbook:router.<locals>.preview` | `kx.crm.services.workbook:preview` |
+| GET | `/v1/change-requests` | `kx.crm.api.change_requests:router.<locals>.inbox` | `kx.crm.api.deals:visible_to` |
+| GET | `/v1/change-requests/{cr_id}` | `kx.crm.api.change_requests:router.<locals>.card` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |
+| POST | `/v1/change-requests/{cr_id}/decline` | `kx.crm.api.change_requests:router.<locals>.decline` | `kx.crm.services.change_requests:decline` |
+| POST | `/v1/change-requests/{cr_id}/resolve` | `kx.crm.api.change_requests:router.<locals>.resolve` | `kx.crm.services.change_requests:resolve` |
+| POST | `/v1/change-requests/{cr_id}/revise` | `kx.crm.api.change_requests:router.<locals>.revise` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.change_requests:link_revision`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:revise_quote` |
+| POST | `/v1/change-requests/{cr_id}/start` | `kx.crm.api.change_requests:router.<locals>.start` | `kx.crm.services.change_requests:start` |
+| GET | `/v1/companies` | `kx.crm.api.records:router.<locals>.companies` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
+| POST | `/v1/companies` | `kx.crm.api.records:router.<locals>.create_company` | `kx.crm.services.journal:record` |
+| PATCH | `/v1/companies/{company_id}` | `kx.crm.api.records:router.<locals>.edit_company` | `kx.crm.services.journal:record` |
+| GET | `/v1/company` | `kx.crm.api.company:router.<locals>.show` | `kx.crm.services.company:letterhead` |
+| PATCH | `/v1/company` | `kx.crm.api.company:router.<locals>.edit` | `kx.crm.services.company:letterhead`<br>`kx.crm.services.company:update` |
+| DELETE | `/v1/company/logo` | `kx.crm.api.company:router.<locals>.remove_logo` | `kx.crm.services.company:letterhead`<br>`kx.crm.services.company:update` |
+| PUT | `/v1/company/logo` | `kx.crm.api.company:router.<locals>.upload_logo` | `kx.crm.services.company:letterhead`<br>`kx.crm.services.company:logo_data_uri`<br>`kx.crm.services.company:update` |
+| GET | `/v1/contacts` | `kx.crm.api.records:router.<locals>.contacts` | `kx.crm.api.deals:visible_to`<br>`kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
+| GET | `/v1/contacts/{contact_id}` | `kx.crm.api.records:router.<locals>.contact` | `kx.crm.api.deals:visible_to` |
+| PATCH | `/v1/contacts/{contact_id}` | `kx.crm.api.records:router.<locals>.edit_contact` | `kx.crm.api.deals:visible_to`<br>`kx.crm.services.journal:record` |
+| GET | `/v1/dashboard/summary` | `kx.crm.api.admin:router.<locals>.summary` | `kx.crm.services.price_proposals:material_freshness` |
+| GET | `/v1/dashboards/manager` | `kx.crm.api.reports:router.<locals>.manager` | `kx.crm.services.dashboards:manager_board` |
+| GET | `/v1/dashboards/md` | `kx.crm.api.reports:router.<locals>.md` | `kx.crm.services.dashboards:counts` |
+| GET | `/v1/dashboards/salesperson` | `kx.crm.api.reports:router.<locals>.salesperson` | `kx.crm.services.dashboards:salesperson_board` |
+| GET | `/v1/deals` | `kx.crm.api.deals:router.<locals>.list_deals` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
+| PATCH | `/v1/deals/orders/{order_id}` | `kx.crm.api.deal_actions:router.<locals>.order_status` | `kx.crm.services.orders:update_order_status` |
+| GET | `/v1/deals/{deal_id}` | `kx.crm.api.deals:router.<locals>.get_deal` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:requirements_of` |
+| POST | `/v1/deals/{deal_id}/ai` | `kx.crm.api.deals:router.<locals>.toggle_ai` | `kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:requirements_of`<br>`kx.crm.services.negotiation:pause_ai`<br>`kx.crm.services.negotiation:resume_ai` |
+| POST | `/v1/deals/{deal_id}/call` | `kx.crm.api.deal_actions:router.<locals>.call` | `kx.crm.services.deals:get_deal`<br>`kx.crm.services.handover:call_buyer` |
+| POST | `/v1/deals/{deal_id}/handback` | `kx.crm.api.assignment:router.<locals>.hand_back` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.assignment:hand_back` |
+| POST | `/v1/deals/{deal_id}/messages` | `kx.crm.api.deal_actions:router.<locals>.staff_message` | `kx.crm.services.deals:get_deal`<br>`kx.crm.services.handover:reply` |
+| POST | `/v1/deals/{deal_id}/offer` | `kx.crm.api.deals:router.<locals>.manager_offer` | `kx.crm.services.negotiation:manager_offer`<br>`kx.crm.services.negotiation:resume_ai` |
+| POST | `/v1/deals/{deal_id}/opt-out` | `kx.crm.api.deal_actions:router.<locals>.opt_out` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.consent:record_opt_out`<br>`kx.crm.services.deals:get_deal` |
+| POST | `/v1/deals/{deal_id}/payments` | `kx.crm.api.deal_actions:router.<locals>.payment` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.orders:record_payment` |
+| POST | `/v1/deals/{deal_id}/personal-contact-shared` | `kx.crm.api.deal_actions:router.<locals>.personal_contact_shared` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:personal_contact_shared` |
+| GET | `/v1/deals/{deal_id}/quotes` | `kx.crm.api.deals:router.<locals>.deal_quotes` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |
+| POST | `/v1/deals/{deal_id}/quotes` | `kx.crm.api.deals:router.<locals>.request_quote` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:request_quote` |
+| POST | `/v1/deals/{deal_id}/quotes/manual` | `kx.crm.api.assignment:router.<locals>.manual_quote` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:manual_quote` |
+| POST | `/v1/deals/{deal_id}/quotes/revise` | `kx.crm.api.deals:router.<locals>.revise_quote` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:revise_quote` |
+| POST | `/v1/deals/{deal_id}/reassign` | `kx.crm.api.assignment:router.<locals>.reassign` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.assignment:reassign` |
+| POST | `/v1/deals/{deal_id}/reopen` | `kx.crm.api.deal_actions:router.<locals>.reopen` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:reopen` |
+| POST | `/v1/deals/{deal_id}/stage` | `kx.crm.api.deals:router.<locals>.move` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.assignment:assign`<br>`kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:move_stage`<br>`kx.crm.services.deals:requirements_of` |
+| POST | `/v1/deals/{deal_id}/takeover` | `kx.crm.api.assignment:router.<locals>.take_over` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.assignment:take_over` |
+| GET | `/v1/deals/{deal_id}/timeline` | `kx.crm.api.deals:router.<locals>.timeline` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of`<br>`kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |
+| POST | `/v1/deals/{deal_id}/won` | `kx.crm.api.deal_actions:router.<locals>.won` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.orders:mark_won` |
+| GET | `/v1/exports/{entity}` | `kx.crm.api.reports:router.<locals>.export` | `kx.crm.api.deals:visible_to` |
+| PUT | `/v1/feature-flags/{key}` | `kx.crm.api.admin:router.<locals>.put_flag` | - |
+| GET | `/v1/fx-rates` | `kx.crm.api.records:router.<locals>.fx_rates` | - |
+| POST | `/v1/fx-rates` | `kx.crm.api.records:router.<locals>.fx_override` | `kx.crm.services.journal:record` |
+| GET | `/v1/inbox` | `kx.crm.api.screens:router.<locals>.my_inbox` | `kx.crm.services.inbox:inbox_for` |
+| GET | `/v1/materials/freshness` | `kx.crm.api.admin:router.<locals>.freshness` | `kx.crm.services.price_proposals:material_freshness` |
+| GET | `/v1/orders` | `kx.crm.api.records:router.<locals>.orders` | `kx.crm.api.deals:visible_to`<br>`kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
+| GET | `/v1/price-list/export` | `kx.crm.api.screens:router.<locals>.export_price_list` | `kx.crm.services.price_lists:export_xlsx` |
+| GET | `/v1/price-list/history` | `kx.crm.api.screens:router.<locals>.price_list_history` | - |
+| POST | `/v1/price-list/import` | `kx.crm.api.screens:router.<locals>.import_price_list` | `kx.crm.services.price_lists:import_xlsx` |
+| GET | `/v1/price-proposals` | `kx.crm.api.admin:router.<locals>.proposals` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
+| POST | `/v1/price-proposals/{rate_id}/approve` | `kx.crm.api.admin:router.<locals>.approve` | `kx.crm.services.price_proposals:approve_rate` |
+| POST | `/v1/price-proposals/{rate_id}/reject` | `kx.crm.api.admin:router.<locals>.reject` | `kx.crm.services.price_proposals:reject_rate` |
+| DELETE | `/v1/price-tiers/{tier_id}` | `kx.crm.api.screens:router.<locals>.remove_tier` | `kx.crm.services.price_lists:delete_tier` |
+| PATCH | `/v1/price-tiers/{tier_id}` | `kx.crm.api.screens:router.<locals>.edit_tier` | `kx.crm.services.price_lists:update_tier` |
+| GET | `/v1/products` | `kx.crm.api.records:router.<locals>.products` | - |
+| GET | `/v1/products/{product_id}` | `kx.crm.api.records:router.<locals>.product` | - |
+| PATCH | `/v1/products/{product_id}` | `kx.crm.api.records:router.<locals>.edit_product` | `kx.crm.services.journal:record` |
+| GET | `/v1/products/{product_id}/history` | `kx.crm.api.screens:router.<locals>.product_history` | - |
+| GET | `/v1/products/{product_id}/price-tiers` | `kx.crm.api.screens:router.<locals>.tiers` | `kx.crm.services.price_lists:tiers_for` |
+| POST | `/v1/products/{product_id}/price-tiers` | `kx.crm.api.screens:router.<locals>.add_tier` | `kx.crm.services.price_lists:add_tier` |
+| POST | `/v1/public/sessions` | `kx.agents.website:build_router.<locals>.start` | `kx.agents.language:normalise_language` |
+| POST | `/v1/public/sessions/{session_id}/identify` | `kx.agents.website:build_router.<locals>.identify` | - |
+| POST | `/v1/public/sessions/{session_id}/messages` | `kx.agents.website:build_router.<locals>.message` | - |
+| POST | `/v1/public/sessions/{session_id}/voice` | `kx.agents.website:build_router.<locals>.voice` | - |
+| GET | `/v1/public/unsubscribe` | `kx.automation.unsubscribe:build_router.<locals>.unsubscribe_page` | - |
+| POST | `/v1/public/unsubscribe` | `kx.automation.unsubscribe:build_router.<locals>.unsubscribe` | `kx.automation.optout:apply_stop` |
+| GET | `/v1/quote-versions/{version_id}` | `kx.crm.api.quotes:router.<locals>.get_version` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.issuing:lines_of` |
+| GET | `/v1/quote-versions/{version_id}/costs` | `kx.crm.api.quotes:router.<locals>.get_costs` | `kx.crm.services.quotes:costs_of` |
+| GET | `/v1/settings` | `kx.crm.api.admin:router.<locals>.list_settings` | - |
+| PUT | `/v1/settings/{key}` | `kx.crm.api.admin:router.<locals>.put_setting` | - |
+| GET | `/v1/stock` | `kx.crm.api.screens:router.<locals>.stock` | - |
+| PUT | `/v1/stock` | `kx.crm.api.screens:router.<locals>.set_stock` | `kx.crm.services.orders:set_stock` |
+| GET | `/v1/texts` | `kx.crm.api.texts:router.<locals>.list_texts` | `kx.crm.services.texts:as_dict`<br>`kx.crm.services.texts:list_texts` |
+| POST | `/v1/texts/translate-missing` | `kx.crm.api.texts:router.<locals>.translate_missing` | `kx.crm.services.texts:request_missing_translations` |
+| PUT | `/v1/texts/{key}` | `kx.crm.api.texts:router.<locals>.edit` | `kx.crm.services.texts:as_dict`<br>`kx.crm.services.texts:update_english` |
+| GET | `/v1/texts/{key}/history` | `kx.crm.api.texts:router.<locals>.history` | `kx.crm.services.texts:history` |
+| POST | `/v1/texts/{key}/reset` | `kx.crm.api.texts:router.<locals>.reset` | `kx.crm.services.texts:as_dict`<br>`kx.crm.services.texts:reset` |
+| GET | `/v1/users` | `kx.crm.api.users:router.<locals>.list_users` | - |
+| POST | `/v1/users` | `kx.crm.api.users:router.<locals>.create` | `kx.crm.services.auth:create_user` |
+| PATCH | `/v1/users/{user_id}` | `kx.crm.api.users:router.<locals>.patch` | `kx.crm.services.journal:record` |
+| PUT | `/v1/users/{user_id}/availability` | `kx.crm.api.admin:router.<locals>.availability` | `kx.crm.services.assignment:set_availability` |
+| POST | `/v1/users/{user_id}/reset-mfa` | `kx.crm.api.users:router.<locals>.reset_mfa` | `kx.crm.services.auth:reset_mfa` |
+| POST | `/v1/users/{user_id}/unlock` | `kx.crm.api.users:router.<locals>.unlock` | `kx.crm.services.auth:unlock` |
+| POST | `/webhooks/cms` | `kx.automation.cms:build_router.<locals>.cms_published` | `kx.automation.outbox:emit`<br>`kx.automation.repo:first_receipt` |
+| POST | `/webhooks/telnyx/gather/{attempt_id}` | `kx.automation.webhooks:_telnyx_routes.<locals>.telnyx_gather` | `kx.automation.channels.calls:gather_reply_texml`<br>`kx.automation.channels.calls:verify_signature` |
+| POST | `/webhooks/telnyx/status/{attempt_id}` | `kx.automation.webhooks:_telnyx_routes.<locals>.telnyx_status` | `kx.automation.channels.calls:verify_signature` |
+| GET | `/webhooks/whatsapp` | `kx.automation.webhooks:_whatsapp_routes.<locals>.whatsapp_verify` | `kx.automation.channels.whatsapp:verify_challenge` |
+| POST | `/webhooks/whatsapp` | `kx.automation.webhooks:_whatsapp_routes.<locals>.whatsapp_events` | `kx.automation.channels.whatsapp:parse_webhook`<br>`kx.automation.channels.whatsapp:verify_signature`<br>`kx.automation.inbound:record_whatsapp` |
+
+## Background jobs (task table)
+
+| Task | Handler | Calls |
+| --- | --- | --- |
+| `agents.handle_event` | `arifaa_pack.container:_wire_events.<locals>.agents_event` | `kx.agents.handlers:AgentHandlers.last_resort` |
+| `app.cms_product_draft` | `arifaa_pack.container:cms_product_draft` | - |
+| `app.translate_text` | `arifaa_pack.texts_sync:translate_text` | `kx.crm.services.texts:load_edits`<br>`kx.crm.services.texts:save_translation` |
+| `automation.alert_negotiation_paused` | `kx.automation.jobs:register_jobs.<locals>.pause_alert` | - |
+| `automation.deliver_outbound` | `kx.automation.jobs:register_jobs.<locals>.deliver` | - |
+| `automation.handle_event` | `kx.automation.jobs:register_jobs.<locals>.event` | - |
+| `automation.ingest_inbound_email` | `kx.automation.jobs:register_jobs.<locals>.email` | `kx.automation.channels.email:parse_inbound`<br>`kx.automation.channels.feedback:parse_feedback`<br>`kx.automation.inbound:record_email`<br>`kx.automation.inbound:record_mail_event` |
+| `automation.ingest_whatsapp_media` | `kx.automation.jobs:register_jobs.<locals>.media` | `kx.automation.inbound:attach_media`<br>`kx.automation.inbound:media_id_of` |
+| `automation.optout_no_answer` | `kx.automation.jobs:register_jobs.<locals>.optout_check` | `kx.automation.handlers:stop_after_no_answer` |
+| `automation.quote_delivery_check` | `kx.automation.jobs:register_jobs.<locals>.quote_check` | - |
+| `automation.run_approval_ladder` | `kx.automation.jobs:register_jobs.<locals>.ladder` | - |
+| `automation.send_followup` | `kx.automation.jobs:register_jobs.<locals>.followup` | - |
+| `crm.handle_event` | `arifaa_pack.container:_wire_events.<locals>.crm_event` | `kx.crm.jobs:dispatch` |
+
+## Beat entries
+
+| Entry | Schedule | Body | Calls |
+| --- | --- | --- | --- |
+| `app.heartbeat` | 0:00:30 | `arifaa_pack.container:_periodic.<locals>.beat_heartbeat` | `arifaa_pack.telemetry:heartbeat` |
+| `app.retention` | <crontab: 11 23 * * * (m/h/dM/MY/d)> | `arifaa_pack.container:_periodic.<locals>.retention_plumbing` | `kx.agents.retention:plumbing_rules`<br>`kx.agents.retention:run_retention`<br>`kx.automation.retention:plumbing_rules`<br>`kx.crm.services.retention:plumbing_rules`<br>`kx.crm.services.retention:run_retention` |
+| `automation.mail_poll` | 0:00:30 | `kx.automation.jobs:periodic_jobs.<locals>.mail_poll` | `kx.automation.channels.stalwart:raw_key` |
+| `automation.price_scrapes` | <crontab: 0 2 * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.scrapes` | - |
+| `automation.requeue_outbound` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.requeue` | `kx.automation.outbox:emit` |
+| `crm.approval_sweep` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.sweep` | `kx.crm.services.approvals:sweep_overdue`<br>`kx.crm.services.change_requests:sweep_escalations` |
+| `crm.fx_rates` | <crontab: 5 2 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.fx_rates` | `kx.crm.services.fx:update_rates`<br>`kx.crm.services.fx:wanted` |
+| `crm.lost_proposals` | <crontab: 7 4 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.lost` | `kx.crm.services.lost_proposals:propose_lost` |
+| `crm.price_staleness` | <crontab: 23 5 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.staleness` | `kx.crm.services.price_proposals:emit_stale`<br>`kx.crm.services.quotes:expire_quotes` |
+| `crm.retention` | <crontab: 41 23 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.retention_` | `kx.crm.services.retention:run_retention` |
+| `crm.scheduled_reports` | <crontab: */15 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.reports` | `kx.crm.services.scheduled_reports:send_due` |
+| `jobs.dispatch_due` | 0:00:30 | `arifaa_pack.container:_periodic.<locals>.dispatch_due` | - |
+| `relay.agents` | 0:00:05 | `arifaa_pack.container:_periodic.<locals>.relay_agents` | - |
+| `relay.automation` | 0:00:05 | `kx.automation.jobs:periodic_jobs.<locals>.relay` | - |
+| `relay.crm` | 0:00:05 | `kx.crm.jobs:periodic_jobs.<locals>.relay` | - |
+
+<!-- END GENERATED -->

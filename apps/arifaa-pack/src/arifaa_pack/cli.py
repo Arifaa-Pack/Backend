@@ -229,12 +229,30 @@ def _map(args: argparse.Namespace) -> None:
     """ADR-0001 Phase 0: where every contract, event handler, route, job and Beat entry is implemented, read
     from the real container built offline (no database, Redis or network). `--format json` is sorted for
     diffs; `--feature` keeps the entries that mention a name (e.g. `quotes`, `change-requests`)."""
+    import pathlib  # noqa: PLC0415
     import sys  # noqa: PLC0415
 
     from arifaa_pack import featuremap  # noqa: PLC0415
 
+    if (args.write or args.check) and args.feature:
+        raise SystemExit("--write / --check take the whole map: drop --feature")
+
     fmap = featuremap.filter_map(featuremap.build_map(), args.feature)
-    sys.stdout.write(featuremap.to_json(fmap) if args.format == "json" else featuremap.to_markdown(fmap))
+    target = args.write or args.check
+    if target is None:
+        sys.stdout.write(featuremap.to_json(fmap) if args.format == "json" else featuremap.to_markdown(fmap))
+        return
+    # docs/FEATURE_MAP.md: the generated region between its markers is the full Markdown map
+    path = pathlib.Path(target)
+    document = path.read_text(encoding="utf-8")
+    generated = featuremap.to_markdown(fmap)
+    if args.check:
+        if not featuremap.is_current(document, generated):
+            raise SystemExit(f"{target} is stale: run `kx map --write {target}` and commit it")
+        print(f"{target} is current")
+        return
+    path.write_text(featuremap.splice(document, generated), encoding="utf-8", newline="\n")
+    print(f"wrote {target}")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -278,6 +296,11 @@ def main(argv: list[str] | None = None) -> None:
     mp = sub.add_parser("map", help="where each contract, event, route and job is implemented (ADR-0001)")
     mp.add_argument("--format", choices=["md", "json"], default="md")
     mp.add_argument("--feature", default=None, help="keep entries mentioning this name, e.g. quotes")
+    out = mp.add_mutually_exclusive_group()
+    out.add_argument(
+        "--write", metavar="FILE", help="refresh the generated region of FILE (docs/FEATURE_MAP.md)"
+    )
+    out.add_argument("--check", metavar="FILE", help="exit 1 if the generated region of FILE is stale (CI)")
     mp.set_defaults(fn=_map)
     args = p.parse_args(argv)
     args.fn(args)

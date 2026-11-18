@@ -1,0 +1,42 @@
+name: feature-map
+
+# ADR-0001: docs/FEATURE_MAP.md is generated from the real container (`kx map`). This fails when the committed
+# file no longer matches the code; refresh it with `uv run kx map --write docs/FEATURE_MAP.md`.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: feature-map-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_FROZEN: "1"
+
+jobs:
+  feature-map:
+    name: docs/FEATURE_MAP.md is current
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install Python 3.14 and the workspace
+        run: |
+          uv python install 3.14
+          uv sync --frozen --all-packages
+
+      - name: kx map --check docs/FEATURE_MAP.md
+        run: uv run kx map --check docs/FEATURE_MAP.md

@@ -49,7 +49,8 @@ def test_removed_vendor_is_not_in_the_code(vendor: str) -> None:
 def test_no_terraform_or_aws_workflows_remain() -> None:
     assert not list((ROOT / "infra").glob("**/*.tf"))
     paths = list((ROOT / ".github/workflows").glob("*.yml"))
-    # image-scan.yml: the weekly Trivy scan of the published images (infra review M16, 19 Nov), no deploy
-    assert {p.name for p in paths} == {"ci.yml", "release.yml", "image-scan.yml"}
+    # image-scan.yml: the weekly Trivy scan of the published images (infra review M16, 19 Nov), no deploy;
+    # feature-map.yml: ADR-0001 Phase 0 checks docs/FEATURE_MAP.md (no cloud, no deploy)
+    assert {p.name for p in paths} == {"ci.yml", "release.yml", "image-scan.yml", "feature-map.yml"}
     cloud = re.compile(r"aws-actions/|hashicorp/setup-terraform|\bterraform (plan|apply)\b", re.IGNORECASE)
     assert not [p.name for p in paths if cloud.search(p.read_text(encoding="utf-8"))]

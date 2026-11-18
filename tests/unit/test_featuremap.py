@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import pathlib
 import subprocess
 import sys
 import typing
@@ -204,3 +205,51 @@ def test_package_of() -> None:
     assert featuremap.package_of("kx.core") == "core"
     assert featuremap.package_of("arifaa_pack.container") == "app"
     assert featuremap.package_of("kx.crmx") == "external"
+
+
+# ---------------------------------------------------------------- docs/FEATURE_MAP.md (Phase 0.2)
+REPO = pathlib.Path(__file__).resolve().parents[2]
+
+
+def test_splice_replaces_only_the_generated_region() -> None:
+    begin, end = featuremap.GENERATED_BEGIN, featuremap.GENERATED_END
+    doc = f"# head\r\nhand table\r\n{begin}\r\nold\r\n{end}\r\ntail\r\n"  # a Windows checkout (CRLF)
+    out = featuremap.splice(doc, "new\n")
+    assert out == f"# head\nhand table\n{begin}\n\nnew\n\n{end}\ntail\n"
+    assert featuremap.is_current(out, "new\n")
+    assert featuremap.is_current(out.replace("\n", "\r\n"), "new\n")
+    assert not featuremap.is_current(doc, "new\n")
+    with pytest.raises(ValueError, match="markers"):
+        featuremap.splice("no markers here", "x")
+
+
+def test_cli_write_then_check(
+    fmap: dict[str, Any],
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from arifaa_pack.cli import main
+
+    monkeypatch.setattr(featuremap, "build_map", lambda: fmap)
+    doc = tmp_path / "FEATURE_MAP.md"
+    doc.write_text(f"# map\n{featuremap.GENERATED_BEGIN}\n{featuremap.GENERATED_END}\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="stale"):
+        main(["map", "--check", str(doc)])
+    main(["map", "--write", str(doc)])
+    main(["map", "--check", str(doc)])
+    assert "is current" in capsys.readouterr().out
+    text = doc.read_text(encoding="utf-8")
+    assert text.startswith("# map\n") and "## HTTP routes" in text
+    with pytest.raises(SystemExit, match="drop --feature"):
+        main(["map", "--check", str(doc), "--feature", "quotes"])
+
+
+def test_feature_map_doc_keeps_its_srs_table_and_markers() -> None:
+    """The CI job (`.github/workflows/feature-map.yml`) checks the generated part; this checks the frame."""
+    text = (REPO / "docs" / "FEATURE_MAP.md").read_text(encoding="utf-8")
+    assert text.count(featuremap.GENERATED_BEGIN) == 1
+    assert text.count(featuremap.GENERATED_END) == 1
+    head = text[: text.index(featuremap.GENERATED_BEGIN)]
+    for section in ("§8", "§9", "§10–11", "§12", "§13", "§14", "§15", "§16", "§17"):
+        assert f"| {section} |" in head, section

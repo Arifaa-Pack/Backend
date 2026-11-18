@@ -50,6 +50,8 @@ PLATFORM_PACKAGES: Final = ("kx.core", "kx.crm", "kx.automation", "kx.agents")
 _OWNERS: Final = (*PLATFORM_PACKAGES, "arifaa_pack")
 _EVENT_NAME: Final = re.compile(r"^[a-z_]+\.[a-z_]+\.v\d+$")
 _CALL_DEPTH: Final = 3
+GENERATED_BEGIN: Final = "<!-- BEGIN GENERATED: kx map --format md (do not edit by hand) -->"
+GENERATED_END: Final = "<!-- END GENERATED -->"
 
 FeatureMap = dict[str, list[dict[str, Any]]]
 
@@ -671,3 +673,18 @@ def to_markdown(fmap: FeatureMap) -> str:
             f"| {_cell(p['calls'])} |"
         )
     return "\n".join(lines) + "\n"
+
+
+def splice(document: str, generated: str) -> str:
+    """The document with its generated region (between the two markers) replaced; the rest is kept. Line
+    endings are normalised to LF, so a Windows checkout and CI compare equal."""
+    text = document.replace("\r\n", "\n")
+    start, end = text.find(GENERATED_BEGIN), text.find(GENERATED_END)
+    if start < 0 or end < start:
+        raise ValueError(f"{GENERATED_BEGIN!r} ... {GENERATED_END!r} markers not found")
+    return text[: start + len(GENERATED_BEGIN)] + "\n\n" + generated + "\n" + text[end:]
+
+
+def is_current(document: str, generated: str) -> bool:
+    """True when the document's generated region already equals `generated` (line endings ignored)."""
+    return splice(document, generated) == document.replace("\r\n", "\n")

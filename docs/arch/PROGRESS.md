@@ -79,3 +79,39 @@ Baseline before any change (`ed9e32e`): ruff clean, 334 files formatted, mypy cl
 - **Found, not fixed:** none new.
 - **Questions:** none.
 - **Next:** 0.2 `docs/FEATURE_MAP.md` + CI staleness check.
+
+## 0.2 `docs/FEATURE_MAP.md` + CI staleness check — COMPLETED
+
+- **Done:** `docs/FEATURE_MAP.md`: a hand-maintained head (how to read and refresh it; SRS §8, §9, §10–11, §12,
+  §13, §14, §15, §16, §17 → main code today, events, planned slice) and a generated region between two markers,
+  filled by `kx map --write docs/FEATURE_MAP.md`. `kx map --check FILE` exits 1 when the region is stale (line
+  endings ignored). New workflow `.github/workflows/feature-map.yml` (pull requests and pushes to `main`) runs
+  `uv sync --frozen --all-packages` and `uv run kx map --check docs/FEATURE_MAP.md`; actions pinned to commit SHAs
+  looked up with `git ls-remote` (`actions/checkout` v6.1.0 = `d23441a4…`, `astral-sh/setup-uv` v8.1.0 =
+  `08807647…`). `ci.yml` is not touched.
+- **Tests:** 3 more in `tests/unit/test_featuremap.py`: the splice keeps the hand-written part and ignores CRLF;
+  `kx map --write` then `--check` through the CLI (stale → exit 1, `--feature` refused with them); the committed
+  file keeps both markers and every SRS row.
+- **Gates** (run on the commit's tree, before committing):
+  - `ruff check .` PASS: All checks passed!
+  - `ruff format --check .` PASS: 339 files already formatted
+  - `mypy` PASS: Success: no issues found in 197 source files
+  - `lint-imports` PASS: Contracts: 3 kept, 0 broken.
+  - `pytest tests/unit` PASS: 109 passed
+  - full suite PASS: tests="879" failures="0" errors="0" skipped="4", exit=0
+  - OpenAPI PASS: `git diff docs/frontend` empty
+  - `kx map --format json` PASS: identical to the 0.1 baseline
+  - `kx map --check docs/FEATURE_MAP.md` (Windows) PASS: "docs/FEATURE_MAP.md is current"
+  - cross-platform: `kx map --check docs/FEATURE_MAP.md` in the Linux app image (`kxlive/app:local`, Chromium
+    present, no network) on the Windows-generated file PASS: "docs/FEATURE_MAP.md is current"
+  - actionlint on the new workflow NOT RUN: not installed on this machine and pulling its image was refused here;
+    `ci.yml`'s `stacks` job runs actionlint over every workflow, the new ones included. The YAML parses (PyYAML).
+- **Diffs:** OpenAPI none. `kx map --format json` identical to the 0.1 baseline.
+- **Deviations:** `tests/unit/test_no_removed_vendors.py` pins the exact set of workflow files (it guards against
+  the AWS / Terraform workflows coming back); `feature-map.yml` is added to that set (the first full run failed
+  on it: 879 tests, 1 failure, fixed before committing). The CI job is a new workflow file (`ci.yml` is
+  being edited on another branch). It syncs with `--all-packages` (a superset of `ci.yml`'s `uv sync --frozen`)
+  so every workspace package imports.
+- **Found, not fixed:** none.
+- **Questions:** none.
+- **Next:** 0.3 CODEOWNERS, PR template, `cross-package` label workflow.
