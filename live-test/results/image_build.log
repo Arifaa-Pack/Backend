@@ -1,0 +1,303 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 3.90kB 0.0s done
+#1 DONE 0.1s
+
+#2 resolve image config for docker-image://docker.io/docker/dockerfile:1
+#2 DONE 1.5s
+
+#3 docker-image://docker.io/docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
+#3 resolve docker.io/docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e 0.0s done
+#3 CACHED
+
+#4 [internal] load metadata for ghcr.io/astral-sh/uv:0.13.7
+#4 ...
+
+#5 [internal] load metadata for docker.io/library/python:3.14-slim-trixie
+#5 DONE 1.4s
+
+#4 [internal] load metadata for ghcr.io/astral-sh/uv:0.13.7
+#4 DONE 2.0s
+
+#6 [internal] load .dockerignore
+#6 transferring context: 588B done
+#6 DONE 0.0s
+
+#7 [builder  1/13] FROM docker.io/library/python:3.14-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
+#7 resolve docker.io/library/python:3.14-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f 0.0s done
+#7 DONE 0.0s
+
+#8 [uv 1/1] FROM ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490
+#8 resolve ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 0.0s done
+#8 DONE 0.0s
+
+#9 [internal] load build context
+#9 transferring context: 1.28MB 0.1s done
+#9 DONE 0.1s
+
+#10 [builder  2/13] COPY --from=uv /uv /uvx /bin/
+#10 CACHED
+
+#11 [builder  3/13] WORKDIR /src
+#11 CACHED
+
+#12 [builder  4/13] COPY pyproject.toml uv.lock ./
+#12 DONE 0.1s
+
+#13 [builder  5/13] COPY packages/kx-core-db/pyproject.toml packages/kx-core-db/
+#13 DONE 0.0s
+
+#14 [builder  6/13] COPY packages/kx-core-crm/pyproject.toml packages/kx-core-crm/
+#14 DONE 0.0s
+
+#15 [builder  7/13] COPY packages/kx-core-automation/pyproject.toml packages/kx-core-automation/
+#15 DONE 0.0s
+
+#16 [builder  8/13] COPY packages/kx-agent-framework/pyproject.toml packages/kx-agent-framework/
+#16 DONE 0.0s
+
+#17 [builder  9/13] COPY apps/arifaa-pack/pyproject.toml apps/arifaa-pack/
+#17 DONE 0.0s
+
+#18 [builder 10/13] RUN --mount=type=cache,target=/root/.cache/uv     uv sync --frozen --no-dev --no-install-workspace --package "arifaa-pack"
+#18 0.658 Using CPython 3.14.10 interpreter at: /usr/local/bin/python3
+#18 0.658 Creating virtual environment at: /app/.venv
+#18 1.160 Downloading google-ai-generativelanguage (1.3MiB)
+#18 1.432  Downloaded google-ai-generativelanguage
+#18 1.432 Prepared 9 packages in 644ms
+#18 13.22 Installed 173 packages in 11.78s
+#18 24.76 Bytecode compiled 12263 files in 11.56s
+#18 24.76  + aioboto3==15.5.0
+#18 24.76  + aiobotocore==2.25.1
+#18 24.76  + aiofiles==25.1.0
+#18 24.76  + aiohappyeyeballs==2.7.1
+#18 24.76  + aiohttp==3.14.5
+#18 24.76  + aioitertools==0.13.0
+#18 24.76  + aiosignal==1.4.0
+#18 24.76  + alembic==1.20.1
+#18 24.76  + amqp==5.4.2
+#18 24.76  + annotated-doc==0.0.5
+#18 24.76  + annotated-types==0.8.0
+#18 24.76  + anthropic==2.4.0
+#18 24.76  + anyio==4.16.0
+#18 24.76  + asgiref==3.13.0
+#18 24.76  + asyncpg==0.32.0
+#18 24.76  + attrs==26.1.0
+#18 24.76  + av==19.0.2
+#18 24.76  + billiard==4.3.2
+#18 24.76  + boto3==1.40.61
+#18 24.76  + botocore==1.40.61
+#18 24.76  + brotli==1.2.1
+#18 24.76  + celery==5.7.0
+#18 24.76  + certifi==2026.10.23
+#18 24.76  + cffi==2.1.1
+#18 24.76  + charset-normalizer==3.5.2
+#18 24.76  + click==8.5.0
+#18 24.76  + click-didyoumean==0.3.1
+#18 24.76  + click-plugins==1.1.1.2
+#18 24.76  + click-repl==0.4.1
+#18 24.76  + colorama==0.4.6
+#18 24.76  + cryptography==50.0.2
+#18 24.76  + cssselect2==0.10.1
+#18 24.76  + distro==1.9.0
+#18 24.76  + docstring-parser==0.18.0
+#18 24.76  + et-xmlfile==2.0.0
+#18 24.76  + eval-type-backport==0.4.0
+#18 24.76  + fastapi==0.162.0
+#18 24.76  + filetype==1.2.0
+#18 24.76  + flatbuffers==25.12.19
+#18 24.76  + fonttools==4.68.0
+#18 24.76  + frozenlist==1.8.0
+#18 24.76  + google-ai-generativelanguage==0.12.1
+#18 24.76  + google-api-core==2.44.0
+#18 24.76  + google-auth==2.62.2
+#18 24.76  + googleapis-common-protos==1.76.0
+#18 24.76  + greenlet==3.5.6
+#18 24.76  + grpcio==1.85.1
+#18 24.76  + grpcio-status==1.85.1
+#18 24.76  + h11==0.16.0
+#18 24.76  + httpcore==1.0.9
+#18 24.76  + httpcore2==2.16.0
+#18 24.76  + httptools==0.9.0
+#18 24.76  + httpx==0.28.1
+#18 24.76  + httpx2==2.16.0
+#18 24.76  + idna==3.20
+#18 24.76  + jinja2==3.1.6
+#18 24.76  + jiter==0.18.0
+#18 24.76  + jmespath==1.1.0
+#18 24.76  + json-repair==0.63.5
+#18 24.76  + jsonpatch==1.41
+#18 24.76  + jsonpointer==3.8
+#18 24.76  + kombu==5.7.0
+#18 24.76  + langchain==1.4.8
+#18 24.76  + langchain-anthropic==1.7.9
+#18 24.76  + langchain-core==1.7.4
+#18 24.76  + langchain-google-genai==3.2.0
+#18 24.76  + langchain-protocol==0.0.20
+#18 24.76  + langgraph==1.2.19
+#18 24.76  + langgraph-checkpoint==4.3.1
+#18 24.76  + langgraph-checkpoint-postgres==3.2.0
+#18 24.76  + langgraph-prebuilt==1.1.1
+#18 24.77  + langgraph-sdk==0.4.12
+#18 24.77  + langsmith==0.14.17
+#18 24.77  + livekit==1.1.21
+#18 24.77  + livekit-agents==1.8.10
+#18 24.77  + livekit-api==1.2.2
+#18 24.77  + livekit-blingfire==1.2.0
+#18 24.77  + livekit-local-inference==0.2.7
+#18 24.77  + livekit-plugins-deepgram==1.8.10
+#18 24.77  + livekit-plugins-elevenlabs==1.8.10
+#18 24.77  + livekit-plugins-openai==1.8.10
+#18 24.77  + livekit-plugins-silero==1.8.10
+#18 24.77  + livekit-protocol==1.1.29
+#18 24.77  + mako==1.4.3
+#18 24.77  + markdown-it-py==4.2.0
+#18 24.77  + markupsafe==3.0.4
+#18 24.77  + mdurl==0.1.2
+#18 24.77  + multidict==6.9.1
+#18 24.77  + nest-asyncio==1.6.0
+#18 24.77  + numpy==2.5.4
+#18 24.77  + onnxruntime==1.32.0
+#18 24.77  + openai==3.44.0
+#18 24.77  + openpyxl==3.1.5
+#18 24.77  + opentelemetry-api==1.45.2
+#18 24.77  + opentelemetry-exporter-http-transport==0.66b2
+#18 24.77  + opentelemetry-exporter-otlp==1.45.2
+#18 24.77  + opentelemetry-exporter-otlp-common==0.66b2
+#18 24.77  + opentelemetry-exporter-otlp-proto-common==1.45.2
+#18 24.77  + opentelemetry-exporter-otlp-proto-grpc==1.45.2
+#18 24.77  + opentelemetry-exporter-otlp-proto-http==1.45.2
+#18 24.77  + opentelemetry-instrumentation==0.66b2
+#18 24.77  + opentelemetry-instrumentation-asgi==0.66b2
+#18 24.77  + opentelemetry-instrumentation-celery==0.66b2
+#18 24.77  + opentelemetry-instrumentation-fastapi==0.66b2
+#18 24.77  + opentelemetry-proto==1.45.2
+#18 24.77  + opentelemetry-sdk==1.45.2
+#18 24.77  + opentelemetry-semantic-conventions==0.66b2
+#18 24.77  + opentelemetry-util-http==0.66b2
+#18 24.77  + orjson==3.13.0
+#18 24.77  + ormsgpack==1.13.0
+#18 24.77  + packaging==26.3
+#18 24.77  + pgvector==0.5.1
+#18 24.77  + phonenumbers==9.0.42
+#18 24.77  + pillow==13.0.0
+#18 24.77  + prometheus-client==0.26.0
+#18 24.77  + prompt-toolkit==3.0.53
+#18 24.77  + propcache==0.5.4
+#18 24.77  + proto-plus==1.29.0
+#18 24.77  + protobuf==7.36.2
+#18 24.77  + psutil==7.2.2
+#18 24.77  + psycopg==3.3.7
+#18 24.77  + psycopg-binary==3.3.7
+#18 24.77  + psycopg-pool==3.3.3
+#18 24.77  + pyasn1==0.6.5
+#18 24.77  + pyasn1-modules==0.4.2
+#18 24.77  + pycparser==3.12
+#18 24.77  + pydantic==2.14.2
+#18 24.77  + pydantic-core==2.50.2
+#18 24.77  + pydantic-settings==2.16.2
+#18 24.77  + pydyf==0.13.0
+#18 24.77  + pygments==2.21.0
+#18 24.77  + pyjwt==2.15.1
+#18 24.77  + pyphen==0.18.1
+#18 24.77  + python-dateutil==2.9.0.post0
+#18 24.77  + python-dotenv==1.2.4
+#18 24.77  + pyyaml==6.0.3
+#18 24.77  + redis==8.1.0
+#18 24.77  + requests==2.34.2
+#18 24.77  + requests-toolbelt==1.0.0
+#18 24.77  + rich==15.0.0
+#18 24.77  + s3transfer==0.14.0
+#18 24.77  + selectolax==1.0.2
+#18 24.77  + shellingham==1.5.4
+#18 24.77  + six==1.17.0
+#18 24.77  + sniffio==1.3.1
+#18 24.77  + sounddevice==0.5.6
+#18 24.77  + sqlalchemy==2.1.6
+#18 24.77  + starlette==1.10.0
+#18 24.77  + structlog==26.1.0
+#18 24.77  + tenacity==9.2.1
+#18 24.77  + tinycss2==1.5.1
+#18 24.77  + tinyhtml5==2.1.0
+#18 24.77  + truststore==0.10.5
+#18 24.77  + typer==0.27.3
+#18 24.77  + types-protobuf==7.35.1.20260906
+#18 24.77  + typing-extensions==4.16.0
+#18 24.77  + typing-inspection==0.4.4
+#18 24.77  + tzlocal==5.4.5
+#18 24.77  + urllib3==2.8.0
+#18 24.77  + uuid-utils==0.19.0
+#18 24.77  + uvicorn==0.54.0
+#18 24.77  + uvloop==0.23.0
+#18 24.77  + vine==5.1.0
+#18 24.77  + watchfiles==1.3.0
+#18 24.77  + wcwidth==0.9.4
+#18 24.77  + weasyprint==70.0
+#18 24.77  + webencodings==0.6.1
+#18 24.77  + websockets==17.4
+#18 24.77  + wrapt==1.17.3
+#18 24.77  + xxhash==4.0.2
+#18 24.77  + yarl==1.25.1
+#18 24.77  + zopfli==0.4.3
+#18 24.77  + zstandard==0.25.0
+#18 DONE 44.3s
+
+#19 [builder 11/13] COPY packages packages
+#19 DONE 0.7s
+
+#20 [builder 12/13] COPY apps apps
+#20 DONE 0.1s
+
+#21 [builder 13/13] RUN --mount=type=cache,target=/root/.cache/uv     uv sync --frozen --no-dev --no-editable --package "arifaa-pack"
+#21 0.693    Building kx-agent-framework @ file:///src/packages/kx-agent-framework
+#21 0.694    Building arifaa-pack @ file:///src/apps/arifaa-pack
+#21 0.695    Building kx-core-db @ file:///src/packages/kx-core-db
+#21 0.695    Building kx-core-crm @ file:///src/packages/kx-core-crm
+#21 0.695    Building kx-core-automation @ file:///src/packages/kx-core-automation
+#21 1.927       Built arifaa-pack @ file:///src/apps/arifaa-pack
+#21 1.938       Built kx-agent-framework @ file:///src/packages/kx-agent-framework
+#21 1.945       Built kx-core-db @ file:///src/packages/kx-core-db
+#21 1.949       Built kx-core-automation @ file:///src/packages/kx-core-automation
+#21 1.961       Built kx-core-crm @ file:///src/packages/kx-core-crm
+#21 1.969 Prepared 5 packages in 1.27s
+#21 1.996 Installed 5 packages in 27ms
+#21 2.648 Bytecode compiled 12459 files in 651ms
+#21 2.648  + arifaa-pack==0.1.0 (from file:///src/apps/arifaa-pack)
+#21 2.648  + kx-agent-framework==0.1.0 (from file:///src/packages/kx-agent-framework)
+#21 2.648  + kx-core-automation==0.1.0 (from file:///src/packages/kx-core-automation)
+#21 2.648  + kx-core-crm==0.1.0 (from file:///src/packages/kx-core-crm)
+#21 2.648  + kx-core-db==0.1.0 (from file:///src/packages/kx-core-db)
+#21 DONE 2.8s
+
+#22 [runtime 2/7] RUN apt-get update  && apt-get install -y --no-install-recommends       ca-certificates       chromium       libpango-1.0-0       libpangoft2-1.0-0       libharfbuzz0b       libharfbuzz-subset0       libfontconfig1       fontconfig       shared-mime-info       fonts-noto-core       fonts-noto-cjk       fonts-dejavu-core       postgresql-client  && fc-cache -f  && rm -rf /var/lib/apt/lists/*  && groupadd --system --gid 10001 kx  && useradd --system --uid 10001 --gid kx --home-dir /app --no-create-home --shell /usr/sbin/nologin kx
+#22 CACHED
+
+#23 [runtime 3/7] WORKDIR /app
+#23 CACHED
+
+#24 [runtime 4/7] COPY --from=builder --chown=root:root /app/.venv /app/.venv
+#24 DONE 11.2s
+
+#25 [runtime 5/7] COPY --chown=root:root db/ddl /app/db/ddl
+#25 DONE 0.2s
+
+#26 [runtime 6/7] COPY --chown=root:root --chmod=0755 infra/server/postgres/db_bootstrap.sh /app/scripts/db_bootstrap.sh
+#26 DONE 0.0s
+
+#27 [runtime 7/7] COPY --chown=root:root docker/healthcheck.py /app/healthcheck.py
+#27 DONE 0.1s
+
+#28 exporting to image
+#28 exporting layers
+#28 exporting layers 29.6s done
+#28 exporting manifest sha256:3874b76b3e1495f026a66460ec35b6c536971983470e1d44a802c9862c492056 0.0s done
+#28 exporting config sha256:270d4ca1ed70f604aef44ddd64ce995b5252831ecf9b301ff5dd4566680f15d2 0.0s done
+#28 exporting attestation manifest sha256:c0831caeee327d5077e2f68666cccc3033d629bca73775d8c7e8f6380fecb7f3
+#28 exporting attestation manifest sha256:c0831caeee327d5077e2f68666cccc3033d629bca73775d8c7e8f6380fecb7f3 0.1s done
+#28 exporting manifest list sha256:428f6797dbb2ba254d5eb0adb3316a36f989656c5cc3481bd0d6360bc1a0482d 0.0s done
+#28 naming to docker.io/kxlive/app:local done
+#28 unpacking to docker.io/kxlive/app:local
+#28 unpacking to docker.io/kxlive/app:local 10.5s done
+#28 DONE 40.3s
+exit=0 secs=110

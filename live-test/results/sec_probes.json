@@ -1,0 +1,596 @@
+[
+ {
+  "area": "headers",
+  "probe": "security headers on /healthz",
+  "pass": false,
+  "expected": "nosniff, frame-deny, CSP (HSTS at the edge)",
+  "got": {
+   "missing": [
+    "x-content-type-options",
+    "x-frame-options",
+    "content-security-policy"
+   ],
+   "strict-transport-security": null,
+   "x-content-type-options": null,
+   "x-frame-options": null,
+   "content-security-policy": null,
+   "referrer-policy": null,
+   "server": "uvicorn",
+   "cache-control": null
+  },
+  "severity_if_fail": "Low"
+ },
+ {
+  "area": "headers",
+  "probe": "security headers on /v1/auth/me",
+  "pass": false,
+  "expected": "nosniff, frame-deny, CSP (HSTS at the edge)",
+  "got": {
+   "missing": [
+    "x-content-type-options",
+    "x-frame-options",
+    "content-security-policy"
+   ],
+   "strict-transport-security": null,
+   "x-content-type-options": null,
+   "x-frame-options": null,
+   "content-security-policy": null,
+   "referrer-policy": null,
+   "server": "uvicorn",
+   "cache-control": null
+  },
+  "severity_if_fail": "Low"
+ },
+ {
+  "area": "headers",
+  "probe": "security headers on /docs",
+  "pass": false,
+  "expected": "nosniff, frame-deny, CSP (HSTS at the edge)",
+  "got": {
+   "missing": [
+    "x-content-type-options",
+    "x-frame-options",
+    "content-security-policy"
+   ],
+   "strict-transport-security": null,
+   "x-content-type-options": null,
+   "x-frame-options": null,
+   "content-security-policy": null,
+   "referrer-policy": null,
+   "server": "uvicorn",
+   "cache-control": null
+  },
+  "severity_if_fail": "Low"
+ },
+ {
+  "area": "info",
+  "probe": "Swagger /docs and /openapi.json public",
+  "pass": false,
+  "expected": "hidden in production",
+  "got": {
+   "docs": 200,
+   "openapi": 200
+  },
+  "severity_if_fail": "Low"
+ },
+ {
+  "area": "cors",
+  "probe": "preflight from an unknown origin",
+  "pass": true,
+  "expected": "no Access-Control-Allow-Origin",
+  "got": {
+   "status": 400,
+   "acao": null
+  },
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "cors",
+  "probe": "preflight from the configured CRM origin",
+  "pass": true,
+  "expected": "allowed",
+  "got": {
+   "status": 200,
+   "acao": "http://localhost:3001",
+   "credentials": "true"
+  },
+  "severity_if_fail": ""
+ },
+ {
+  "area": "info",
+  "probe": "malformed JSON -> no stack trace",
+  "pass": true,
+  "expected": "422 problem+json",
+  "got": {
+   "status": 422,
+   "body": "{\"detail\":[{\"type\":\"json_invalid\",\"loc\":[\"body\",1],\"msg\":\"JSON decode error\",\"input\":{},\"ctx\":{\"error\":\"Expecting property name enclosed in double quotes\"}}]}"
+  },
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "info",
+  "probe": "TRACE method disabled",
+  "pass": true,
+  "expected": "405",
+  "got": 405,
+  "severity_if_fail": "Low"
+ },
+ {
+  "area": "auth",
+  "probe": "JWKS publishes only public keys",
+  "pass": true,
+  "expected": "no private members",
+  "got": {
+   "keys": [
+    {
+     "kty": "RSA",
+     "alg": "RS256",
+     "kid": "kx-dev-1",
+     "use": "sig"
+    }
+   ]
+  },
+  "severity_if_fail": "Critical"
+ },
+ {
+  "area": "auth",
+  "probe": "access token algorithm",
+  "pass": true,
+  "expected": "asymmetric",
+  "got": {
+   "alg": "RS256",
+   "kid": "kx-dev-1",
+   "typ": "JWT"
+  },
+  "severity_if_fail": ""
+ },
+ {
+  "area": "auth",
+  "probe": "account enumeration (unknown user vs wrong password)",
+  "pass": true,
+  "expected": "same status, body and time",
+  "got": {
+   "unknown": [
+    401,
+    "{\"type\":\"https://errors.kairox.ai/unauthorized\",\"title\":\"Authentication required\",\"status\"",
+    0.066
+   ],
+   "known": [
+    401,
+    "{\"type\":\"https://errors.kairox.ai/unauthorized\",\"title\":\"Authentication required\",\"status\"",
+    0.077
+   ]
+  },
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "auth",
+  "probe": "lockout after repeated wrong passwords (KX_AUTH__MAX_FAILED_ATTEMPTS=5)",
+  "pass": true,
+  "expected": "correct password refused while locked",
+  "got": {
+   "wrong_attempt_codes": [
+    401,
+    401,
+    401,
+    401,
+    429,
+    429,
+    429,
+    429,
+    429,
+    429,
+    429,
+    429
+   ],
+   "correct_pw_after": 429,
+   "body": "{\"type\":\"https://errors.kairox.ai/too_many_requests\",\"title\":\"Too many requests\",\"status\":429,\"detail\":\"too many failed attempts; try again later\",\"in"
+  },
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "auth",
+  "probe": "anyone can lock a staff account by failing its login (lockout DoS)",
+  "pass": false,
+  "expected": "per-IP throttle before the per-account lock",
+  "got": {
+   "locked_after": 4
+  },
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "auth",
+  "probe": "credential stuffing: 30 different e-mails from one IP",
+  "pass": false,
+  "expected": "429 per IP",
+  "got": [
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401,
+   401
+  ],
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "auth",
+  "probe": "admin unlock restores the account",
+  "pass": true,
+  "expected": "unlocked",
+  "got": [
+   200,
+   200
+  ],
+  "severity_if_fail": ""
+ },
+ {
+  "area": "auth",
+  "probe": "TOTP guessing: challenge dies after a few wrong codes",
+  "pass": true,
+  "expected": "challenge burned",
+  "got": {
+   "wrong": [
+    401,
+    401,
+    401,
+    401,
+    401,
+    429,
+    429,
+    429
+   ],
+   "right_code_after": 429
+  },
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "auth",
+  "probe": "reset start does not reveal whether an account exists",
+  "pass": true,
+  "expected": "same answer",
+  "got": [
+   202,
+   "null",
+   202,
+   "null"
+  ],
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "auth",
+  "probe": "reset code: real code refused after 6 wrong guesses (KX_AUTH__CODE_MAX_TRIES=5)",
+  "pass": true,
+  "expected": "code burned",
+  "got": {
+   "wrong": [
+    401,
+    401,
+    401,
+    401,
+    401,
+    401
+   ],
+   "real_code_after": 401
+  },
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "auth",
+  "probe": "access token after logout",
+  "pass": false,
+  "expected": "rejected (or short TTL accepted risk)",
+  "got": {
+   "logout": 204,
+   "me_after_logout": 200,
+   "access_ttl_s": 900
+  },
+  "severity_if_fail": "Low"
+ },
+ {
+  "area": "authz",
+  "probe": "IT admin promotes itself to MD",
+  "pass": true,
+  "expected": "refused",
+  "got": {
+   "status": 403,
+   "body": "{\"type\":\"https://errors.kairox.ai/forbidden\",\"title\":\"Not allowed\",\"status\":403,\"detail\":\"nobody may change their own role\",\"instance\":\"/v1/users/01a1",
+   "role_now": "admin"
+  },
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "authz",
+  "probe": "salesperson edits a company that is not on their deals",
+  "pass": false,
+  "expected": "403",
+  "got": {
+   "create": 201,
+   "patch": 200
+  },
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "injection",
+  "probe": "CSV/XLSX formula injection in csv export",
+  "pass": false,
+  "expected": "cell escaped with a leading quote",
+  "got": {
+   "status": 200,
+   "formula_unescaped": true
+  },
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "injection",
+  "probe": "CSV/XLSX formula injection in xlsx export",
+  "pass": true,
+  "expected": "cell escaped with a leading quote",
+  "got": {
+   "status": 200,
+   "formula_unescaped": false
+  },
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "injection",
+  "probe": "search payload \"' OR 1=1--\"",
+  "pass": true,
+  "expected": "no 5xx, no data",
+  "got": [
+   200,
+   200,
+   200
+  ],
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "injection",
+  "probe": "search payload '\" ; DROP TABLE crm.deals;--'",
+  "pass": true,
+  "expected": "no 5xx, no data",
+  "got": [
+   200,
+   200,
+   200
+  ],
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "injection",
+  "probe": "search payload \"%' UNION SELECT password_hash \"",
+  "pass": true,
+  "expected": "no 5xx, no data",
+  "got": [
+   200,
+   200,
+   200
+  ],
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "injection",
+  "probe": "search payload '<script>alert(1)</script>'",
+  "pass": true,
+  "expected": "no 5xx, no data",
+  "got": [
+   200,
+   200,
+   200
+  ],
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "injection",
+  "probe": "search payload 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'",
+  "pass": true,
+  "expected": "no 5xx, no data",
+  "got": [
+   200,
+   200,
+   200
+  ],
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "injection",
+  "probe": "search payload '\\x00'",
+  "pass": false,
+  "expected": "no 5xx, no data",
+  "got": [
+   500,
+   "disconnect:RemoteProtocolError",
+   500
+  ],
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "injection",
+  "probe": "search payload '${7*7}{{7*7}}'",
+  "pass": false,
+  "expected": "no 5xx, no data",
+  "got": [
+   "disconnect:RemoteProtocolError",
+   200,
+   200
+  ],
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "bounds",
+  "probe": "/v1/deals?limit=0",
+  "pass": true,
+  "expected": "422 or capped",
+  "got": {
+   "status": 422,
+   "items": null
+  },
+  "severity_if_fail": "Low"
+ },
+ {
+  "area": "bounds",
+  "probe": "/v1/deals?limit=-1",
+  "pass": true,
+  "expected": "422 or capped",
+  "got": {
+   "status": 422,
+   "items": null
+  },
+  "severity_if_fail": "Low"
+ },
+ {
+  "area": "bounds",
+  "probe": "/v1/deals?limit=100000",
+  "pass": true,
+  "expected": "422 or capped",
+  "got": {
+   "status": 422,
+   "items": null
+  },
+  "severity_if_fail": "Low"
+ },
+ {
+  "area": "bounds",
+  "probe": "/v1/deals?limit=abc",
+  "pass": true,
+  "expected": "422 or capped",
+  "got": {
+   "status": 422,
+   "items": null
+  },
+  "severity_if_fail": "Low"
+ },
+ {
+  "area": "bounds",
+  "probe": "garbage pagination cursor",
+  "pass": true,
+  "expected": "4xx",
+  "got": 422,
+  "severity_if_fail": "Low"
+ },
+ {
+  "area": "public",
+  "probe": "session token of A used on session B",
+  "pass": true,
+  "expected": "refused",
+  "got": 403,
+  "severity_if_fail": "High"
+ },
+ {
+  "area": "public",
+  "probe": "1 MB chat message",
+  "pass": true,
+  "expected": "413/422 before the AI",
+  "got": 422,
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "public",
+  "probe": "session creation burst from one IP (25)",
+  "pass": false,
+  "expected": "429 (rate limit)",
+  "got": [
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201,
+   201
+  ],
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "public",
+  "probe": "forged unsubscribe token",
+  "pass": true,
+  "expected": "refused",
+  "got": 400,
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "webhook",
+  "probe": "CMS webhook without secret",
+  "pass": true,
+  "expected": "refused",
+  "got": 401,
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "webhook",
+  "probe": "Telnyx callback with forged token",
+  "pass": true,
+  "expected": "refused",
+  "got": 401,
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "webhook",
+  "probe": "WhatsApp verify with a wrong verify token",
+  "pass": true,
+  "expected": "refused",
+  "got": 401,
+  "severity_if_fail": "Medium"
+ },
+ {
+  "area": "public",
+  "probe": "anonymous identify with a real buyer's phone overwrites that buyer's contact",
+  "pass": false,
+  "expected": "buyer contact untouched (needs verification)",
+  "got": {
+   "identify": 200,
+   "victim_deal": "D-2026-00003",
+   "contact_before": {
+    "full_name": null,
+    "email": null
+   },
+   "contact_after": {
+    "full_name": "Attacker",
+    "email": "attacker@evil.example"
+   }
+  },
+  "severity_if_fail": "High"
+ }
+]

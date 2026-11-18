@@ -1,0 +1,13 @@
+kxlive-api-1 0.13% 293.3MiB / 7.672GiB
+kxlive-worker-1 0.20% 883.3MiB / 7.672GiB
+kxlive-beat-1 0.00% 166.2MiB / 7.672GiB
+kxlive-phoenix-1 1.29% 256.9MiB / 7.672GiB
+kxlive-redis-1 0.21% 7.188MiB / 7.672GiB
+kxlive-postgres-1 4.30% 154.1MiB / 7.672GiB
+kxlive-fakes-1 0.09% 43.33MiB / 7.672GiB
+kxlive-stalwart-1 0.00% 125.2MiB / 7.672GiB
+kxlive-llmproxy-1 0.10% 57.58MiB / 7.672GiB
+signoz-otel-collector 1.08% 211MiB / 7.672GiB
+signoz 0.02% 41.82MiB / 7.672GiB
+signoz-clickhouse 68.37% 974.1MiB / 7.672GiB
+signoz-zookeeper-1 5.09% 856.5MiB / 7.672GiB

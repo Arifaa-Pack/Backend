@@ -1,0 +1,249 @@
+........................................................................ [  8%]
+........................................................................ [ 17%]
+........................................................................ [ 26%]
+........................................................................ [ 35%]
+........................................................................ [ 44%]
+........................................................................ [ 53%]
+........................................................................ [ 61%]
+.........................................sss.s.......................... [ 70%]
+........................................................................ [ 79%]
+........................................................................ [ 88%]
+........................................................................ [ 97%]
+.......................                                                  [100%]
+=============================== warnings summary ===============================
+../venv/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:92: 13 warnings
+  /venv/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:92: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+tests/integration/test_app_smoke.py: 2 warnings
+tests/scenarios/test_safety_v1.py: 72 warnings
+tests/scenarios/test_scenarios_v1.py: 146 warnings
+packages/kx-core-crm/tests/test_api_db.py: 8 warnings
+packages/kx-core-crm/tests/test_approvals_db.py: 81 warnings
+packages/kx-core-crm/tests/test_assignment_db.py: 207 warnings
+packages/kx-core-crm/tests/test_audit_fixes_db.py: 4 warnings
+packages/kx-core-crm/tests/test_change_requests_db.py: 44 warnings
+packages/kx-core-crm/tests/test_company_db.py: 8 warnings
+packages/kx-core-crm/tests/test_flow_db.py: 68 warnings
+packages/kx-core-crm/tests/test_hand_priced_db.py: 10 warnings
+packages/kx-core-crm/tests/test_handover_db.py: 23 warnings
+packages/kx-core-crm/tests/test_phone_summary_db.py: 4 warnings
+packages/kx-core-crm/tests/test_price_list_db.py: 72 warnings
+packages/kx-core-crm/tests/test_quote_fallback_db.py: 11 warnings
+packages/kx-core-crm/tests/test_records_reports_db.py: 3 warnings
+packages/kx-core-crm/tests/test_screens_db.py: 22 warnings
+packages/kx-core-crm/tests/test_srs_11nov_db.py: 13 warnings
+packages/kx-core-crm/tests/test_won_lost_db.py: 73 warnings
+  /work/packages/kx-core-crm/src/kx/crm/services/settings.py:199: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    raw = {k: v for k, v in (await session.execute(select(Setting.key, Setting.value))).tuples()}
+
+tests/integration/test_app_smoke.py: 2 warnings
+tests/scenarios/test_safety_v1.py: 72 warnings
+tests/scenarios/test_scenarios_v1.py: 146 warnings
+packages/kx-core-crm/tests/test_api_db.py: 8 warnings
+packages/kx-core-crm/tests/test_approvals_db.py: 81 warnings
+packages/kx-core-crm/tests/test_assignment_db.py: 207 warnings
+packages/kx-core-crm/tests/test_audit_fixes_db.py: 4 warnings
+packages/kx-core-crm/tests/test_change_requests_db.py: 44 warnings
+packages/kx-core-crm/tests/test_company_db.py: 8 warnings
+packages/kx-core-crm/tests/test_flow_db.py: 68 warnings
+packages/kx-core-crm/tests/test_hand_priced_db.py: 10 warnings
+packages/kx-core-crm/tests/test_handover_db.py: 23 warnings
+packages/kx-core-crm/tests/test_phone_summary_db.py: 4 warnings
+packages/kx-core-crm/tests/test_price_list_db.py: 72 warnings
+packages/kx-core-crm/tests/test_quote_fallback_db.py: 11 warnings
+packages/kx-core-crm/tests/test_records_reports_db.py: 3 warnings
+packages/kx-core-crm/tests/test_screens_db.py: 22 warnings
+packages/kx-core-crm/tests/test_srs_11nov_db.py: 13 warnings
+packages/kx-core-crm/tests/test_won_lost_db.py: 73 warnings
+  /work/packages/kx-core-crm/src/kx/crm/services/settings.py:201: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    k: e for k, e in (await session.execute(select(FeatureFlag.key, FeatureFlag.enabled))).tuples()
+
+tests/integration/test_app_smoke.py::test_api_boots_and_routes_events
+tests/integration/test_app_smoke.py::test_api_boots_and_routes_events
+tests/integration/test_app_smoke.py::test_api_boots_and_routes_events
+  /work/packages/kx-core-automation/src/kx/automation/channels/__init__.py:39: DeprecationWarning: The 'initial' parameter is deprecated, use 'multiplier' instead
+    wait: wait_base = field(default_factory=lambda: wait_exponential_jitter(initial=0.5, max=8))
+
+tests/scenarios/test_safety_v1.py: 29 warnings
+tests/scenarios/test_scenarios_v1.py: 46 warnings
+packages/kx-core-crm/tests/test_approvals_db.py: 4 warnings
+packages/kx-core-crm/tests/test_assignment_db.py: 1 warning
+packages/kx-core-crm/tests/test_flow_db.py: 10 warnings
+packages/kx-core-crm/tests/test_handover_db.py: 7 warnings
+packages/kx-core-crm/tests/test_price_list_db.py: 5 warnings
+packages/kx-core-crm/tests/test_srs_11nov_db.py: 1 warning
+  /work/packages/kx-core-crm/src/kx/crm/gateway.py:360: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    .tuples()
+
+tests/scenarios/test_safety_v1.py: 7 warnings
+tests/scenarios/test_scenarios_v1.py: 17 warnings
+packages/kx-core-crm/tests/test_api_db.py: 1 warning
+packages/kx-core-crm/tests/test_approvals_db.py: 23 warnings
+packages/kx-core-crm/tests/test_assignment_db.py: 4 warnings
+packages/kx-core-crm/tests/test_change_requests_db.py: 8 warnings
+packages/kx-core-crm/tests/test_flow_db.py: 21 warnings
+packages/kx-core-crm/tests/test_hand_priced_db.py: 1 warning
+packages/kx-core-crm/tests/test_price_list_db.py: 6 warnings
+packages/kx-core-crm/tests/test_quote_fallback_db.py: 2 warnings
+packages/kx-core-crm/tests/test_screens_db.py: 3 warnings
+packages/kx-core-crm/tests/test_won_lost_db.py: 12 warnings
+  /work/packages/kx-core-crm/src/kx/crm/services/approvals.py:69: SADeprecationWarning: The Row.tuple() method is deprecated in favor of Row._tuple(); all Row methods and library-level attributes are intended to be underscored to avoid name conflicts.  Please use Row._tuple(). (deprecated since: 2.0.19)
+    return row.tuple()
+
+tests/scenarios/test_safety_v1.py: 7 warnings
+tests/scenarios/test_scenarios_v1.py: 17 warnings
+packages/kx-core-crm/tests/test_api_db.py: 1 warning
+packages/kx-core-crm/tests/test_approvals_db.py: 23 warnings
+packages/kx-core-crm/tests/test_assignment_db.py: 4 warnings
+packages/kx-core-crm/tests/test_change_requests_db.py: 8 warnings
+packages/kx-core-crm/tests/test_flow_db.py: 21 warnings
+packages/kx-core-crm/tests/test_hand_priced_db.py: 1 warning
+packages/kx-core-crm/tests/test_price_list_db.py: 6 warnings
+packages/kx-core-crm/tests/test_quote_fallback_db.py: 2 warnings
+packages/kx-core-crm/tests/test_screens_db.py: 3 warnings
+packages/kx-core-crm/tests/test_won_lost_db.py: 12 warnings
+  /work/packages/kx-core-crm/src/kx/crm/services/approvals.py:69: SADeprecationWarning: The Row._tuple() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    return row.tuple()
+
+tests/scenarios/test_safety_v1.py: 7 warnings
+tests/scenarios/test_scenarios_v1.py: 15 warnings
+packages/kx-core-crm/tests/test_approvals_db.py: 11 warnings
+packages/kx-core-crm/tests/test_change_requests_db.py: 6 warnings
+packages/kx-core-crm/tests/test_flow_db.py: 5 warnings
+packages/kx-core-crm/tests/test_price_list_db.py: 6 warnings
+packages/kx-core-crm/tests/test_quote_fallback_db.py: 2 warnings
+packages/kx-core-crm/tests/test_screens_db.py: 3 warnings
+packages/kx-core-crm/tests/test_won_lost_db.py: 10 warnings
+  /work/packages/kx-core-crm/src/kx/crm/services/grants.py:149: SADeprecationWarning: The Row.tuple() method is deprecated in favor of Row._tuple(); all Row methods and library-level attributes are intended to be underscored to avoid name conflicts.  Please use Row._tuple(). (deprecated since: 2.0.19)
+    version, deal = row.tuple()
+
+tests/scenarios/test_safety_v1.py: 7 warnings
+tests/scenarios/test_scenarios_v1.py: 15 warnings
+packages/kx-core-crm/tests/test_approvals_db.py: 11 warnings
+packages/kx-core-crm/tests/test_change_requests_db.py: 6 warnings
+packages/kx-core-crm/tests/test_flow_db.py: 5 warnings
+packages/kx-core-crm/tests/test_price_list_db.py: 6 warnings
+packages/kx-core-crm/tests/test_quote_fallback_db.py: 2 warnings
+packages/kx-core-crm/tests/test_screens_db.py: 3 warnings
+packages/kx-core-crm/tests/test_won_lost_db.py: 10 warnings
+  /work/packages/kx-core-crm/src/kx/crm/services/grants.py:149: SADeprecationWarning: The Row._tuple() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    version, deal = row.tuple()
+
+tests/scenarios/test_safety_v1.py: 2 warnings
+tests/scenarios/test_scenarios_v1.py: 2 warnings
+packages/kx-core-crm/tests/test_assignment_db.py: 89 warnings
+  /work/packages/kx-core-crm/src/kx/crm/services/approvals.py:286: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    ).tuples()
+
+tests/scenarios/test_scenarios_v1.py::test_scenario_9_the_buyer_goes_silent
+packages/kx-core-crm/tests/test_won_lost_db.py::test_silent_buyer_gets_a_lost_proposal_task_never_an_automatic_lost
+packages/kx-core-crm/tests/test_won_lost_db.py::test_silent_buyer_gets_a_lost_proposal_task_never_an_automatic_lost
+packages/kx-core-crm/tests/test_won_lost_db.py::test_silent_buyer_gets_a_lost_proposal_task_never_an_automatic_lost
+packages/kx-core-crm/tests/test_won_lost_db.py::test_a_reply_stops_the_lost_proposal
+  /work/packages/kx-core-crm/src/kx/crm/services/lost_proposals.py:50: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    ).tuples()
+
+tests/scenarios/test_scenarios_v1.py::test_scenario_10_the_buyer_tries_to_trick_the_ai
+  <sys>:0: SAWarning: Column 'agents.guard_events.id' is marked as a member of the primary key for table 'agents.guard_events', but has no Python-side or server-side default generator indicated, nor does it indicate 'autoincrement=True' or 'nullable=True', and no explicit value is passed.  Primary key columns typically may not store NULL. Note that as of SQLAlchemy 1.1, 'autoincrement=True' must be indicated explicitly for composite (e.g. multicolumn) primary keys if AUTO_INCREMENT/SERIAL/IDENTITY behavior is expected for one of the columns in the primary key. CREATE TABLE statements are impacted by this change as well on most backends. (This warning originated from the Session 'autoflush' process, which was invoked automatically in response to a user-initiated operation. Consider using ``no_autoflush`` context manager if this warning happened while initializing objects.)
+
+packages/kx-agent-framework/tests/test_last_resort_and_privacy_db.py::test_injection_flags_and_gaps_are_masked_and_removed_on_anonymisation
+  <sys>:0: SAWarning: Column 'agents.guard_events.id' is marked as a member of the primary key for table 'agents.guard_events', but has no Python-side or server-side default generator indicated, nor does it indicate 'autoincrement=True' or 'nullable=True', and no explicit value is passed.  Primary key columns typically may not store NULL. Note that as of SQLAlchemy 1.1, 'autoincrement=True' must be indicated explicitly for composite (e.g. multicolumn) primary keys if AUTO_INCREMENT/SERIAL/IDENTITY behavior is expected for one of the columns in the primary key. CREATE TABLE statements are impacted by this change as well on most backends.
+
+packages/kx-core-crm/tests/test_api_db.py: 1 warning
+packages/kx-core-crm/tests/test_flow_db.py: 18 warnings
+  /work/packages/kx-core-crm/src/kx/crm/services/quotes.py:196: SADeprecationWarning: The Row.tuple() method is deprecated in favor of Row._tuple(); all Row methods and library-level attributes are intended to be underscored to avoid name conflicts.  Please use Row._tuple(). (deprecated since: 2.0.19)
+    return [r.tuple() for r in (await session.execute(stmt)).all()]
+
+packages/kx-core-crm/tests/test_api_db.py: 1 warning
+packages/kx-core-crm/tests/test_flow_db.py: 18 warnings
+  /work/packages/kx-core-crm/src/kx/crm/services/quotes.py:196: SADeprecationWarning: The Row._tuple() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    return [r.tuple() for r in (await session.execute(stmt)).all()]
+
+packages/kx-core-crm/tests/test_api_db.py::test_staff_api_flow
+  /work/packages/kx-core-crm/src/kx/crm/api/admin.py:132: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    (await s.execute(select(Deal.stage, func.count()).group_by(Deal.stage))).tuples().all()
+
+packages/kx-core-crm/tests/test_api_db.py::test_staff_api_flow
+  /work/packages/kx-core-crm/src/kx/crm/api/admin.py:149: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    .tuples()
+
+packages/kx-core-crm/tests/test_audit_fixes_db.py: 8 warnings
+packages/kx-core-crm/tests/test_records_reports_db.py: 13 warnings
+  /work/packages/kx-core-crm/src/kx/crm/services/dashboards.py:60: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    return {str(k): int(v) for k, v in (await s.execute(stmt)).tuples().all() if k is not None}
+
+packages/kx-core-crm/tests/test_audit_fixes_db.py::test_sales_export_holds_only_visible_contacts
+packages/kx-core-crm/tests/test_audit_fixes_db.py::test_sales_export_holds_only_visible_contacts
+packages/kx-core-crm/tests/test_records_reports_db.py::test_exports_csv_and_xlsx
+packages/kx-core-crm/tests/test_records_reports_db.py::test_exports_csv_and_xlsx
+  /work/packages/kx-core-crm/src/kx/crm/api/reports.py:279: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    rows = (await s.execute(stmt.limit(50_000))).tuples().all()
+
+packages/kx-core-crm/tests/test_company_profile.py::test_wrong_details_are_refused[data5-iban]
+packages/kx-core-crm/tests/test_company_profile.py::test_wrong_details_are_refused[data6-swift]
+  /venv/lib/python3.14/site-packages/_pytest/raises.py:613: PytestWarning: matching against an empty string will *always* pass. If you want to check for an empty message you need to pass '^$'. If you don't want to match you should pass `None` or leave out the parameter.
+    super().__init__(match=match, check=check)
+
+packages/kx-core-crm/tests/test_records_reports_db.py::test_fx_override_wins
+  /work/packages/kx-core-crm/src/kx/crm/api/records.py:298: SADeprecationWarning: Passing expression to ``distinct`` to generate a DISTINCT ON clause is deprecated. Use instead the ``postgresql.distinct_on`` function as an extension.
+    stmt = select(FxRate).distinct(FxRate.currency).order_by(FxRate.currency, FxRate.as_of.desc())
+
+packages/kx-core-crm/tests/test_records_reports_db.py::test_dashboards_per_role
+  /work/packages/kx-core-crm/src/kx/crm/api/reports.py:188: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    pipeline = {str(k): Decimal(v) for k, v in (await s.execute(current)).tuples().all()}
+
+packages/kx-core-crm/tests/test_records_reports_db.py::test_dashboards_per_role
+  /work/packages/kx-core-crm/src/kx/crm/api/reports.py:221: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    .tuples()
+
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_buyer_messages_on_handed_over_deals
+  /work/packages/kx-core-crm/src/kx/crm/services/inbox.py:70: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    for a, deal_id, number, qnum, vno in (await session.execute(stmt.limit(limit))).tuples():
+
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_buyer_messages_on_handed_over_deals
+  /work/packages/kx-core-crm/src/kx/crm/services/inbox.py:92: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    for cr, number in (await session.execute(cr_stmt.limit(limit))).tuples():
+
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_buyer_messages_on_handed_over_deals
+  /work/packages/kx-core-crm/src/kx/crm/services/inbox.py:113: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    for task, number in (await session.execute(t_stmt.limit(limit))).tuples():
+
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_my_approvals_and_change_requests_with_timers
+packages/kx-core-crm/tests/test_screens_db.py::test_inbox_shows_buyer_messages_on_handed_over_deals
+  /work/packages/kx-core-crm/src/kx/crm/services/inbox.py:140: SADeprecationWarning: The Result.tuples() method is deprecated, Row now behaves like a tuple and can unpack types directly. (deprecated since: 2.1.0)
+    for ev, number in (await session.execute(m_stmt.limit(limit))).tuples():
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 10 durations =============================
+5.93s setup    packages/kx-core-crm/tests/test_api_db.py::test_staff_api_flow
+3.01s call     tests/unit/test_v2_core.py::test_voice_processes_install_the_otlp_exporter
+2.47s setup    tests/integration/test_app_smoke.py::test_migrations_create_all_schemas
+2.27s setup    packages/kx-agent-framework/tests/test_db.py::test_orm_matches_ddl
+1.64s setup    tests/db/test_migrations_v1.py::test_versions_are_head
+1.59s call     tests/integration/test_app_smoke.py::test_api_boots_and_routes_events
+1.54s setup    packages/kx-core-automation/tests/test_auto_admin_db.py::test_whatsapp_template_waits_for_meta_then_is_usable
+1.35s teardown tests/db/test_migrations_v1.py::test_agents_columns
+1.28s setup    tests/db/test_core_db.py::test_outbox_relay_in_order_once
+1.27s call     packages/kx-core-crm/tests/test_won_lost_db.py::test_won_needs_the_advance
+=========================== short test summary info ============================
+SKIPPED [1] packages/kx-core-automation/tests/test_auto_redis.py:25: redis-server not installed
+SKIPPED [1] packages/kx-core-automation/tests/test_auto_redis.py:36: redis-server not installed
+SKIPPED [1] packages/kx-core-automation/tests/test_auto_redis.py:43: redis-server not installed
+SKIPPED [1] packages/kx-core-automation/tests/test_auto_redis.py:57: redis-server not installed
+exit=0

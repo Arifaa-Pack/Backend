@@ -1,0 +1,14 @@
+  File "/app/.venv/lib/python3.14/site-packages/arifaa_pack/api.py", line 34, in lifespan
+  File "/app/.venv/lib/python3.14/site-packages/arifaa_pack/container.py", line 459, in build
+  File "/app/.venv/lib/python3.14/site-packages/kx/agents/service.py", line 192, in __init__
+  File "/app/.venv/lib/python3.14/site-packages/kx/agents/service.py", line 113, in __init__
+  File "/app/.venv/lib/python3.14/site-packages/kx/agents/models.py", line 185, in for_tier
+  File "/app/.venv/lib/python3.14/site-packages/kx/agents/models.py", line 132, in chat_model
+        thinking_level=_GEMINI_THINKING[options.effort],
+  File "/app/.venv/lib/python3.14/site-packages/langchain_google_genai/chat_models.py", line 1951, in __init__
+  File "/app/.venv/lib/python3.14/site-packages/langchain_core/load/serializable.py", line 136, in __init__
+  File "/app/.venv/lib/python3.14/site-packages/pydantic/main.py", line 280, in __init__
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ChatGoogleGenerativeAI
+thinking_level
+  Input should be 'low' or 'high' [type=literal_error, input_value='medium', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/literal_error

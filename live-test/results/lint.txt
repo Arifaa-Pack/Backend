@@ -1,0 +1,40 @@
+== ruff check
+9	E702   	[ ] multiple-statements-on-one-line-semicolon
+6	E501   	[ ] line-too-long
+3	I001   	[-] unsorted-imports
+2	E401   	[*] multiple-imports-on-one-line
+2	E701   	[ ] multiple-statements-on-one-line-colon
+1	PLW2901	[ ] redefined-loop-name
+1	F401   	[*] unused-import
+Found 24 errors.
+[*] 5 fixable with `--fix`.
+exit=0
+== ruff format
+2 +
+3 | import os, pathlib
+4 +
+5 +
+6 | def load(path: str | None = None) -> None:
+  |
+
+2 files would be reformatted, 332 files already formatted
+== mypy strict
+Success: no issues found in 196 source files
+== import-linter
+=============
+
+
+---------
+Contracts
+---------
+
+Analyzed 166 files, 912 dependencies.
+-------------------------------------
+
+core depends on nothing else in kx KEPT
+packages are independent; they talk through kx.core contracts and events KEPT
+platform never imports a client app KEPT
+
+Contracts: 3 kept, 0 broken.
+== platform only
+All checks passed!
