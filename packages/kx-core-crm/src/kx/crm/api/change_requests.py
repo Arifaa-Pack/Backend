@@ -78,6 +78,7 @@ def router(ctx: ApiContext) -> APIRouter:
             buyer_note=body.buyer_note,
             cover_note=body.cover_note,
             note=body.note or f"Change request ({cr.type})",
+            currency=body.currency,
         )
         version = await quotes.revise_quote(s, deps, cr.deal_id, edits, Actor.user(p))
         await change_requests.link_revision(s, deps, cr_id, version.id, p)
