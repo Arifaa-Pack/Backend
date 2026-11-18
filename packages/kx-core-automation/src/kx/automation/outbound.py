@@ -60,6 +60,9 @@ STAFF_KINDS: Final = frozenset({OutboundKind.APPROVAL_ALERT, OutboundKind.MD_NOT
 # Proactive outreach the buyer did not just ask for: buyer contact hours + weekly cap apply.
 PROACTIVE_KINDS: Final = frozenset({OutboundKind.FOLLOWUP, OutboundKind.REORDER})
 _INACTIVE: Final = ("blocked", "cancelled", "failed")
+# A conversational reply over the per-recipient limit is held, not refused, at most this long (beyond it
+# the limit's loop protection refuses as before).
+REPLY_HOLD_MAX: Final = timedelta(minutes=5)
 # Refusals that clear by themselves (switch turned back on, bucket refilled): callers may retry.
 TRANSIENT_REASONS: Final = frozenset({"kill_switch", "rate_limited", "spend_cap"})
 _PLACEHOLDER: Final = re.compile(r"\{\{\s*(\w+)\s*\}\}")
@@ -190,7 +193,7 @@ class OutboundService:
         if (existing := await self._existing(request.idempotency_key)) is not None:
             return existing
         address, rhash = _recipient(request)
-        await self._transient_checks(request.channel, rhash)
+        held = await self._transient_checks(request.channel, rhash, request.kind)
         if request.kind in PROACTIVE_KINDS and await self._kill.engaged("marketing"):  # D35 step 1
             raise RuleViolation("marketing sends are switched off", reason="kill_switch")
 
@@ -213,6 +216,8 @@ class OutboundService:
                 s, request=request, p=prepared, thread=thread, template=template, message_id=message_id
             )
             not_before = None if reason else await self._not_before(s, request, prepared)
+            if held is not None and not reason:
+                not_before = max(not_before or held, held)
             stored = await self._insert(
                 s,
                 message_id=message_id,
@@ -259,16 +264,40 @@ class OutboundService:
                 )
             ).scalar_one_or_none()
 
-    async def _transient_checks(self, channel: str, rhash: str) -> None:
+    async def _transient_checks(self, channel: str, rhash: str, kind: OutboundKind) -> datetime | None:
+        """Kill switch and the per-recipient limit. Returns when a held reply may go (None: send now)."""
         if await self._kill.engaged(channel):
             raise RuleViolation(f"outbound {channel} is switched off", reason="kill_switch")
         decision = await self._limiter.take("recipient", rhash, self._recipient_bucket)
-        if not decision.allowed:
-            raise RuleViolation(
-                "too many messages to this recipient",
-                reason="rate_limited",
-                retry_after_seconds=decision.retry_after_seconds,
+        if decision.allowed:
+            return None
+        if kind is OutboundKind.REPLY and (slot := await self._reply_slot(rhash, decision)) is not None:
+            log.info("outbound.reply_held", wait_s=round((slot - self._now()).total_seconds()))
+            return slot
+        raise RuleViolation(
+            "too many messages to this recipient",
+            reason="rate_limited",
+            retry_after_seconds=decision.retry_after_seconds,
+        )
+
+    async def _reply_slot(self, rhash: str, decision: Decision) -> datetime | None:
+        """Load test after D-6 (18 Nov): a buyer writing faster than the limit refills got replies refused, so
+        the whole AI turn was retried five times (model calls spent each time) and the buyer got nothing.
+        A conversational reply is now held instead: queued for when a token is due, spaced at the refill rate
+        after the replies already held for this recipient. Further than REPLY_HOLD_MAX out it is refused
+        (a loop is still stopped)."""
+        now = self._now()
+        spacing = timedelta(minutes=1) / self._recipient_bucket.refill_per_minute
+        async with self._db.transaction(LogicalDb.AUTOMATION) as s:
+            last = await s.scalar(
+                select(func.max(OutboundMessage.not_before)).where(
+                    OutboundMessage.recipient_hash == rhash,
+                    OutboundMessage.status == "queued",
+                    OutboundMessage.not_before > now,
+                )
             )
+        slot = max(now + timedelta(seconds=decision.retry_after_seconds), last + spacing if last else now)
+        return slot if slot - now <= REPLY_HOLD_MAX else None
 
     async def _template_cap(self, request: OutboundRequest, template: MessageTemplate | None) -> None:
         """D34: at 100 % of the day's WhatsApp-template budget, buyer templates are held (the caller retries

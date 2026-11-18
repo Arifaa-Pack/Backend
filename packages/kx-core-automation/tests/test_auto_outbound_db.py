@@ -196,9 +196,29 @@ async def test_kill_switch_refuses_without_recording(env: Env) -> None:
 async def test_rate_limited_refusal_is_transient(env: Env) -> None:
     env.limiter.allow = False
     with pytest.raises(RuleViolation) as info:
-        await env.service.send(req())
+        await env.service.send(req(OutboundKind.NOTIFICATION))
     assert info.value.extra["reason"] == "rate_limited" and info.value.extra["retry_after_seconds"] == 30.0
     assert env.limiter.taken == [("recipient", recipient_hash("whatsapp", BUYER))]
+
+
+async def test_a_reply_over_the_recipient_limit_is_held_then_refused_past_five_minutes(env: Env) -> None:
+    """Load test 18 Nov: refused replies made the AI turn retry five times and the buyer got nothing. A reply
+    is now queued for when the limit allows, spaced 30 s apart (refill 2 a minute); past 5 minutes the limit
+    refuses as before, so a loop still stops."""
+    await open_session(env)
+    env.limiter.allow = False
+    refused = 0
+    for _ in range(12):
+        try:
+            await env.service.send(req())
+        except RuleViolation as exc:
+            assert exc.extra["reason"] == "rate_limited"
+            refused += 1
+    rows = await env.rows()
+    waits = sorted((r.not_before - env.clock.now).total_seconds() for r in rows)
+    assert all(r.status == "queued" for r in rows)
+    assert waits == [30.0 * i for i in range(1, 11)]  # 30 s ... 300 s, one per refill
+    assert refused == 2  # 330 s and beyond: refused as before
 
 
 async def test_suppressed_recipient_blocked(env: Env) -> None:
