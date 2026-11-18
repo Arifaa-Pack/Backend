@@ -1,5 +1,5 @@
-"""`kx` entrypoint: api | worker | beat | voice | migrate | reindex | platform show | create-user (one image;
-Coolify services api, worker, beat (exactly one), voice, plus the one-off migrate job)."""
+"""`kx` entrypoint: api | worker | beat | voice | migrate | reindex | platform show | create-user | map
+(one image; Coolify services api, worker, beat (exactly one), voice, plus the one-off migrate job)."""
 
 from __future__ import annotations
 
@@ -225,6 +225,18 @@ def _evals(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
+def _map(args: argparse.Namespace) -> None:
+    """ADR-0001 Phase 0: where every contract, event handler, route, job and Beat entry is implemented, read
+    from the real container built offline (no database, Redis or network). `--format json` is sorted for
+    diffs; `--feature` keeps the entries that mention a name (e.g. `quotes`, `change-requests`)."""
+    import sys  # noqa: PLC0415
+
+    from arifaa_pack import featuremap  # noqa: PLC0415
+
+    fmap = featuremap.filter_map(featuremap.build_map(), args.feature)
+    sys.stdout.write(featuremap.to_json(fmap) if args.format == "json" else featuremap.to_markdown(fmap))
+
+
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="kx")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -263,6 +275,10 @@ def main(argv: list[str] | None = None) -> None:
     u.add_argument("--phone", default=None, help="E.164, for WhatsApp / call alerts")
     u.add_argument("--break-glass", action="store_true", help="emergency admin: every sign-in is alerted")
     u.set_defaults(fn=_create_user)
+    mp = sub.add_parser("map", help="where each contract, event, route and job is implemented (ADR-0001)")
+    mp.add_argument("--format", choices=["md", "json"], default="md")
+    mp.add_argument("--feature", default=None, help="keep entries mentioning this name, e.g. quotes")
+    mp.set_defaults(fn=_map)
     args = p.parse_args(argv)
     args.fn(args)
 
