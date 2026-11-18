@@ -32,7 +32,7 @@ x-env: &env
   KX_APP_GEMINI_API_KEY: ${GEMINI_API_KEY}
   KX_APP_SPEND_AI_USD_PER_DAY: "100000"
   # WORKAROUND for defect D-1 (models.py _GEMINI_THINKING medium -> "medium" rejected by langchain-google-genai 3.2):
-  KX_APP_LLM_EFFORT_SMART: ${LLM_EFFORT_SMART:-high}
+  KX_APP_LLM_EFFORT_SMART: ${LLM_EFFORT_SMART:-}  # empty = the code default (D-1 fixed 18 Nov)
   # monitoring
   KX_APP_OTLP_ENDPOINT: http://host.docker.internal:4318   # SigNoz collector published port (NOT its network: names clash with the dev stack)
   KX_APP_AI_TRACE_ENDPOINT: http://phoenix:6006/v1/traces
@@ -161,8 +161,16 @@ services:
 
   worker:
     <<: *app
-    command: ["worker"]
+    command: ["worker", "--queues", "kx"]
     environment: { <<: *env, KX_PROCESS: worker }
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  worker-ai:  # D-6: AI turns on their own queue, threads pool
+    <<: *app
+    command: ["worker", "--queues", "kx.ai", "--pool", "threads"]
+    environment: { <<: *env, KX_PROCESS: worker, KX_APP_WORKER_CONCURRENCY: "${AI_WORKER_THREADS:-10}" }
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }

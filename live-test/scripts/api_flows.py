@@ -12,6 +12,7 @@ Output: results/api_flows.json (every step: ok, status, ms, detail)
 from __future__ import annotations
 
 import asyncio
+import os
 import json
 import re
 import sys
@@ -162,8 +163,11 @@ async def main() -> None:
                 wa1 = (await fk.get(f"{FAKES}/_stats")).json()["vendors"].get("whatsapp", {}).get("requests", 0)
             step("F1", "AI reply sent to the buyer on WhatsApp (worker + real LLM), webhook->send", wa1 > wa0, None,
                  (time.perf_counter() - t0) * 1000, {"whatsapp_sends_before": wa0, "after": wa1})
-            items = await timeline(c, H["kxmgr"], deal["id"])
-            kinds = [i["kind"] for i in items]
+            t1 = time.perf_counter()  # an unmatched first message is retried by the next Beat sweep (D-3)
+            kinds = []
+            while time.perf_counter() - t1 < 45 and "message_in" not in kinds:
+                kinds = [i["kind"] for i in await timeline(c, H["kxmgr"], deal["id"])]
+                await asyncio.sleep(3)
             step("F1", "first buyer message on the CRM timeline (SRS §289)", "message_in" in kinds, None, None, kinds)
             step("F1", "AI reply on the CRM timeline (SRS §289)", "message_out" in kinds, None, None, kinds)
 
@@ -258,7 +262,8 @@ async def main() -> None:
         step("F6", "identify the website visitor", r.status_code < 300, r.status_code, ms, r.text[:300])
 
         # ---------------- F7 real quote by e-mail to the buyer who wrote from Gmail (deal opened by that e-mail)
-        mail_deal = await find_deal(c, H["kxmgr"], "muhammadhamthan660@gmail.com", wait_s=4)
+        # SKIP_F7=1: no extra test quote to the real Gmail buyer (re-runs after the fixes)
+        mail_deal = None if os.environ.get("SKIP_F7") else await find_deal(c, H["kxmgr"], "muhammadhamthan660@gmail.com", wait_s=4)
         if mail_deal:
             step("F7", "e-mail lead deal found", True, None, None,
                  {"number": mail_deal["number"], "missing": mail_deal.get("missing_fields")})
@@ -279,7 +284,7 @@ async def main() -> None:
 
         fakes2 = (await fk.get(f"{FAKES}/_stats")).json()
     proxy = httpx.get("http://localhost:39100/_stats").json()
-    (OUT / "api_flows.json").write_text(json.dumps({"steps": STEPS, "fakes_stats": fakes2, "llm_proxy": proxy},
+    (OUT / os.environ.get("FLOWS_OUT", "api_flows.json")).write_text(json.dumps({"steps": STEPS, "fakes_stats": fakes2, "llm_proxy": proxy},
                                                    indent=1, ensure_ascii=False, default=str), encoding="utf-8")
     print(json.dumps({"pass": sum(s["ok"] for s in STEPS), "fail": sum(not s["ok"] for s in STEPS)}))
 
