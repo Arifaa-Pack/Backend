@@ -74,9 +74,23 @@ def test_x_forwarded_for_uses_the_last_entry_not_the_spoofable_first() -> None:
 
 def test_trusted_client_ip_header_wins_only_when_configured() -> None:
     """D53: behind Cloudflare the visitor's address is CF-Connecting-IP; without the setting it is ignored."""
-    req = _request("10.1.1.1", extra={"cf-connecting-ip": "198.51.100.4"})
+    req = _request("162.158.1.20", extra={"cf-connecting-ip": "198.51.100.4"})  # a Cloudflare edge hop
     assert _ip(req, "CF-Connecting-IP") == "198.51.100.4"
-    assert _ip(req) == "10.1.1.1"
+    assert _ip(req) == "162.158.1.20"
+    v6 = _request("2606:4700:10::ac43:1", extra={"cf-connecting-ip": "2001:db8::7"})
+    assert _ip(v6, "CF-Connecting-IP") == "2001:db8::7"
+
+
+def test_cf_connecting_ip_from_a_non_cloudflare_peer_is_ignored() -> None:
+    """Infra H7 (live test 18 Nov): a client that reaches the origin directly can send CF-Connecting-IP and
+    pick any address, so the per-IP limits never trip. The header counts only from Cloudflare's ranges."""
+    forged = _request("203.0.113.9", extra={"cf-connecting-ip": "198.51.100.4"})
+    assert _ip(forged, "CF-Connecting-IP") == "203.0.113.9"
+    no_proxy = _request(None, client="203.0.113.10", extra={"cf-connecting-ip": "1.2.3.4"})
+    assert _ip(no_proxy, "CF-Connecting-IP") == "203.0.113.10"
+    assert (
+        _ip(_request("not-an-ip", extra={"cf-connecting-ip": "1.2.3.4"}), "CF-Connecting-IP") == "not-an-ip"
+    )
 
 
 def test_emitted_metric_names_are_the_ones_signoz_alerts_on() -> None:
