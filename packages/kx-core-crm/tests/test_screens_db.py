@@ -69,6 +69,31 @@ async def test_inbox_shows_buyer_messages_on_handed_over_deals(
     assert [(i["kind"], i["title"]) for i in items] == [("buyer_message", "How do I pay?")]
 
 
+@pytest.mark.db
+@pytest.mark.parametrize("reason", ["human_takeover", "exception", "below_range"])
+async def test_inbox_shows_buyer_messages_whatever_paused_the_ai(
+    api: tuple[httpx.AsyncClient, Auth], databases: Databases, deps: CrmDeps, reason: str
+) -> None:
+    """D-9 (live test 18 Nov): a buyer asked for USD and a lower price on a deal paused by `human_takeover`;
+    it reached the timeline but not the salesperson's inbox, because only `handover` was shown."""
+    client, auth = api
+    gw = CrmGatewayImpl(databases, deps)
+    paused, running = await sara_deal(databases, deps), await sara_deal(databases, deps)
+    await gw.pause_ai(paused, reason, AiRole.ORCHESTRATOR)
+    async with databases.transaction(CRM) as s:
+        for deal_id in (paused, running):
+            s.add(
+                m.TimelineEvent(deal_id=deal_id, kind="message_in", summary="USD please?", actor_type="buyer")
+            )
+    auth.as_(Role.SALES, SALES_ID)
+    inbox = (await client.get("/v1/inbox")).json()
+    assert [i["title"] for i in inbox if i["deal_id"] == str(paused) and i["kind"] == "buyer_message"] == [
+        "USD please?"
+    ]
+    # while the AI is answering, the buyer's messages are its job, not the salesperson's
+    assert not [i for i in inbox if i["deal_id"] == str(running) and i["kind"] == "buyer_message"]
+
+
 # ---------------------------------------------------------------- price list (§10, §20.7)
 @pytest.mark.db
 async def test_price_tier_crud_is_manager_only_and_audited(

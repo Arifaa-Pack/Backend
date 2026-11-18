@@ -1,5 +1,5 @@
 """§20.2 "My inbox": quotes to approve, change requests, below-minimum alerts, pricing-needed and
-LOST-proposal tasks, buyer messages on handed-over deals, each with its SLA timer. A salesperson sees
+LOST-proposal tasks, buyer messages on deals the AI is paused on, each with its SLA timer. A salesperson sees
 what is assigned to them (and what they cover for an away colleague); the manager and MD see everything."""
 
 from __future__ import annotations
@@ -125,11 +125,13 @@ async def inbox_for(session: AsyncSession, p: Principal, now: datetime, limit: i
             )
         )
 
+    # Every deal the AI is paused on, whatever the reason (D-9, live test 18 Nov): the AI also pauses with
+    # `human_takeover`, `exception`, `below_range` ..., and a buyer who wrote to such a deal reached nobody.
     m_stmt = (
         select(TimelineEvent, Deal.number)
         .join(Deal, Deal.id == TimelineEvent.deal_id)
         .where(
-            Deal.ai_paused_reason == "handover",
+            Deal.ai_enabled.is_(False),
             TimelineEvent.kind == "message_in",
             or_(Deal.ai_paused_at.is_(None), TimelineEvent.at >= Deal.ai_paused_at),
         )

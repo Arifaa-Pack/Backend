@@ -9,3 +9,5 @@ docker run --rm --network kairox-platform_default -u 0:0 \
   --entrypoint sh kxlive/app:local -c '(pip -q install uv==0.13.7 || /app/.venv/bin/python -m pip -q install uv==0.13.7) >/dev/null 2>&1; export PATH=$PATH:/app/.venv/bin; sh /src/live-test/scripts/run_tests_linux.sh "$@"' sh "$@" > "$OUT" 2>&1 < /dev/null
 echo "exit=$?" >> "$OUT"
 tail -25 "$OUT"
+grep -o 'tests="[0-9]*"\|failures="[0-9]*"\|errors="[0-9]*"\|skipped="[0-9]*"' live-test/results/pytest_linux_junit.xml | head -4 | tr '\n' ' '; echo
+grep -E "^(FAILED|ERROR)" "$OUT" | head -20

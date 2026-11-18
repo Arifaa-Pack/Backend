@@ -251,6 +251,9 @@ class AgentService:
             await self.gateway.add_timeline(
                 deal.deal_id, "inbound_message", turn.text[:500], AiRole.ORCHESTRATOR
             )
+            # D-9 (live test 18 Nov): with the AI paused nothing refreshed the deal summary, so the deal page
+            # still described the old conversation while the buyer was asking for a new price.
+            await self._refresh_deal_summary(conv_id, deal.deal_id, force=True)
             if rt.action == "silent":
                 return TurnResult(None, rt, "silent", language)
             ack = self.prompts.phrase(Phrase.HANDOVER_ACK, language).format(
@@ -492,14 +495,21 @@ class AgentService:
                 )
             except Exception:  # summary is an optimisation; never fail the turn for it
                 log.warning("agents.summary_failed", conversation_id=str(ctx.conversation_id), exc_info=True)
-            try:  # §7A.2: the deal page summary (refreshed every few turns and at hand-over)
-                if self.deal_summaries:
-                    await self.turns.deal_summary(
-                        self.db,
-                        self.runner.models.for_tier(ModelTier.FAST),
-                        ctx.conversation_id,
-                        handoff=status == "handoff",
-                    )
-            except Exception:
-                log.warning("agents.deal_summary_failed", deal_ref=str(ctx.deal_id), exc_info=True)
+            # §7A.2: the deal page summary (refreshed every few turns and at hand-over)
+            await self._refresh_deal_summary(ctx.conversation_id, ctx.deal_id, force=status == "handoff")
         return TurnResult(reply, rt, status, ctx.language, run_id, ctx.log)
+
+    async def _refresh_deal_summary(
+        self, conversation_id: uuid.UUID, deal_ref: uuid.UUID, *, force: bool
+    ) -> None:
+        """An optimisation: it never fails the turn and is skipped once the daily AI budget is spent."""
+        if not self.deal_summaries:
+            return
+        try:
+            if self.budget_left is not None and not await self.budget_left():
+                return
+            await self.turns.deal_summary(
+                self.db, self.runner.models.for_tier(ModelTier.FAST), conversation_id, handoff=force
+            )
+        except Exception:
+            log.warning("agents.deal_summary_failed", deal_ref=str(deal_ref), exc_info=True)
