@@ -9,6 +9,8 @@
 - **Monitoring:** SigNoz (application, server, logs, metrics) and Phoenix (AI audit trail).
 - **The rest:** the full automated test suite, a Postman-style test of all 109 API operations, an external-pentest-style security probe, and load tests at 10, 30 and 50 concurrent users with resource sampling.
 
+**Update 19 Nov:** the defects below are now fixed on branch `fix/live-test-defects` and re-tested; see **§14** for what changed, the new test and load results, and what is still open.
+
 **Not available yet, so tested against local fakes of the real vendor APIs:** Claude, WhatsApp (Meta), Telnyx calls, Amazon SES and Cloudflare R2 storage. The platform's own code paths ran; only the vendor answered from a fake.
 
 ---
@@ -440,6 +442,96 @@ Full text: `results/review_maintainability.md` (radon, vulture, pylint, jscpd; e
    - Re-run `scripts/run_load_matrix.sh`. Target: ≥ 95 % of WhatsApp replies delivered within 60 s at 30 users.
 5. Fix D-9 (show every buyer message on an AI-paused deal in the owner's inbox; refresh the summary on inbound messages), then reply to the waiting Gmail buyer's USD / 4,880 request.
 6. Before go-live, work through infra H1–H7: one network per trust zone, Redis password, a firewall for published ports, encrypted and restore-tested backups.
+
+---
+
+## 14. After the fixes: re-test of 18–19 Nov
+
+All work is on branch `fix/live-test-defects`, one commit per fix. Your uncommitted work was committed first, as-is (`bae6906`). Every fix has a test that fails without it.
+
+### 14.1 What was fixed, and how it was checked
+
+| ID | Fix | Checked by |
+|---|---|---|
+| **D-1** | The Gemini standby uses a thinking budget instead of `thinking_level`; any Gemini error now ends in the safe reply, never HTTP 500 | Tests for every tier and effort; a real Gemini call (2.5 Flash, 1.1 s). Live: when Gemini's free quota ran out (429), buyers got the safe reply |
+| **D-2** | The sender reads quote PDFs at the key the CRM wrote | Test; **live: the USD quote reached Gmail with its PDF, no workaround** |
+| **M1** | Staging and production refuse to start with default or short signing secrets | Tests |
+| **D-3** | AI replies, website chat and the first message of a new deal are on the timeline, in the order they happened (an unmatched first message is retried) | Tests; live timeline of a new WhatsApp deal |
+| **D-4** | Your rule: a deal joins a known buyer only when phone **and** email both match; the known buyer is never overwritten; a partial match is not linked and the salesperson gets a note. The AI asks every website visitor casually for the missing one, so the question reveals nothing | Tests, including the takeover attack from §8 |
+| **D-5** | Every hand-priced quote goes to the manager first (your decision) | Tests; live flow F4 now passes (it failed before) |
+| **D-6** | AI turns have their own queue (`kx.ai`) and worker (10 threads); sends never wait behind the AI | Tests; load test below |
+| **D-7** | A job is resent only when its queue is empty (no more pile-up of duplicates) | Tests; live: a stuck job cleared after the follow-up fix |
+| **D-9** | Buyer messages on every AI-paused deal reach the salesperson's inbox; the deal summary refreshes | Tests; **live: your "USD / 4,880" reply is in Live Sales Two's inbox** |
+| **H1–H7** | Separate networks per trust zone, Redis password and patched version, Phoenix login, `pg_hba.conf`, checked and encrypted backups, secrets outside Git, `KX_ENV=production` pinned, voice path, `CF-Connecting-IP` trusted only from Cloudflare | All 7 server stacks validate; the steps that must be done on the server are in `infra/server/README.md` and `docs/GO_LIVE_CHECKLIST.md` |
+
+**Found and fixed during the re-test:**
+
+| Problem | Effect | Fix |
+|---|---|---|
+| Staff could not quote in the buyer's currency | Your "share in USD" request could not be done | The quote revision takes a currency; prices convert at the day's rate and the minimum still applies |
+| An AI reply over the per-recipient limit (6, then 2 a minute) failed | The whole AI turn was retried 5 times and the buyer got nothing | The reply is held and sent when the limit allows (30 s apart); after 5 minutes it is refused, so a loop still stops |
+| The thread pool shared one HTTP pool across event loops (a library default) | About 1 % of AI calls failed, and the deal was paused | Each model has its own HTTP pool |
+| The D-7 resend raised an error on an empty queue | A lost job stayed stuck (2 hours in the test) | An empty queue counts as empty |
+
+### 14.2 Test results on the final code
+
+| Check | Result |
+|---|---|
+| Full test suite in the Linux image | **856 tests: 852 passed, 0 failed, 4 skipped** (they need a local `redis-server`) |
+| ruff, ruff format, mypy --strict (196 files), import contracts | **All clean** |
+| Business flows F1–F6 (real AI on Groq) | **30 / 31 pass.** The failing step (the first message on the timeline) was fixed afterwards and checked in the database |
+| Your Gmail thread | Revised quote Q-2026-00002 v3 in **USD 1,512.00** (20,000 pcs × USD 0.0720 + 5 % VAT) with a volume offer: 30,000 pcs at USD 0.0700, or 50,000 pcs at USD 0.0640. Every price is at or above the tier minimum; the manager approved first |
+
+### 14.3 Load test after the fixes
+
+Same method as §9: 8 minutes per level, the 3-second stand-in model, and production settings (send worker at 3 processes, AI worker at 10 threads, recipient cap 2 messages a minute). The "capacity" bars raise the cap, because each synthetic buyer writes about 4 messages a minute, every minute, which no real buyer does.
+
+![WhatsApp delivery before and after the fixes](chart_after_fixes.png)
+
+| Users | Delivered within 60 s (before → after) | p95 delivery (before → after) | Unanswered messages |
+|---|---|---|---|
+| 10 | 93 % → **99 %** | 64 s → **31 s** | 0 |
+| 30 | 40 % → **99 %** | 224 s → **31 s** | 0 |
+| 50 | 15 % → **98 %** | 6.3 min → **33 s** | 9 held replies still queued at the moment of measuring |
+
+**The target is met:** at least 95 % within 60 s at 30 users (99 %). With the cap raised, 100 % of replies arrived within 60 s at 10 and 50 users (p95 14–15 s). The 30-user capacity level stopped early on a fault in the test tool, which is now fixed.
+
+**Resources at 50 users (production settings):**
+
+| Part | CPU (avg / peak of one core) | Memory |
+|---|---|---|
+| API | 11 % / – | 349 MB |
+| Send worker (prefork, 3) | 10 % / 67 % | 884 MB |
+| AI worker (10 threads) | 12 % / 131 % | **488 MB** (10 prefork processes used 2.6 GB) |
+| Postgres | 8 % | 523 MB |
+| **Whole platform** | **52 % of one core** | **2.8 GB** |
+
+CRM screens stayed at p95 ≤ 30 ms and WhatsApp webhooks at p95 ≤ 132 ms. **Postgres connections rose to 89** (34 before), because each AI thread has its own pool. Size PgBouncer for it.
+
+About 1 % of requests failed on the test PC's side (dropped connections and 30 s read timeouts) with **no error on the server**: no 5xx, no restart, no out-of-memory. Check again on the real server.
+
+### 14.4 Decisions for you
+
+1. **Fast-typing buyers.** A buyer who keeps writing faster than 2 messages a minute now gets replies spaced 30 s apart, and after 5 minutes of that, no reply. Options:
+   - keep this;
+   - raise the cap for replies only;
+   - merge several quick buyer messages into one AI reply, as a person would (recommended).
+2. **Server steps for H1–H7.** These have to be done on the server itself: networks, the `/opt/kx/secrets` folder, backup keys, split R2 tokens with bucket lock, and the Cloudflare settings for voice. The full list is in `infra/server/README.md`.
+
+### 14.5 Still open
+
+- **Waiting for keys (step 13.3):** Claude, WhatsApp, Telnyx, SES. The harness is ready to re-run against them.
+- **Gemini standby:** the `gemini-3.8-flash` free tier allows 20 requests a day, so a paid key is needed for the standby to help.
+- **Quote email and PDF:**
+  - the greeting says "Hi Customer" when no name is known;
+  - the PDF's "To" block is empty;
+  - the TRN is still a placeholder.
+- **Not in this round:**
+  - D-8 (embedding circuit breaker; every search still waits 2 s while the embedding server is down);
+  - security M2–M8 and the low items;
+  - the monitoring gaps in §10;
+  - about 370 lines of code cleanup (§11).
+- **Website chat replies on Groq** sometimes arrive wrapped as `{"reply": "…"}`. This came from the stand-in model and was the same before the fixes. Re-check with Claude.
 
 ---
 
