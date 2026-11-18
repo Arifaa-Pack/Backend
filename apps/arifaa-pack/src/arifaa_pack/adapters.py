@@ -15,10 +15,12 @@ from sqlalchemy import text
 from kx.agents.handlers import ReplyAddress
 from kx.agents.knowledge import KbSource
 from kx.agents.voice import VoiceRoute
+from kx.automation.ratelimit import Bucket
 from kx.core.db import Databases
 from kx.core.errors import Unavailable
 from kx.core.logging import get_logger
-from kx.core.settings import LogicalDb
+from kx.core.settings import LogicalDb, RateLimit
+from kx.crm.throttle import MemoryThrottle
 
 log = get_logger(__name__)
 
@@ -389,6 +391,52 @@ class PublicLimiter:
     async def allow(self, scope: Literal["ip", "session"], key: str) -> bool:
         decision = await self._limiter.take(f"public_{scope}", key, self._buckets[scope])
         return bool(decision.allowed)
+
+
+class RedisAuthThrottle:
+    """kx.crm.throttle.AuthThrottle over automation's Redis token buckets and Redis counters (M3), shared by
+    every API process. While Redis is unreachable it falls back to an in-process throttle: staff sign-in stays
+    available and still limited."""
+
+    def __init__(self, limiter: Any, redis: Any, company: str) -> None:
+        self._limiter = limiter
+        self._redis = redis
+        self._prefix = f"kx:{company}:auth"
+        self._local = MemoryThrottle()
+
+    async def take(self, scope: str, key: str, limit: RateLimit) -> bool:
+        try:
+            decision = await self._limiter.take(f"auth_{scope}", key, Bucket(limit.burst, limit.per_minute))
+        except Exception:
+            log.warning("auth_throttle.redis_unavailable", op="take")
+            return await self._local.take(scope, key, limit)
+        return bool(decision.allowed)
+
+    async def count(self, key: str) -> int:
+        try:
+            value = await self._redis.get(f"{self._prefix}:{key}")
+        except Exception:
+            log.warning("auth_throttle.redis_unavailable", op="count")
+            return await self._local.count(key)
+        return int(value or 0)
+
+    async def bump(self, key: str, ttl_seconds: int) -> int:
+        try:
+            async with self._redis.pipeline(transaction=True) as pipe:
+                pipe.incr(f"{self._prefix}:{key}")
+                pipe.expire(f"{self._prefix}:{key}", ttl_seconds)
+                n, _ = await pipe.execute()
+        except Exception:
+            log.warning("auth_throttle.redis_unavailable", op="bump")
+            return await self._local.bump(key, ttl_seconds)
+        return int(n)
+
+    async def clear(self, key: str) -> None:
+        await self._local.clear(key)
+        try:
+            await self._redis.delete(f"{self._prefix}:{key}")
+        except Exception:
+            log.warning("auth_throttle.redis_unavailable", op="clear")
 
 
 class OpsNotifier:

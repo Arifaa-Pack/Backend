@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import httpx
 from fastapi import FastAPI
 
+from arifaa_pack.adapters import RedisAuthThrottle
 from arifaa_pack.container import staff_auth
 from arifaa_pack.cors import SplitCors
-from kx.core.settings import AuthSettings
+from kx.core.settings import AuthSettings, RateLimit
+from kx.crm.throttle import MemoryThrottle
 
 CRM, WWW, EVIL = "https://crm.arifapack.com", "https://www.arifapack.com", "https://evil.example"
 
@@ -67,3 +71,36 @@ def test_auth_origins_default_to_the_crm_cors_origins() -> None:
     assert staff_auth(AuthSettings(), (CRM,)).crm_origins == (CRM,)
     pinned = AuthSettings(crm_origins=("https://crm2.example",))
     assert staff_auth(pinned, (CRM,)).crm_origins == ("https://crm2.example",)
+
+
+class _RedisDown:
+    """Every Redis call fails, as while Redis restarts."""
+
+    def __getattr__(self, name: str) -> Any:
+        def fail(*_: Any, **__: Any) -> Any:
+            raise ConnectionError("redis down")
+
+        return fail
+
+
+async def test_staff_sign_in_limits_survive_a_redis_outage() -> None:
+    """M3: the Redis throttle falls back to an in-process one: sign-in stays available and limited."""
+    throttle = RedisAuthThrottle(_RedisDown(), _RedisDown(), "pack")
+    limit = RateLimit(burst=2, per_minute=0.001)
+    assert [await throttle.take("login_ip", "203.0.113.9", limit) for _ in range(3)] == [True, True, False]
+    assert await throttle.bump("fail:x", 60) == 1 and await throttle.bump("fail:x", 60) == 2
+    assert await throttle.count("fail:x") == 2
+    await throttle.clear("fail:x")
+    assert await throttle.count("fail:x") == 0
+
+
+async def test_memory_throttle_counters_expire_and_buckets_refill() -> None:
+    now = [0.0]
+    throttle = MemoryThrottle(clock=lambda: now[0])
+    limit = RateLimit(burst=1, per_minute=1)
+    assert await throttle.take("s", "k", limit) and not await throttle.take("s", "k", limit)
+    now[0] += 61
+    assert await throttle.take("s", "k", limit)
+    assert await throttle.bump("c", 900) == 1
+    now[0] += 901
+    assert await throttle.count("c") == 0 and await throttle.bump("c", 900) == 1

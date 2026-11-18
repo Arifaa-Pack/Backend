@@ -6,7 +6,10 @@ Flow (platform docs: Recommendation "Staff login + MFA", Fallback plan "Staff lo
    factor), or `"email"` after `send_email_code` -> tokens with `mfa=false` (fallback: the person is in,
    but approvals, price-list edits and settings wait for the TOTP factor; NIST SP 800-63B-4, OPEN #49).
 3. Access token: RS256, 15 minutes. Refresh token: random, only its hash stored, rotated on every use.
-* 5 wrong passwords lock the account for 15 minutes; every login, failure, lock and MFA change is audited.
+* 5 wrong passwords or codes from one client IP lock that IP out of the account for 15 minutes; 50 from all
+  IPs lock the account (M3: one attacker cannot keep a staff member out from everywhere). Sign-in, the email
+  code and password recovery have per-IP and per-account rate limits (`kx.crm.throttle`). Every login,
+  failure, lock and MFA change is audited.
 * A break-glass admin still needs its TOTP (no MFA bypass) and every use notifies the MD and the manager.
 
 Functions return an outcome instead of raising for a refused attempt, so the caller can commit the
@@ -27,6 +30,7 @@ from kx.core import events as ev
 from kx.core.errors import Forbidden, NotFound, RuleViolation, Unavailable
 from kx.core.event_payloads import StaffNotice
 from kx.core.identity import new_id, normalise_email
+from kx.core.logging import get_logger
 from kx.core.passwords import (
     hash_password,
     new_numeric_code,
@@ -39,13 +43,18 @@ from kx.core.passwords import (
     verify_password,
     verify_totp,
 )
+from kx.core.settings import RateLimit
 from kx.crm.deps import CrmDeps
 from kx.crm.models import AuthChallenge, AuthSession, StaffCredential, User
 from kx.crm.services import staff
 from kx.crm.services.journal import Actor, Emit, record
+from kx.crm.throttle import account_key, ip_key
 
+log = get_logger(__name__)
 Factor = Literal["totp", "email"]
 GENERIC: Final = "email or password is not correct"
+BUSY: Final = "too many requests; try again later"  # M3 rate limit (never says whether the account exists)
+LOCKED: Final = "too many failed attempts; try again later"
 _DUMMY_HASH: Final = hash_password("dummy-password-for-timing")  # same work whether or not the user exists
 
 
@@ -92,18 +101,51 @@ async def _user_by_email(session: AsyncSession, email: str) -> User | None:
     return (await session.execute(select(User).where(User.email == address))).scalar_one_or_none()
 
 
+async def _over_limit(deps: CrmDeps, *buckets: tuple[str, str, RateLimit]) -> bool:
+    """M3: True when any (scope, key, limit) bucket is empty (each one is charged until one refuses)."""
+    for scope, key, limit in buckets:
+        if not await deps.throttle.take(scope, key, limit):
+            log.warning("auth.rate_limited", scope=scope)
+            return True
+    return False
+
+
+def _fail_key(email: str, ip: str | None) -> str:
+    return f"fail:{account_key(email)}:{ip_key(ip)}"
+
+
+async def _locked(
+    deps: CrmDeps, cred: StaffCredential | None, email: str, ip: str | None, now: datetime
+) -> bool:
+    """M3: locked for this client IP (per account + IP failures) or, as the backstop, for every IP."""
+    if cred is not None and cred.locked_until is not None and cred.locked_until > now:
+        return True
+    return await deps.throttle.count(_fail_key(email, ip)) >= deps.auth.max_failed_attempts
+
+
 # ---------------------------------------------------------------- step 1: password
-async def login(session: AsyncSession, deps: CrmDeps, email: str, password: str) -> Challenge | Refused:
+async def login(
+    session: AsyncSession, deps: CrmDeps, email: str, password: str, *, ip: str | None = None
+) -> Challenge | Refused:
     now = deps.now()
+    a = deps.auth
+    if await _over_limit(
+        deps,
+        ("login_ip", ip_key(ip), a.rate_login_ip),
+        ("login_account", account_key(email), a.rate_login_account),
+    ):
+        return Refused(429, BUSY)
     user = await _user_by_email(session, email)
     cred = await session.get(StaffCredential, user.id, with_for_update=True) if user else None
+    who = str(user.email) if user else email
+    if await _locked(deps, cred, who, ip, now):  # an unknown address locks the same way (no enumeration)
+        return Refused(429, LOCKED)
     if user is None or cred is None or not user.is_active:
         verify_password(password, _DUMMY_HASH)
+        await deps.throttle.bump(_fail_key(who, ip), a.lockout_minutes * 60)
         return Refused(401, GENERIC)
-    if cred.locked_until is not None and cred.locked_until > now:
-        return Refused(429, "too many failed attempts; try again later")
     if not verify_password(password, cred.password_hash):
-        await _failed(session, deps, user, cred, now=now, what="password")
+        await _failed(session, deps, user, cred, now=now, what="password", ip=ip)
         return Refused(401, GENERIC)
     token = new_token()
     expires = now + timedelta(seconds=deps.auth.code_ttl_seconds)
@@ -118,21 +160,44 @@ async def login(session: AsyncSession, deps: CrmDeps, email: str, password: str)
 
 
 async def _failed(
-    session: AsyncSession, deps: CrmDeps, user: User, cred: StaffCredential, *, now: datetime, what: str
+    session: AsyncSession,
+    deps: CrmDeps,
+    user: User,
+    cred: StaffCredential,
+    *,
+    now: datetime,
+    what: str,
+    ip: str | None,
 ) -> None:
+    """M3: a wrong password or code counts for this account + client IP (`max_failed_attempts` locks that IP
+    out for `lockout_minutes`) and toward the account-wide backstop (`account_lock_failures`)."""
+    lock_seconds = deps.auth.lockout_minutes * 60
+    from_ip = await deps.throttle.bump(_fail_key(str(user.email), ip), lock_seconds)
     cred.failed_attempts += 1
-    locked = cred.failed_attempts >= deps.auth.max_failed_attempts
-    if locked:
+    account_locked = cred.failed_attempts >= deps.auth.account_lock_failures
+    if account_locked:
         cred.locked_until = now + timedelta(minutes=deps.auth.lockout_minutes)
         cred.failed_attempts = 0
+    ip_locked = from_ip >= deps.auth.max_failed_attempts
     await session.flush()
     await record(
         session,
         _system(),
-        "auth.locked" if locked else "auth.login_failed",
+        "auth.locked" if account_locked or ip_locked else "auth.login_failed",
         "user",
         user.id,
-        after={"factor": what, "locked_until": cred.locked_until if locked else None},
+        after={
+            "factor": what,
+            "ip": ip,
+            "scope": "account" if account_locked else "ip" if ip_locked else None,
+            "locked_until": (
+                cred.locked_until
+                if account_locked
+                else now + timedelta(seconds=lock_seconds)
+                if ip_locked
+                else None
+            ),
+        },
     )
 
 
@@ -152,15 +217,21 @@ async def _open_challenge(
     return row
 
 
-async def send_email_code(session: AsyncSession, deps: CrmDeps, token: str) -> tuple[str, str] | Refused:
+async def send_email_code(
+    session: AsyncSession, deps: CrmDeps, token: str, *, ip: str | None = None
+) -> tuple[str, str] | Refused:
     """Fallback second step: a 6-digit code to the work address. Returns (address, code) for the caller to
-    send after commit; only the code's hash is stored."""
+    send after commit; only the code's hash is stored. M3: limited per client IP and per account."""
     now = deps.now()
+    if await _over_limit(deps, ("mfa_send_ip", ip_key(ip), deps.auth.rate_mfa_send_ip)):
+        return Refused(429, BUSY)
     challenge = await _open_challenge(session, token, now)
     if challenge is None:
         return Refused(401, "the sign-in step expired; start again")
     user = await session.get(User, challenge.user_id)
     assert user is not None  # FK
+    if await _over_limit(deps, ("mfa_send_account", str(user.id), deps.auth.rate_mfa_send_account)):
+        return Refused(429, BUSY)
     code = new_numeric_code()
     challenge.code_hash, challenge.tries = token_hash(code), 0
     challenge.expires_at = now + timedelta(seconds=deps.auth.code_ttl_seconds)
@@ -185,8 +256,8 @@ async def verify_second_step(
     user = await session.get(User, challenge.user_id)
     cred = await session.get(StaffCredential, challenge.user_id, with_for_update=True)
     assert user is not None and cred is not None  # FK
-    if cred.locked_until is not None and cred.locked_until > now:  # wrong codes count toward the lock too
-        return Refused(429, "too many failed attempts; try again later")
+    if await _locked(deps, cred, str(user.email), ip, now):  # wrong codes count toward the lock too
+        return Refused(429, LOCKED)
     challenge.tries += 1
     if challenge.tries > deps.auth.code_max_tries:
         challenge.consumed_at = now
@@ -194,10 +265,11 @@ async def verify_second_step(
         return Refused(429, "too many codes tried; sign in again")
     ok = _check_factor(deps, cred, code=code, factor=factor, challenge=challenge, now=now)
     if not ok:
-        await _failed(session, deps, user, cred, now=now, what=factor)
+        await _failed(session, deps, user, cred, now=now, what=factor, ip=ip)
         return Refused(401, "the code is not correct")
     challenge.consumed_at = now
     amr = ("pwd", "otp") if factor == "totp" else ("pwd", "email")
+    await deps.throttle.clear(_fail_key(str(user.email), ip))  # signed in from here: this IP starts afresh
     return await _issue(session, deps, user, cred, amr, ip=ip, user_agent=user_agent)
 
 
@@ -377,11 +449,11 @@ async def confirm_totp(session: AsyncSession, deps: CrmDeps, user_id: uuid.UUID,
 
 
 async def change_password(
-    session: AsyncSession, deps: CrmDeps, user_id: uuid.UUID, current: str, new: str
+    session: AsyncSession, deps: CrmDeps, user_id: uuid.UUID, current: str, new: str, *, ip: str | None = None
 ) -> Refused | None:
     user, cred = await _user_and_cred(session, user_id)
     if not verify_password(current, cred.password_hash):
-        await _failed(session, deps, user, cred, now=deps.now(), what="password_change")
+        await _failed(session, deps, user, cred, now=deps.now(), what="password_change", ip=ip)
         return Refused(401, "the current password is not correct")
     await _set_password(session, deps, user, cred, new, must_change=False)
     return None
@@ -402,12 +474,48 @@ async def _set_password(
     await record(session, _system(), "auth.password_changed", "user", user.id)
 
 
-async def start_reset(session: AsyncSession, deps: CrmDeps, email: str) -> tuple[str, str] | None:
+def _reset_wrong_key(email: str) -> str:
+    return f"reset_wrong:{account_key(email)}"
+
+
+async def _reset_refused(deps: CrmDeps, email: str, ip: str | None, step: Literal["start", "finish"]) -> bool:
+    """M3: per-IP and per-account buckets, and the reset lock after `reset_max_wrong_codes` wrong codes.
+    Keyed by the typed address, so an unknown address is refused exactly like a real one."""
+    a = deps.auth
+    ip_limit, account_limit = (
+        (a.rate_reset_start_ip, a.rate_reset_start_account)
+        if step == "start"
+        else (a.rate_reset_finish_ip, a.rate_reset_finish_account)
+    )
+    if await _over_limit(
+        deps,
+        (f"reset_{step}_ip", ip_key(ip), ip_limit),
+        (f"reset_{step}_account", account_key(email), account_limit),
+    ):
+        return True
+    return await deps.throttle.count(_reset_wrong_key(email)) >= a.reset_max_wrong_codes
+
+
+async def start_reset(
+    session: AsyncSession, deps: CrmDeps, email: str, *, ip: str | None = None
+) -> tuple[str, str] | Refused | None:
     """Recovery by email code. Returns (address, code) to send, or None (unknown address: same answer to the
-    caller, so nobody learns which addresses exist)."""
+    caller, so nobody learns which addresses exist). M3: rate limited (at most `rate_reset_start_account`
+    starts per account), and only the newest code is live: a new start ends the previous one."""
+    if await _reset_refused(deps, email, ip, "start"):
+        return Refused(429, BUSY)
     user = await _user_by_email(session, email)
     if user is None or not user.is_active or await session.get(StaffCredential, user.id) is None:
         return None
+    await session.execute(
+        update(AuthChallenge)
+        .where(
+            AuthChallenge.user_id == user.id,
+            AuthChallenge.purpose == "reset",
+            AuthChallenge.consumed_at.is_(None),
+        )
+        .values(consumed_at=deps.now())
+    )
     code = new_numeric_code()
     session.add(
         AuthChallenge(
@@ -424,11 +532,16 @@ async def start_reset(session: AsyncSession, deps: CrmDeps, email: str) -> tuple
 
 
 async def finish_reset(
-    session: AsyncSession, deps: CrmDeps, email: str, code: str, new: str
+    session: AsyncSession, deps: CrmDeps, email: str, code: str, new: str, *, ip: str | None = None
 ) -> Refused | None:
+    """M3: every wrong code (or unknown address) counts toward the reset lock of that address."""
     now = deps.now()
+    if await _reset_refused(deps, email, ip, "finish"):
+        return Refused(429, BUSY)
+    wrong = _reset_wrong_key(email)
     user = await _user_by_email(session, email)
     if user is None:
+        await deps.throttle.bump(wrong, deps.auth.lockout_minutes * 60)
         return Refused(401, "the code is not correct or has expired")
     row = (
         await session.execute(
@@ -445,16 +558,19 @@ async def finish_reset(
         )
     ).scalar_one_or_none()
     if row is None:
+        await deps.throttle.bump(wrong, deps.auth.lockout_minutes * 60)
         return Refused(401, "the code is not correct or has expired")
     row.tries += 1
     if row.tries > deps.auth.code_max_tries or row.code_hash != token_hash(code.strip()):
         if row.tries > deps.auth.code_max_tries:
             row.consumed_at = now
         await session.flush()
+        await deps.throttle.bump(wrong, deps.auth.lockout_minutes * 60)
         return Refused(401, "the code is not correct or has expired")
     row.consumed_at = now
     _, cred = await _user_and_cred(session, user.id)
     await _set_password(session, deps, user, cred, new, must_change=False)
+    await deps.throttle.clear(wrong)
     return None
 
 

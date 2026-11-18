@@ -32,13 +32,33 @@ class LogicalDb(StrEnum):
     AGENTS = "agents"
 
 
+class RateLimit(BaseModel):
+    """A token bucket: `burst` requests at once, then `per_minute` (env: KX_AUTH__RATE_LOGIN_IP__BURST=20)."""
+
+    burst: int = Field(ge=1)
+    per_minute: float = Field(gt=0)
+
+
 class AuthSettings(BaseModel):
     """In-house staff login (OPEN_QUESTIONS #50 for the values the documents do not give)."""
 
     access_ttl_seconds: int = Field(default=900, ge=60)  # short-lived access tokens (Recommendation)
     refresh_ttl_seconds: int = Field(default=43_200, ge=600)  # 12 h sliding, rotated on every use
-    max_failed_attempts: int = Field(default=5, ge=1)  # then locked
+    # M3: wrong passwords / codes are counted per account AND client IP: one attacker locks only their own
+    # address out, never the staff member everywhere. The account-wide lock stays as a much higher backstop.
+    max_failed_attempts: int = Field(default=5, ge=1)  # per account + IP, then that IP is locked out
+    account_lock_failures: int = Field(default=50, ge=1)  # from all IPs together, then the account is locked
     lockout_minutes: int = Field(default=15, ge=1)
+    # M3: Redis token buckets (per client IP and per account) on the unauthenticated auth routes
+    rate_login_ip: RateLimit = RateLimit(burst=20, per_minute=10)
+    rate_login_account: RateLimit = RateLimit(burst=10, per_minute=2)
+    rate_mfa_send_ip: RateLimit = RateLimit(burst=5, per_minute=1)
+    rate_mfa_send_account: RateLimit = RateLimit(burst=3, per_minute=0.5)
+    rate_reset_start_ip: RateLimit = RateLimit(burst=5, per_minute=1)
+    rate_reset_start_account: RateLimit = RateLimit(burst=3, per_minute=0.05)  # at most 3 resets an hour
+    rate_reset_finish_ip: RateLimit = RateLimit(burst=10, per_minute=2)
+    rate_reset_finish_account: RateLimit = RateLimit(burst=10, per_minute=0.2)
+    reset_max_wrong_codes: int = Field(default=5, ge=1)  # wrong reset codes, then reset is locked (lockout)
     code_ttl_seconds: int = Field(default=600, ge=60)  # email codes and login challenges
     code_max_tries: int = Field(default=5, ge=1)
     encryption_key: SecretStr | None = None  # Fernet key for TOTP seeds (KX_AUTH__ENCRYPTION_KEY)
@@ -48,6 +68,8 @@ class AuthSettings(BaseModel):
     # M2: browser origins (the CRM screens) that may call /v1/auth; a request from any other Origin is
     # refused. None = the app fills it from its credentialed CORS origins (KX_APP_CORS_ORIGINS).
     crm_origins: tuple[str, ...] | None = None
+    # M3: the header carrying the client IP behind Cloudflare (the app copies KX_TRUSTED_CLIENT_IP_HEADER)
+    client_ip_header: str | None = None
 
 
 Plan = Literal["paid", "free"]

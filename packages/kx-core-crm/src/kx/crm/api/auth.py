@@ -23,6 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, current_principal
+from kx.core.clientip import client_ip
 from kx.core.errors import Forbidden, TooManyRequests, Unauthorized, Unavailable
 from kx.core.settings import LogicalDb
 from kx.crm.api.context import ApiContext
@@ -109,8 +110,9 @@ class ResetFinishIn(BaseModel):
     new_password: str = Field(min_length=12, max_length=256)
 
 
-def _client(request: Request) -> tuple[str | None, str | None]:
-    return (request.client.host if request.client else None), request.headers.get("user-agent")
+def _client(request: Request, ip_header: str | None = None) -> tuple[str | None, str | None]:
+    """M3: the client IP by the same rule as the website limits (Cloudflare header only from Cloudflare)."""
+    return client_ip(request, ip_header), request.headers.get("user-agent")
 
 
 def _refuse(r: svc.Refused) -> Exception:
@@ -132,6 +134,9 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
 
     def tx() -> AbstractAsyncContextManager[AsyncSession]:
         return dbs.transaction(LogicalDb.CRM)
+
+    def who(request: Request) -> tuple[str | None, str | None]:
+        return _client(request, deps.auth.client_ip_header)
 
     def token_out(t: svc.Tokens, response: Response) -> TokenOut:
         response.set_cookie(
@@ -155,10 +160,10 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
         )
 
     @r.post("/login", response_model=ChallengeOut)
-    async def login(body: LoginIn) -> ChallengeOut:
+    async def login(body: LoginIn, request: Request) -> ChallengeOut:
         """Step 1: email + password. Answers the second steps on offer (TOTP first; email code fallback)."""
         async with tx() as s:
-            result = await svc.login(s, deps, body.email, body.password)
+            result = await svc.login(s, deps, body.email, body.password, ip=who(request)[0])
         if isinstance(result, svc.Refused):
             raise _refuse(result)
         return ChallengeOut(
@@ -171,7 +176,7 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
     @r.post("/mfa/totp", response_model=TokenOut)
     async def mfa_totp(body: CodeIn, request: Request, response: Response) -> TokenOut:
         """Step 2 with the authenticator app: `mfa=true` (needed for approvals, price edits, settings)."""
-        ip, ua = _client(request)
+        ip, ua = who(request)
         async with tx() as s:
             result = await svc.verify_second_step(
                 s, deps, body.challenge_token, body.code, "totp", ip=ip, user_agent=ua
@@ -181,12 +186,12 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
         return token_out(result, response)
 
     @r.post("/mfa/email/send", status_code=204)
-    async def mfa_email_send(body: ChallengeIn) -> None:
+    async def mfa_email_send(body: ChallengeIn, request: Request) -> None:
         """Fallback second step: a 6-digit code to the staff member's work address (valid 10 minutes)."""
         if deps.mailer is None:
             raise Unavailable("email codes are not available")
         async with tx() as s:
-            result = await svc.send_email_code(s, deps, body.challenge_token)
+            result = await svc.send_email_code(s, deps, body.challenge_token, ip=who(request)[0])
         if isinstance(result, svc.Refused):
             raise _refuse(result)
         address, code = result
@@ -197,7 +202,7 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
     @r.post("/mfa/email/verify", response_model=TokenOut)
     async def mfa_email_verify(body: CodeIn, request: Request, response: Response) -> TokenOut:
         """Step 2 with the email code: signed in with `mfa=false` (no approvals until TOTP is used)."""
-        ip, ua = _client(request)
+        ip, ua = who(request)
         async with tx() as s:
             result = await svc.verify_second_step(
                 s, deps, body.challenge_token, body.code, "email", ip=ip, user_agent=ua
@@ -217,7 +222,7 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
         token = (body.refresh_token if body else None) or kx_refresh
         if not token:
             raise Unauthorized("no session")
-        ip, ua = _client(request)
+        ip, ua = who(request)
         async with tx() as s:
             result = await svc.refresh(s, deps, token, ip=ip, user_agent=ua)
         if isinstance(result, svc.Refused):
@@ -266,18 +271,24 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
             raise Unauthorized("the code is not correct")
 
     @r.post("/password", status_code=204)
-    async def password_change(body: PasswordChangeIn, p: Signed) -> None:
+    async def password_change(body: PasswordChangeIn, p: Signed, request: Request) -> None:
         """Change the password (ends every other session)."""
+        ip = who(request)[0]
         async with tx() as s:
-            result = await svc.change_password(s, deps, _uid(p), body.current_password, body.new_password)
+            result = await svc.change_password(
+                s, deps, _uid(p), body.current_password, body.new_password, ip=ip
+            )
         if result is not None:
             raise _refuse(result)
 
     @r.post("/password/reset/start", status_code=202)
-    async def reset_start(body: ResetStartIn) -> None:
-        """Recovery: a code to the work address. Always 202 (nobody learns which addresses exist)."""
+    async def reset_start(body: ResetStartIn, request: Request) -> None:
+        """Recovery: a code to the work address. Always 202 (nobody learns which addresses exist); 429 when
+        the rate limit for this IP or this typed address is reached (the same for unknown addresses, M3)."""
         async with tx() as s:
-            found = await svc.start_reset(s, deps, body.email)
+            found = await svc.start_reset(s, deps, body.email, ip=who(request)[0])
+        if isinstance(found, svc.Refused):
+            raise _refuse(found)
         if found is not None and deps.mailer is not None:
             await deps.mailer.send_code(
                 found[0],
@@ -286,10 +297,11 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
             )
 
     @r.post("/password/reset/finish", status_code=204)
-    async def reset_finish(body: ResetFinishIn) -> None:
+    async def reset_finish(body: ResetFinishIn, request: Request) -> None:
         """Recovery step 2: the emailed code + a new password (min 12 characters); every session ends."""
+        ip = who(request)[0]
         async with tx() as s:
-            result = await svc.finish_reset(s, deps, body.email, body.code, body.new_password)
+            result = await svc.finish_reset(s, deps, body.email, body.code, body.new_password, ip=ip)
         if result is not None:
             raise _refuse(result)
 

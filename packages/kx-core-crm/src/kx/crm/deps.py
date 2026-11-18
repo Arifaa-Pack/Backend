@@ -14,6 +14,7 @@ from kx.core.settings import AuthSettings
 from kx.crm.pdf import Letterhead, PdfUploader, QuoteRenderer
 from kx.crm.services.fx import FxSource
 from kx.crm.services.settings import SettingsService
+from kx.crm.throttle import AuthThrottle, MemoryThrottle
 
 
 def utcnow() -> datetime:
@@ -36,6 +37,7 @@ class CrmDeps:
     mailer: StaffMailer | None = None
     seed_box: SeedBox | None = None
     auth: AuthSettings = field(default_factory=AuthSettings)
+    throttle: AuthThrottle = field(default_factory=MemoryThrottle)  # M3: the app wires the Redis one
     # ---- §14 the salesperson writes to the buyer from the CRM inbox (through OutboundService)
     sender: MessageSender | None = None
     caller: ClickToCall | None = None  # §14 click-to-call through the company number

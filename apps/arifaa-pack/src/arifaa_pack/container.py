@@ -33,6 +33,7 @@ from arifaa_pack.adapters import (
     PayloadContentSource,
     PayloadProductWriter,
     PublicLimiter,
+    RedisAuthThrottle,
     StaffCodeMailer,
     ThreadAddressBook,
     TurnstileVerifier,
@@ -418,7 +419,7 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             tokens=_token_issuer(core),  # D26 in-house login (RS256)
             seed_box=_seed_box(core),
             mailer=StaffCodeMailer([email_sender]),
-            auth=staff_auth(core.auth, s.cors_origins),
+            auth=staff_auth(core.auth, s.cors_origins, ip_header=core.trusted_client_ip_header),
             fx_source=OpenRatesFx(http, s.fx_rates_url) if s.fx_rates_auto else None,  # 18 Nov
         )
         media = S3MediaStore(s3, st.bucket, prefix="media/")
@@ -451,6 +452,7 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             sender=outbound,
             caller=CallBridge(dbs, auto_s, telnyx, kill_switch),
             kill_switch=kill_switch,  # D35 ladder, set from the CRM admin screen
+            throttle=RedisAuthThrottle(limiter, redis, co.code),  # M3 staff sign-in limits and lock-out
         )
         gateway = CrmGatewayImpl(dbs, crm_deps)
         voice = VoiceAlerts(dbs, auto_s, telnyx)
@@ -624,12 +626,18 @@ def _token_issuer(core: CoreSettings) -> TokenIssuer:
     return TokenIssuer.from_settings(core)
 
 
-def staff_auth(auth: AuthSettings, cors_origins: tuple[str, ...]) -> AuthSettings:
+def staff_auth(
+    auth: AuthSettings, cors_origins: tuple[str, ...], *, ip_header: str | None = None
+) -> AuthSettings:
     """M2: /v1/auth accepts browser calls only from the CRM origins; unless KX_AUTH__CRM_ORIGINS says
-    otherwise these are the credentialed CORS origins (KX_APP_CORS_ORIGINS)."""
-    if auth.crm_origins is not None:
-        return auth
-    return auth.model_copy(update={"crm_origins": cors_origins})
+    otherwise these are the credentialed CORS origins (KX_APP_CORS_ORIGINS). M3: the per-IP limits read
+    the client IP like the website does (KX_TRUSTED_CLIENT_IP_HEADER)."""
+    update: dict[str, object] = {}
+    if auth.crm_origins is None:
+        update["crm_origins"] = cors_origins
+    if auth.client_ip_header is None and ip_header is not None:
+        update["client_ip_header"] = ip_header
+    return auth.model_copy(update=update) if update else auth
 
 
 _BACKGROUND: set[asyncio.Task[None]] = set()  # alert tasks started from LiveKit callbacks (kept referenced)

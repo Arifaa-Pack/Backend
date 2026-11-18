@@ -7,6 +7,7 @@ routes check.
 
 from __future__ import annotations
 
+import contextlib
 import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field, replace
@@ -23,12 +24,13 @@ from kx.core import events as ev
 from kx.core.auth import TokenIssuer
 from kx.core.errors import install_problem_handlers
 from kx.core.passwords import SeedBox, totp_now
-from kx.core.settings import AuthSettings, LogicalDb, get_settings
+from kx.core.settings import AuthSettings, LogicalDb, RateLimit, get_settings
 from kx.crm.api import build_router
 from kx.crm.deps import CrmDeps
 from kx.crm.models import AuditEvent, OutboxEvent, StaffCredential
 from kx.crm.services import auth as svc
 from kx.crm.services.journal import Actor
+from kx.crm.throttle import MemoryThrottle
 
 pytestmark = pytest.mark.db
 
@@ -72,6 +74,7 @@ async def env(databases: Any, seed: Seed, deps: CrmDeps) -> AsyncIterator[Env]:
         mailer=mailer,
         auth=AuthSettings(cookie_secure=False),
         clock=clock,
+        throttle=MemoryThrottle(clock=lambda: clock().timestamp()),  # M3 limits follow the test clock
     )
     app = FastAPI()
     app.include_router(build_router(databases, auth_deps), prefix="/v1")
@@ -374,3 +377,134 @@ async def test_auth_routes_refuse_a_browser_origin_that_is_not_the_crm(env: Env)
         assert (
             await client.post("/v1/auth/refresh")
         ).status_code == 200  # non-browser clients send no Origin
+
+
+@contextlib.asynccontextmanager
+async def _client_with(env: Env, auth: AuthSettings) -> AsyncIterator[httpx.AsyncClient]:
+    """An app with other sign-in settings (M3 limits), on the same database, mailer and clock."""
+    deps = replace(env.deps, auth=auth, throttle=MemoryThrottle(clock=lambda: env.clock().timestamp()))
+    app = FastAPI()
+    app.include_router(build_router(env.databases, deps), prefix="/v1")
+    install_problem_handlers(app)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as client:
+        yield client
+
+
+def _from(ip: str) -> dict[str, str]:
+    return {"X-Forwarded-For": ip}  # the hop our proxy saw (kx.core.clientip)
+
+
+async def test_wrong_passwords_lock_out_the_attacker_ip_not_the_staff_member(env: Env) -> None:
+    """M3: five wrong passwords from one IP lock that IP out; the real person signs in from elsewhere."""
+    email, password, user_id = await new_user(env, "manager")
+    wrong = {"email": email, "password": "wrong-password"}
+    for _ in range(5):
+        r = await env.client.post("/v1/auth/login", json=wrong, headers=_from("203.0.113.9"))
+        assert r.status_code == 401
+    right = {"email": email, "password": password}
+    attacker = await env.client.post("/v1/auth/login", json=right, headers=_from("203.0.113.9"))
+    assert attacker.status_code == 429
+    staff = await env.client.post("/v1/auth/login", json=right, headers=_from("198.51.100.7"))
+    assert staff.status_code == 200
+    async with env.databases.transaction(LogicalDb.CRM) as s:
+        cred = await s.get(StaffCredential, user_id)
+        assert cred is not None and cred.locked_until is None  # the account itself is not locked
+        locked = (
+            await s.execute(
+                select(AuditEvent.after).where(
+                    AuditEvent.entity_id == str(user_id), AuditEvent.action == "auth.locked"
+                )
+            )
+        ).scalar_one()
+    assert locked["scope"] == "ip" and locked["ip"] == "203.0.113.9"
+
+    # an unknown address is locked out the same way (no hint which addresses exist)
+    ghost = {"email": "ghost@test.ae", "password": "wrong-password"}
+    codes = [
+        (await env.client.post("/v1/auth/login", json=ghost, headers=_from("203.0.113.10"))).status_code
+        for _ in range(6)
+    ]
+    assert codes == [401] * 5 + [429]
+
+
+async def test_account_wide_lock_is_a_backstop_across_many_ips(env: Env) -> None:
+    """M3: failures from many IPs together still lock the account (`account_lock_failures`)."""
+    auth = AuthSettings(cookie_secure=False, account_lock_failures=6)
+    async with _client_with(env, auth) as client:
+        email, password, _ = await new_user(env, "sales")
+        for n in range(6):
+            body = {"email": email, "password": "nope-nope"}
+            assert (
+                await client.post("/v1/auth/login", json=body, headers=_from(f"192.0.2.{n}"))
+            ).status_code == 401
+        body = {"email": email, "password": password}
+        assert (
+            await client.post("/v1/auth/login", json=body, headers=_from("192.0.2.99"))
+        ).status_code == 429
+
+
+async def test_login_is_rate_limited_per_ip_and_per_account(env: Env) -> None:
+    """M3: token buckets on login, the same answer for known and unknown addresses."""
+    auth = AuthSettings(
+        cookie_secure=False,
+        rate_login_ip=RateLimit(burst=3, per_minute=0.01),
+        rate_login_account=RateLimit(burst=4, per_minute=0.01),
+    )
+    async with _client_with(env, auth) as client:
+        email, password, _ = await new_user(env, "sales")
+        body = {"email": email, "password": password}
+
+        async def login(ip: str, payload: dict[str, str] = body) -> int:
+            return (await client.post("/v1/auth/login", json=payload, headers=_from(ip))).status_code
+
+        assert [await login("192.0.2.1") for _ in range(4)] == [200, 200, 200, 429]  # per IP
+        assert await login("192.0.2.2") == 200
+        assert await login("192.0.2.3") == 429  # per account: 4 attempts used
+        assert await login("192.0.2.4", {"email": "ghost@test.ae", "password": "whatever-pass"}) == 401
+        env.clock.at += timedelta(hours=8)  # the buckets refill
+        assert await login("192.0.2.1") == 200
+
+
+async def test_mfa_email_send_is_rate_limited(env: Env) -> None:
+    auth = AuthSettings(cookie_secure=False, rate_mfa_send_account=RateLimit(burst=2, per_minute=0.01))
+    async with _client_with(env, auth) as client:
+        email, password, _ = await new_user(env, "sales")
+        challenge = (await client.post("/v1/auth/login", json={"email": email, "password": password})).json()
+        sent = [(await client.post("/v1/auth/mfa/email/send", json=challenge)).status_code for _ in range(3)]
+        assert sent == [204, 204, 429]
+
+
+async def test_reset_one_live_code_capped_starts_and_a_lock_after_wrong_codes(env: Env) -> None:
+    """M3: a new start ends the previous code; starts per account are capped; wrong codes lock recovery."""
+    email, _, _ = await new_user(env, "sales")
+    new_password = "a-brand-new-passphrase"
+
+    async def start(address: str, ip: str = "192.0.2.50") -> int:
+        r = await env.client.post("/v1/auth/password/reset/start", json={"email": address}, headers=_from(ip))
+        return r.status_code
+
+    async def finish(code: str, ip: str = "192.0.2.60") -> int:
+        body = {"email": email, "code": code, "new_password": new_password}
+        r = await env.client.post("/v1/auth/password/reset/finish", json=body, headers=_from(ip))
+        return r.status_code
+
+    assert await start(email) == 202
+    first = env.mailer.last_code()
+    assert await start(email, "192.0.2.51") == 202
+    second = env.mailer.last_code()
+    if first != second:
+        assert await finish(first) == 401  # only the newest code is live
+    assert await start(email, "192.0.2.52") == 202
+    third = env.mailer.last_code()
+    # at most 3 starts an hour per address (default); an unknown address answers exactly the same
+    assert await start(email, "192.0.2.53") == 429
+    assert [await start("ghost-reset@test.ae", f"192.0.2.{n}") for n in range(4)] == [202, 202, 202, 429]
+
+    # wrong codes (old ones included) lock recovery for the lock-out time, even for the right code afterwards
+    wrong = "000000" if third != "000000" else "111111"
+    for n in range(5 - (first != second)):
+        assert await finish(wrong, f"192.0.2.{n + 10}") == 401
+    assert await finish(third) == 429
+    env.clock.at += timedelta(hours=2)
+    assert await start(email) == 202
+    assert await finish(env.mailer.last_code()) == 204
