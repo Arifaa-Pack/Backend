@@ -18,7 +18,7 @@ The chain already moved to the next vendor (paid → free alternative, or the la
 
 ## Disk filling up
 
-`df -h`; `docker system df`. Usual causes: SigNoz retention (lower it), Docker logs (rotation is 50 MB × 3), WAL piling up because WAL-G cannot reach R2 (check `wal-g` in the postgres logs; fix R2 credentials, archiving resumes).
+`df -h`; `docker system df`. Usual causes: SigNoz retention (lower it), Docker logs (rotation is 50 MB × 3), WAL piling up because WAL-G cannot reach R2 (check `wal-g` in the postgres logs; fix R2 credentials, archiving resumes). The Healthchecks.io alert from `backup/pg-health-check.sh` names which of these it is (archiving failing, WAL backlog, old base backup, disk %), usually well before the disk is full (M10).
 
 ## Price shown wrong / AI misbehaving
 

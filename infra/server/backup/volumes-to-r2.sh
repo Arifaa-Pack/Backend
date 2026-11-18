@@ -24,6 +24,11 @@
 #   KX_BACKUP_HEARTBEAT_URL   optional: Healthchecks.io / UptimeRobot heartbeat, pinged on success
 #   KX_MAIL_PROJECT           optional: compose project label of the mail stack, when more than one stack on this
 #                             host has volumes named stalwart-etc / stalwart-data (staging + production)
+#   KX_BACKUP_STOP_MAIL       default 1: stop Stalwart while its volumes are copied (M14: RocksDB files copied while
+#                             it writes may not open). Mail is down for the seconds the tar takes; senders retry
+#                             (SMTP queues), the app's JMAP calls retry. 0 = copy live (crash-consistent at best).
+#
+# Restore test: backup/volumes-restore-test.sh (monthly; runbooks/restore.md).
 #
 # Restore (runbooks/restore.md): export the same R2_BUCKET / KX_BACKUP_PASSPHRASE, define the `kxvol` remote as
 # below (or run this script's first lines), `rclone copy kxvol:<file> /tmp/restore`, then tar -xzf into the volume.
@@ -37,10 +42,19 @@ KEEP_DAYS="${KEEP_DAYS:-14}"
 MIN_BYTES="${KX_BACKUP_MIN_BYTES:-1024}"
 HEARTBEAT_URL="${KX_BACKUP_HEARTBEAT_URL:-}"
 MAIL_PROJECT="${KX_MAIL_PROJECT:-}"
+STOP_MAIL="${KX_BACKUP_STOP_MAIL:-1}"
 DEST="backups/volumes"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 WORK="$(mktemp -d)"   # 0700, root: the plaintext tarballs never leave it
-trap 'rm -rf "$WORK"' EXIT
+STOPPED=""            # the Stalwart container this run stopped; started again on any exit
+cleanup() {
+  if [[ -n "$STOPPED" ]]; then
+    docker start "$STOPPED" >/dev/null \
+      || echo "$(date -u +%FT%TZ) volume backup: FAILED to start Stalwart (${STOPPED}) again: start it now" >&2
+  fi
+  rm -rf "$WORK"
+}
+trap cleanup EXIT
 
 # rclone crypt remote over R2, defined from the environment (no key on disk in rclone.conf).
 export RCLONE_CONFIG_KXVOL_TYPE=crypt
@@ -68,6 +82,27 @@ check_size() {
   (( size >= MIN_BYTES )) || die "$(basename "$file") is ${size} bytes (< ${MIN_BYTES}): empty or wrong volume?"
 }
 
+# the running Stalwart container (compose service label), or nothing if it is not running
+mail_container() {
+  local ids
+  local filters=(--filter "label=com.docker.compose.service=stalwart")
+  [[ -z "$MAIL_PROJECT" ]] || filters+=(--filter "label=com.docker.compose.project=${MAIL_PROJECT}")
+  mapfile -t ids < <(docker ps -q "${filters[@]}")
+  (( ${#ids[@]} <= 1 )) || die "expected at most 1 running Stalwart container, found ${#ids[@]} (set KX_MAIL_PROJECT?)"
+  printf '%s' "${ids[0]:-}"
+}
+
+# M14: a consistent copy of RocksDB needs Stalwart stopped (its own stop flushes the memtables)
+if [[ "$STOP_MAIL" == "1" ]]; then
+  cid="$(mail_container)"
+  if [[ -n "$cid" ]]; then
+    STOPPED="$cid"
+    docker stop -t 30 "$cid" >/dev/null || die "could not stop Stalwart (${cid})"
+  else
+    echo "$(date -u +%FT%TZ) volume backup: Stalwart is not running; copying its volumes as they are" >&2
+  fi
+fi
+
 # Stalwart v1: config.json (stalwart-etc) + RocksDB with mail, accounts, settings, DKIM keys (stalwart-data)
 VOLUMES=()
 for key in stalwart-etc stalwart-data; do
@@ -80,6 +115,12 @@ for key in stalwart-etc stalwart-data; do
   check_size "$WORK/$file"
   VOLUMES+=("$vol")
 done
+
+# mail back up as soon as its volumes are copied (the upload below can take minutes)
+if [[ -n "$STOPPED" ]]; then
+  docker start "$STOPPED" >/dev/null || die "could not start Stalwart (${STOPPED}) again: start it now"
+  STOPPED=""
+fi
 
 if [[ -d /data/coolify ]]; then
   # ssh/ = Coolify's private keys for this server: excluded (H4); after a rebuild Coolify gets a new key pair.
