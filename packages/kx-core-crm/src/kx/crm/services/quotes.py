@@ -624,6 +624,7 @@ class QuoteEdits:
     note: str | None = None  # internal (approval card, timeline)
     buyer_note: str | None = None  # §13.3: what changed, sent to the buyer with the new version
     cover_note: str | None = None  # D9: the "open to discuss" line, message only
+    currency: str | None = None  # the buyer asked for another currency; prices given are in it
 
 
 @dataclass(frozen=True, slots=True)
@@ -814,24 +815,36 @@ async def revise_quote(
     by_no = {e.line_no: e for e in edits.lines}
     drafts: list[DraftLine] = []
     special = False
+    currency, fx, fx_date = base.currency, base.fx_rate_to_aed, base.fx_rate_date
+    if edits.currency and edits.currency.upper() != base.currency:
+        # The buyer asked for another currency (live test 18 Nov: "can you share me in the usd"). Before,
+        # the quote currency followed the delivery country only, so staff could not do it. Prices typed
+        # with the edit are in the new currency; the others convert at today's rate; tiers are re-read.
+        currency = edits.currency.upper()
+        fx, fx_date = await fx_with_date(session, currency, now.date())
+        deal.currency = currency
+    rebased = fx != base.fx_rate_to_aed
     for line, old_snap in await tiers_of(session, base.id):
         snap = old_snap
         e = by_no.get(line.line_no, LineEdit(line.line_no))
-        price = line.unit_price if e.unit_price is None else e.unit_price
+        old_price = (
+            q(line.unit_price * base.fx_rate_to_aed / fx, Decimal("0.000001")) if rebased else line.unit_price
+        )
+        price = old_price if e.unit_price is None else e.unit_price
         qty = line.quantity if e.quantity is None else e.quantity
         if price <= 0 or qty <= 0:
             raise RuleViolation(f"line {line.line_no}: price and quantity must be positive")
         total = (
             line.line_total
-            if (price, qty) == (line.unit_price, line.quantity)
+            if not rebased and (price, qty) == (line.unit_price, line.quantity)
             else q(price * qty, MONEY_PLACES)
         )
-        if snap is not None and qty != line.quantity and line.product_id is not None:
+        if snap is not None and (rebased or qty != line.quantity) and line.product_id is not None:
             # a new quantity may sit in another tier (or outside them: then it is priced by hand, D12)
-            snap = await _tier_snapshot(session, line.product_id, qty, fx=base.fx_rate_to_aed, s=s, now=now)
+            snap = await _tier_snapshot(session, line.product_id, qty, fx=fx, s=s, now=now)
         new_snap: QuoteLineTier | None = None
         if snap is not None:
-            if price > max(snap.list_price, line.unit_price):
+            if price > max(snap.list_price, old_price):
                 raise RuleViolation(f"line {line.line_no}: the unit price may not exceed the list price")
             special = special or price < snap.min_price
             new_snap = QuoteLineTier(**{c: getattr(snap, c) for c in _TIER_COLS})
@@ -850,8 +863,8 @@ async def revise_quote(
         quote=quote,
         deal=deal,
         kind="final" if base.kind == "final" else "revision",
-        currency=base.currency,
-        fx=base.fx_rate_to_aed,
+        currency=currency,
+        fx=fx,
         drafts=drafts,
         vat=base.vat_rate,
         incoterm=incoterm,
@@ -867,8 +880,8 @@ async def revise_quote(
             delivery_time_text=edits.delivery_time_text or base.delivery_time_text,
             delivery_place=edits.delivery_place or base.delivery_place,
             payment_terms_text=edits.payment_terms_text or base.payment_terms_text,
-            fx_rate=base.fx_rate,
-            fx_rate_date=base.fx_rate_date,
+            fx_rate=(None if fx == 1 else fx) if rebased else base.fx_rate,
+            fx_rate_date=fx_date,
             signed_by_user_id=deal.owner_user_id or base.signed_by_user_id,
         ),
     )

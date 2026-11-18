@@ -189,6 +189,26 @@ async def test_edit_then_approve_stays_between_minimum_and_list(databases: Datab
             )
 
 
+async def test_the_buyer_can_get_the_quote_in_another_currency(databases: Databases, deps: CrmDeps) -> None:
+    """Live test 18 Nov: the buyer asked "can you share me in the usd", but the quote currency followed the
+    delivery country only. A revision may now switch currency: prices convert at today's rate and the tier
+    range is re-read in that currency, so the minimum still holds (below it: the manager first)."""
+    deal_id = await sara_deal(databases, deps)
+    async with databases.transaction(CRM) as s:
+        v2 = await quotes.revise_quote(s, deps, deal_id, quotes.QuoteEdits(currency="usd"), Actor.user(SARA))
+        ((line, snap),) = await quotes.tiers_of(s, v2.id)
+        assert (v2.currency, v2.fx_rate_to_aed) == ("USD", D("3.6725"))
+        assert snap is not None and snap.min_price <= line.unit_price <= snap.list_price
+        assert snap.list_price < D("0.1")  # AED 0.2x per piece is USD 0.0x
+        usd_min = snap.min_price
+    assert (await open_approval(databases, deal_id)).kind == "revision"
+    async with databases.transaction(CRM) as s:
+        below = quotes.QuoteEdits(lines=(quotes.LineEdit(1, unit_price=usd_min - D("0.001")),))
+        v3 = await quotes.revise_quote(s, deps, deal_id, below, Actor.user(SARA))
+        assert v3.currency == "USD"
+    assert (await open_approval(databases, deal_id)).kind == "special_price"
+
+
 async def test_scenario_3_special_price_needs_the_manager_then_the_salesperson(
     databases: Databases, deps: CrmDeps
 ) -> None:

@@ -248,6 +248,7 @@ def router(ctx: ApiContext) -> APIRouter:
             buyer_note=body.buyer_note,
             cover_note=body.cover_note,
             note=body.note,
+            currency=body.currency,
         )
         return QuoteVersionOut.model_validate(
             await quotes.revise_quote(s, deps, deal_id, edits, Actor.user(p))

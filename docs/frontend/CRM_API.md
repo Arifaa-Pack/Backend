@@ -833,6 +833,7 @@ Take the change request (starts work; the SLA keeps running).
 | `note` | string or null | no |  |
 | `buyer_note` | string or null | no |  |
 | `cover_note` | string or null | no |  |
+| `currency` | string or null | no |  |
 
 **Response 201:** `QuoteVersionOut`
 
@@ -1151,6 +1152,7 @@ Move the deal to another stage (rules in §5; LOST needs a reason). `expected_ve
 | `note` | string or null | no |  |
 | `buyer_note` | string or null | no |  |
 | `cover_note` | string or null | no |  |
+| `currency` | string or null | no |  |
 
 **Response 201:** `QuoteVersionOut`
 
@@ -2875,6 +2877,7 @@ CRM-owned fields only (D22): the CMS owns the description.
 | `note` | string or null | no |  |
 | `buyer_note` | string or null | no |  |
 | `cover_note` | string or null | no |  |
+| `currency` | string or null | no |  |
 
 ### `QuoteLineOut`
 

@@ -268,6 +268,7 @@ class QuoteEditsIn(BaseModel):
     note: str | None = Field(default=None, max_length=2000)
     buyer_note: str | None = Field(default=None, max_length=500)  # e.g. "Updated: delivery in 5 working days"
     cover_note: str | None = Field(default=None, max_length=500)
+    currency: str | None = Field(default=None, pattern="^[A-Za-z]{3}$")  # the buyer asked for e.g. USD
 
 
 class ChangeRequestOut(_Out):
