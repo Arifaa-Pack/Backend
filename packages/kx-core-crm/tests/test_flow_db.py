@@ -22,6 +22,7 @@ from kx.core.errors import Conflict, Forbidden, RuleViolation
 from kx.core.event_payloads import PriceProposed
 from kx.core.events import Event
 from kx.core.identity import priced_content_sha256, recipient_hash, sha256_hex
+from kx.core.jobs import RetryLater
 from kx.core.settings import LogicalDb
 from kx.crm import models as m
 from kx.crm.deps import CrmDeps
@@ -742,3 +743,59 @@ async def test_retention_anonymises_lost_leads(databases: Databases, seed: Seed,
 
 async def _noop(_: Event) -> None:
     return None
+
+
+def _message_from(phone: str, received_at: datetime) -> Event:
+    return Event(
+        event_type=ev.MESSAGE_RECEIVED,
+        aggregate_type="inbound_message",
+        aggregate_id="m-new",
+        payload={
+            "message_ref": str(uuid.uuid4()),
+            "thread_ref": str(uuid.uuid4()),
+            "channel": "whatsapp",
+            "from_address_hash": recipient_hash("whatsapp", phone),
+            "contact_ref": None,
+            "deal_ref": None,
+            "text": "Hi, do you have 750 ml containers?",
+            "received_at": received_at.isoformat(),
+            "provider_message_id": "wamid.new",
+        },
+    )
+
+
+async def test_first_message_of_a_new_buyer_waits_for_the_deal(
+    databases: Databases, seed: Seed, deps: CrmDeps
+) -> None:
+    """D-3 (live test 18 Nov): the CRM logged "unmatched" 8 ms before the agents created the deal, and the
+    buyer's first message never reached the timeline. A fresh unmatched message is retried; once the deal
+    exists the retry records it; an old unmatched message is only logged."""
+    gw, rt, phone = CrmGatewayImpl(databases, deps), CrmRuntime(databases, deps, publish=_noop), new_phone()
+    event = _message_from(phone, deps.now())
+    with pytest.raises(RetryLater):
+        await dispatch(rt, event)
+    deal_id = await gw.resolve_deal("whatsapp", phone, None)  # the agents create the deal meanwhile
+    await dispatch(rt, event)
+    async with databases.transaction(CRM) as s:
+        kinds = (
+            await s.execute(select(m.TimelineEvent.kind).where(m.TimelineEvent.deal_id == deal_id))
+        ).scalars()
+        assert "message_in" in list(kinds)
+    await dispatch(rt, _message_from(new_phone(), deps.now() - timedelta(minutes=5)))  # no raise
+
+
+async def test_ai_replies_are_recorded_on_the_timeline(
+    databases: Databases, seed: Seed, deps: CrmDeps
+) -> None:
+    gw = CrmGatewayImpl(databases, deps)
+    deal_id = await gw.resolve_deal("whatsapp", new_phone(), None)
+    await gw.record_message(deal_id, "out", "whatsapp", "We have 750 ml in stock.", AiRole.PRODUCT)
+    async with databases.transaction(CRM) as s:
+        row = (
+            await s.execute(
+                select(m.TimelineEvent).where(
+                    m.TimelineEvent.deal_id == deal_id, m.TimelineEvent.kind == "message_out"
+                )
+            )
+        ).scalar_one()
+    assert (row.direction, row.channel, row.actor_type) == ("out", "whatsapp", "ai")

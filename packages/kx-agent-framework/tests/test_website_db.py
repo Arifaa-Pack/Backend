@@ -107,6 +107,8 @@ async def test_a_chat_turn_goes_through_the_same_agents(env: Env) -> None:
     async with env.databases.transaction(LogicalDb.AGENTS) as s:
         visitor = await s.get(Visitor, uuid.UUID(session["session_id"]))
     assert visitor is not None and visitor.voice_consent_at is not None and visitor.language == "en"
+    # D-3 (live test 18 Nov): website chat and AI replies were missing from the deal timeline
+    assert ("record_message", "in") in env.gateway.calls and ("record_message", "out") in env.gateway.calls
 
 
 async def test_a_failed_human_check_starts_nothing(env: Env) -> None:

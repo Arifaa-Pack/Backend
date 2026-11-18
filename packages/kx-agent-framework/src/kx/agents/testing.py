@@ -14,7 +14,7 @@ import uuid
 from collections.abc import Callable, Sequence
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from langchain_core.callbacks import AsyncCallbackManagerForLLMRun, CallbackManagerForLLMRun
 from langchain_core.language_models import BaseChatModel, LanguageModelInput
@@ -236,6 +236,16 @@ class FakeCrmGateway:
 
     async def add_timeline(self, deal_id: uuid.UUID, kind: str, summary: str, actor: AiRole) -> None:
         self.calls.append(("add_timeline", kind))
+
+    async def record_message(
+        self,
+        deal_id: uuid.UUID,
+        direction: Literal["in", "out"],
+        channel: Channel,
+        text: str,
+        actor: AiRole,
+    ) -> None:
+        self.calls.append(("record_message", direction))
 
     async def raise_change_request(
         self,

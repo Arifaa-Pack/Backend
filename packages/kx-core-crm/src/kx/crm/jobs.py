@@ -15,7 +15,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any, Final
 
@@ -36,6 +36,7 @@ from kx.core.event_payloads import (
     parse_payload,
 )
 from kx.core.events import Event, Publisher, inbox_once, relay_once
+from kx.core.jobs import RetryLater
 from kx.core.logging import get_logger
 from kx.core.settings import LogicalDb
 from kx.crm.deps import CrmDeps
@@ -166,12 +167,20 @@ async def on_price_proposed(session: AsyncSession, deps: CrmDeps, event: Event) 
         log.warning("crm.price_proposed.unknown_material", material=p.material_code)
 
 
+UNMATCHED_RETRY_WINDOW: Final = timedelta(seconds=60)
+
+
 @once("crm.message_received")
 async def on_message_received(session: AsyncSession, deps: CrmDeps, event: Event) -> None:
     """Inbound buyer message -> deal timeline (text truncated; full chat stays in automation/agents)."""
     m = parse_payload(event, MessageReceived)
     deal = await _deal_for_message(session, m)
     if deal is None:
+        # D-3 (live test 18 Nov): the first message of a new buyer arrives while the agents are still creating
+        # the deal (8 ms later in the test), so it was dropped. A fresh message is retried (6, 18, 42 s);
+        # rolling back also removes the inbox row, so the retry runs the handler again.
+        if deps.now() - m.received_at < UNMATCHED_RETRY_WINDOW:
+            raise RetryLater(f"no deal yet for message {m.message_ref}")
         log.info("crm.message_received.unmatched", message_ref=str(m.message_ref))
         return
     # §8.1: a stop arrives as its own event (consent.opted_out.v1 -> on_opted_out); here only the timeline

@@ -12,6 +12,7 @@ import uuid
 from contextlib import AbstractAsyncContextManager
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -286,6 +287,20 @@ class CrmGatewayImpl:
     async def add_timeline(self, deal_id: uuid.UUID, kind: str, summary: str, actor: AiRole) -> None:
         async with self._tx() as s:
             await deal_svc.add_note(s, await deal_svc.get_deal(s, deal_id), kind, summary, Actor.ai(actor))
+
+    async def record_message(
+        self,
+        deal_id: uuid.UUID,
+        direction: Literal["in", "out"],
+        channel: Channel,
+        text: str,
+        actor: AiRole,
+    ) -> None:
+        async with self._tx() as s:
+            deal = await deal_svc.get_deal(s, deal_id)
+            await deal_svc.add_message(
+                s, deal, direction=direction, channel=channel, text=text, actor=Actor.ai(actor)
+            )
 
     async def raise_change_request(
         self,

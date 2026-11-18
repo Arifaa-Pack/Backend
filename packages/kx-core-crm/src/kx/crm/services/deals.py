@@ -654,3 +654,33 @@ async def add_note(session: AsyncSession, deal: Deal, kind: str, summary: str, a
         deal.id,
         timeline=Timeline(kind, summary[:2000], deal.id, deal.primary_contact_id),
     )
+
+
+async def add_message(
+    session: AsyncSession,
+    deal: Deal,
+    *,
+    direction: Literal["in", "out"],
+    channel: str,
+    text: str,
+    actor: Actor,
+) -> None:
+    """D-3 (live test 18 Nov): AI replies on every channel and website chat turns were missing from the
+    timeline. `message_in` lines also feed the salesperson's inbox while the AI is paused."""
+    kind = "message_in" if direction == "in" else "message_out"
+    await record(
+        session,
+        actor,
+        f"message.{'received' if direction == 'in' else 'sent'}",
+        "deal",
+        deal.id,
+        timeline=Timeline(
+            kind,
+            text[:2000] or "(empty)",
+            deal.id,
+            deal.primary_contact_id,
+            channel=channel,
+            direction=direction,
+            actor_type="buyer" if direction == "in" else "ai",
+        ),
+    )

@@ -56,6 +56,8 @@ log = get_logger(__name__)
 Deliver = Callable[[str, str], Awaitable[None]]  # (reply text, language)
 # D27 "5xx or 429" and timeouts, after the client's own retries and any fallback model
 MODEL_ERRORS: Final = (anthropic.APIError, httpx.HTTPError, TimeoutError)
+# The CRM records these inbound messages itself (`message.received`); the service records the other channels.
+CRM_RECORDS_INBOUND: Final[frozenset[str]] = frozenset({"whatsapp", "email"})
 # The Gemini standby raises its own errors once it is the last model tried (D-1, live test 18 Nov: they
 # escaped as HTTP 500 on the website). Matched by module so the Gemini client is imported only when used.
 _STANDBY_ERROR_MODULES: Final = ("google.", "langchain_google_genai")
@@ -216,6 +218,7 @@ class AgentService:
         language = reply_language(turn.text, turn.language or deal.contact.language)
         if turn.stop_word and (stopped := await self._read_stop(turn, language, deliver)) is not None:
             return stopped
+        claim = None
         async with self.db.transaction(LogicalDb.AGENTS) as s:
             conv_id = await TurnStore.open_conversation(
                 s,
@@ -247,10 +250,9 @@ class AgentService:
                     return TurnResult(None, rt, "duplicate", language)
                 if claim.fresh:
                     await TurnStore.append(s, conv_id, "buyer", turn.text, language=language)
+        if turn.channel not in CRM_RECORDS_INBOUND and (claim is None or claim.fresh):
+            await self._timeline(deal.deal_id, "in", turn.channel, turn.text, AiRole.ORCHESTRATOR)
         if rt.action in ("silent", "acknowledge"):  # AI paused / handed over: the salesperson's inbox
-            await self.gateway.add_timeline(
-                deal.deal_id, "inbound_message", turn.text[:500], AiRole.ORCHESTRATOR
-            )
             # D-9 (live test 18 Nov): with the AI paused nothing refreshed the deal summary, so the deal page
             # still described the old conversation while the buyer was asking for a new price.
             await self._refresh_deal_summary(conv_id, deal.deal_id, force=True)
@@ -261,6 +263,7 @@ class AgentService:
             )
             if deliver is not None:
                 await deliver(ack, language)
+            await self._timeline(deal.deal_id, "out", turn.channel, ack, AiRole.ORCHESTRATOR)
             return TurnResult(ack, rt, "acknowledged", language)
 
         ctx = AgentContext(
@@ -483,6 +486,8 @@ class AgentService:
                 latency_ms=int((time.perf_counter() - started) * 1000),
                 cost_usd=ctx.log.cost_usd,
             )
+        if reply:
+            await self._timeline(ctx.deal_id, "out", ctx.channel, reply, ctx.spec.role)
         if self.on_spend is not None and ctx.log.cost_usd:
             try:
                 await self.on_spend(ctx.log.cost_usd)
@@ -498,6 +503,15 @@ class AgentService:
             # §7A.2: the deal page summary (refreshed every few turns and at hand-over)
             await self._refresh_deal_summary(ctx.conversation_id, ctx.deal_id, force=status == "handoff")
         return TurnResult(reply, rt, status, ctx.language, run_id, ctx.log)
+
+    async def _timeline(
+        self, deal_ref: uuid.UUID, direction: Literal["in", "out"], channel: Channel, text: str, role: AiRole
+    ) -> None:
+        """D-3 (live test 18 Nov): every message on the deal timeline. Never fails the buyer's turn."""
+        try:
+            await self.gateway.record_message(deal_ref, direction, channel, text, role)
+        except Exception:
+            log.warning("agents.timeline_failed", deal_ref=str(deal_ref), direction=direction, exc_info=True)
 
     async def _refresh_deal_summary(
         self, conversation_id: uuid.UUID, deal_ref: uuid.UUID, *, force: bool

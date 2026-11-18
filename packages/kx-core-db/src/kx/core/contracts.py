@@ -242,6 +242,18 @@ class CrmGateway(Protocol):
     async def schedule_follow_up(self, deal_id: uuid.UUID, due_at: datetime, reason: str) -> None: ...
     async def delivery_estimate(self, deal_id: uuid.UUID) -> DeliveryEstimateView | None: ...
     async def add_timeline(self, deal_id: uuid.UUID, kind: str, summary: str, actor: AiRole) -> None: ...
+    async def record_message(
+        self,
+        deal_id: uuid.UUID,
+        direction: Literal["in", "out"],
+        channel: Channel,
+        text: str,
+        actor: AiRole,
+    ) -> None:
+        """A buyer message (`in`) or an AI reply (`out`) on the deal timeline (SRS: every message on the
+        deal). Inbound WhatsApp and email are recorded by the CRM from `message.received`."""
+        ...
+
     async def raise_change_request(
         self,
         deal_id: uuid.UUID,

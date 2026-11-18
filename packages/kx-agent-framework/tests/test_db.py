@@ -253,5 +253,8 @@ async def test_handed_over_deal_gets_no_ai_reply(
     result = await svc.handle_turn(turn, deliver)
     assert model.calls == [] and result.reply == expected
     assert sent == ([] if expected is None else [expected])
-    assert ("add_timeline", "inbound_message") in gw.calls  # the salesperson's inbox
+    # D-3: the CRM records the WhatsApp message itself (message_in, which feeds the salesperson's inbox), so
+    # the agents no longer add a second copy; the acknowledgement is recorded as an outgoing message
+    assert not [c for c in gw.calls if c[0] == "add_timeline" or c == ("record_message", "in")]
+    assert (("record_message", "out") in gw.calls) == (expected is not None)
     assert result.status == ("silent" if expected is None else "acknowledged")
