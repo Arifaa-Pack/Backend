@@ -19,7 +19,7 @@ from kx.automation.alerts import LadderTicket
 from kx.automation.jobs import DELIVER, FOLLOWUP, LADDER, JobScheduler
 from kx.core.db import Databases
 from kx.core.event_payloads import DealNextActionSet, QuoteSubmitted, StaffContact
-from kx.core.jobs import Job, JobRunner, JobSpec, JobStore, RetryLater, backoff
+from kx.core.jobs import Job, JobRunner, JobSpec, JobStore, Kick, RetryLater, backoff
 from kx.core.settings import LogicalDb
 
 pytestmark = pytest.mark.db
@@ -35,11 +35,19 @@ class Clock:
 
 
 class Kicks:
+    """Records what was sent; `waiting` > 0 plays a broker whose queue still holds messages."""
+
     def __init__(self) -> None:
         self.ids: list[uuid.UUID] = []
+        self.tasks: list[str] = []
+        self.waiting = 0
 
-    async def kick(self, job_ids: Sequence[uuid.UUID]) -> None:
-        self.ids.extend(job_ids)
+    async def kick(self, jobs: Sequence[Kick], *, resend: bool = False) -> list[uuid.UUID]:
+        if resend and self.waiting:
+            return []
+        self.ids.extend(j.job_id for j in jobs)
+        self.tasks.extend(j.task for j in jobs)
+        return [j.job_id for j in jobs]
 
 
 @pytest.fixture
@@ -206,3 +214,21 @@ async def test_press_2_pulls_the_waiting_step_forward(
     assert job.args["step"] == 3 and job.run_at == NOW and len(kicks.ids) == 1
     await scheduler.pull_ladder_forward(uuid.uuid4())  # nothing waiting: nothing kicked
     assert len(kicks.ids) == 1
+
+
+async def test_the_sweep_does_not_resend_jobs_still_waiting_in_the_queue(
+    store: tuple[JobStore, Clock, Kicks],
+) -> None:
+    """D-7 (live test 18 Nov): under a backlog every unclaimed job was resent on each 30-second sweep (1,098
+    broker messages for about 370 jobs). A resend now happens only when the queue is empty (message lost)."""
+    js, clock, kicks = store
+    first = await js.enqueue("t.a", {})
+    assert first is not None and kicks.tasks == ["t.a"]  # the task name travels with the kick (queue choice)
+    clock.now = NOW + timedelta(minutes=2)
+    kicks.ids.clear()
+    kicks.waiting = 5  # the broker still holds messages: the job is waiting, not lost
+    assert await js.dispatch_due() == 1 and kicks.ids == []
+    kicks.waiting = 0  # the queue is empty yet the job was never claimed: the message was lost
+    assert await js.dispatch_due() == 1 and kicks.ids == [first]
+    fresh = await js.enqueue("t.b", {}, run_at=clock.now)  # never kicked: sent at once, backlog or not
+    assert fresh is not None and kicks.ids[-1] == fresh

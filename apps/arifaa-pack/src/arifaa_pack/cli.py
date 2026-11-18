@@ -28,10 +28,11 @@ def _worker(args: argparse.Namespace) -> None:
     """Celery worker (D25). One event loop + container per process, built on its first task."""
     from arifaa_pack.celery_app import app  # noqa: PLC0415
     from arifaa_pack.config import app_settings  # noqa: PLC0415
+    from arifaa_pack.jobqueue import ALL_QUEUES  # noqa: PLC0415
 
     argv = ["worker", "--loglevel=INFO", f"--concurrency={app_settings().worker_concurrency}"]
-    if args.queues:
-        argv.append(f"--queues={','.join(args.queues)}")
+    # every queue unless told otherwise (one worker serves all; production splits AI turns off, D-6)
+    argv.append(f"--queues={','.join(args.queues or ALL_QUEUES)}")
     if args.pool:
         argv.append(f"--pool={args.pool}")
     app.worker_main(argv)
@@ -228,7 +229,9 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("api").set_defaults(fn=_api)
     w = sub.add_parser("worker")
     w.add_argument("--queues", nargs="*", default=None)
-    w.add_argument("--pool", default=None, help="celery pool (prefork default; solo for local debugging)")
+    w.add_argument(
+        "--pool", default=None, help="celery pool: prefork (default), threads (AI turns: I/O-bound), solo"
+    )
     w.set_defaults(fn=_worker)
     sub.add_parser("beat").set_defaults(fn=_beat)
     sub.add_parser("voice").set_defaults(fn=_voice)

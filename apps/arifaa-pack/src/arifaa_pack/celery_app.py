@@ -2,8 +2,10 @@
 `kx beat`).
 
 Platform contest round 4 conditions, as built here:
-* **one event loop per worker process** — the async platform code runs on a loop created (with the
-  container) on the process's first task and reused for every task after it;
+* **one event loop per worker process or thread** — the async platform code runs on a loop created (with
+  the container) on the first task and reused for every task after it. With `--pool threads` (the AI-turn
+  worker, D-6) each thread has its own loop and container: model calls wait on the network, so threads serve
+  many turns at once without a 250 MB process each;
 * **idempotent tasks with acks_late** — `kx.run_job` claims its row atomically, so a redelivered message
   for a job already done, running or cancelled is a no-op;
 * **exactly one Beat** — enforced by the deployment (one `beat` container, stop-then-start), not by code;
@@ -13,11 +15,12 @@ Platform contest round 4 conditions, as built here:
 from __future__ import annotations
 
 import asyncio
+import threading
 import uuid
 from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack
 from datetime import UTC, datetime
-from typing import Any, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from celery import signals
 
@@ -33,43 +36,75 @@ app = celery_app()
 app.conf.beat_schedule = beat_schedule()
 
 
-class _Process:
-    """The worker process's loop and container (one each, for the life of the process)."""
+class _State:
+    """One worker thread's loop and container (for the life of the thread; prefork: one per process)."""
 
-    loop: asyncio.AbstractEventLoop | None = None
-    stack: AsyncExitStack | None = None
-    container: Any = None
+    def __init__(self) -> None:
+        from arifaa_pack.container import build  # noqa: PLC0415 - heavy; only in worker processes
+
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.stack = AsyncExitStack()
+        self.container = self.loop.run_until_complete(self.stack.enter_async_context(build()))
+
+    def close(self) -> None:
+        self.loop.run_until_complete(self.stack.aclose())
+        self.loop.close()
+
+
+class _Process:
+    """Per-thread state (prefork has one thread per process, so it is the process's)."""
+
+    _local = threading.local()
+    _all: ClassVar[list[_State]] = []
+    _lock = threading.Lock()
 
     @classmethod
     def run(cls, work: Callable[[Any], Awaitable[T]]) -> T:
-        if cls.loop is None:
-            from arifaa_pack.container import build  # noqa: PLC0415 - heavy; only in worker processes
-
-            cls.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(cls.loop)
-            cls.stack = AsyncExitStack()
-            cls.container = cls.loop.run_until_complete(cls.stack.enter_async_context(build()))
-        return cls.loop.run_until_complete(work(cls.container))
+        state: _State | None = getattr(cls._local, "state", None)
+        if state is None:
+            _configure()
+            state = cls._local.state = _State()
+            with cls._lock:
+                cls._all.append(state)
+        return state.loop.run_until_complete(work(state.container))
 
     @classmethod
     def close(cls) -> None:
-        if cls.loop is not None and cls.stack is not None:
-            cls.loop.run_until_complete(cls.stack.aclose())
-            cls.loop.close()
-        cls.loop = cls.stack = cls.container = None
+        with cls._lock:
+            states, cls._all = cls._all, []
+        for state in states:
+            try:
+                state.close()
+            except Exception:  # shutting down: close the others anyway
+                log.warning("worker.close_failed", exc_info=True)
+        cls._local = threading.local()
+
+
+_configured = threading.Event()
+_configure_lock = threading.Lock()
 
 
 @signals.worker_process_init.connect
 def _configure(**_: Any) -> None:
-    core = get_settings()
-    configure_logging(core.log_level, core.log_json)
-    from arifaa_pack.telemetry import init_telemetry, instrument_celery  # noqa: PLC0415
+    """Logging and telemetry once per process: the prefork child signal, or the first task of a thread pool
+    (which sends no process signal)."""
+    with _configure_lock:
+        if _configured.is_set():
+            return
+        core = get_settings()
+        configure_logging(core.log_level, core.log_json)
+        from arifaa_pack.telemetry import init_telemetry, instrument_celery  # noqa: PLC0415
 
-    init_telemetry(app_settings(), component="worker", company=core.company_code, environment=core.env.value)
-    instrument_celery()  # job spans, joined to the trace of the request that queued them
+        init_telemetry(
+            app_settings(), component="worker", company=core.company_code, environment=core.env.value
+        )
+        instrument_celery()  # job spans, joined to the trace of the request that queued them
+        _configured.set()
 
 
 @signals.worker_process_shutdown.connect
+@signals.worker_shutdown.connect
 def _shutdown(**_: Any) -> None:
     _Process.close()
 

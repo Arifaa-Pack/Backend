@@ -1,6 +1,6 @@
 # One project's app stack (company `pack` today; docs/MULTI_PROJECT.md for more later).
 # Coolify: Docker Compose resource with the env file of env/pack.env.example filled in (secrets encrypted).
-# Order: migrate (one-off, exits 0) -> api, worker, beat, voice. Beat is exactly one: never scale it.
+# Order: migrate (one-off, exits 0) -> api, worker, worker-ai, beat, voice. Beat is exactly one: never scale it.
 name: kx-pack
 
 x-app: &app
@@ -55,9 +55,22 @@ services:
 
   worker:
     <<: *app
-    command: ["worker"]
+    command: ["worker", "--queues", "kx"]  # sends, CRM and automation events, PDFs (prefork)
     environment:
       KX_PROCESS: worker
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  # D-6 (live test 18 Nov): buyer turns that call the model have their own queue, so a send never waits
+  # behind them. Threads, not processes: a turn mostly waits on the model API, so one process with
+  # KX_APP_WORKER_CONCURRENCY threads (one event loop + container each) serves that many turns at once.
+  worker-ai:
+    <<: *app
+    command: ["worker", "--queues", "kx.ai", "--pool", "threads"]
+    environment:
+      KX_PROCESS: worker
+      KX_APP_WORKER_CONCURRENCY: ${KX_AI_WORKER_THREADS:-10}
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }

@@ -65,3 +65,39 @@ def test_production_refuses_default_or_short_signing_secrets(env: Environment, v
 def test_strong_secrets_start_and_local_only_warns() -> None:
     check_secrets(Environment.PRODUCTION, {"KX_SERVICE_TOKEN_SECRET": SecretStr("a1" * 16)})
     check_secrets(Environment.LOCAL, {"KX_SERVICE_TOKEN_SECRET": SecretStr("dev-only-change-me")})
+
+
+def test_ai_turns_have_their_own_queue() -> None:
+    """D-6 (live test 18 Nov): one FIFO queue made a 30 ms send wait behind multi-second AI turns."""
+    from arifaa_pack.container import AGENTS_EVENT, CRM_EVENT
+    from arifaa_pack.jobqueue import AI_QUEUE, QUEUE, queue_for
+    from kx.automation.jobs import EVENT as AUTOMATION_EVENT
+
+    assert queue_for(AGENTS_EVENT) == AI_QUEUE
+    assert {queue_for(t) for t in (CRM_EVENT, AUTOMATION_EVENT, "automation.send")} == {QUEUE}
+
+
+def test_a_resend_is_skipped_while_its_queue_still_holds_messages() -> None:
+    """D-7: the sweep resent every unclaimed job each 30 s under a backlog, piling up duplicates."""
+    import uuid
+
+    from arifaa_pack.jobqueue import AI_QUEUE, CeleryKicker
+    from kx.core.jobs import Kick
+
+    class App:
+        def __init__(self) -> None:
+            self.sent: list[tuple[str, str]] = []
+
+        def send_task(self, name: str, *, args: list[str], queue: str, **_: Any) -> None:
+            self.sent.append((queue, args[0]))
+
+    class Kicker(CeleryKicker):
+        def waiting(self, queue: str) -> int:
+            return 3 if queue == AI_QUEUE else 0
+
+    app = App()
+    kicker = Kicker(app)  # type: ignore[arg-type]
+    ai, send = Kick(uuid.uuid4(), "agents.handle_event"), Kick(uuid.uuid4(), "automation.send")
+    assert kicker._send([ai, send], resend=True) == [send.job_id]  # the AI queue is busy, not lost
+    assert kicker._send([ai], resend=False) == [ai.job_id]  # a first kick always goes
+    assert ("kx.ai", str(ai.job_id)) in app.sent and ("kx", str(send.job_id)) in app.sent

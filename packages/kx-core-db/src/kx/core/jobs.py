@@ -6,8 +6,10 @@ Why a table and not Celery ETAs (Recommendation, Platform contest round 4):
 * "the broker is not a database": a lost Redis may cost a few seconds, never a reminder;
 * replace / pull-forward / cancel by key are plain SQL.
 
-Write path:  service -> `JobStore.enqueue(...)` (own transaction) -> `Kicker.kick(ids)` for work due now.
-Dispatch:    Beat every 30 s -> `dispatch_due()` -> kick; the worker runs `JobRunner.run(job_id)`.
+Write path:  service -> `JobStore.enqueue(...)` (own transaction) -> `Kicker.kick(jobs)` for work due now.
+Dispatch:    Beat every 30 s -> `dispatch_due()` -> kick; the worker runs `JobRunner.run(job_id)`. The kicker
+             routes each task to its queue (AI turns apart from sends, D-6) and does not resend a job whose
+             queue still holds messages (it is waiting, not lost: D-7, live test 18 Nov).
 Run:         `claim()` is atomic (one runner per job; one job at a time per `lock_key`, oldest first)
              -> handler -> `finish()` (kicks the next job on the same lock) or `fail()` (back-off retry).
 Recovery:    rows left `running` by a dead worker go back to `todo` (`recover()`); every handler is idempotent
@@ -35,7 +37,7 @@ from kx.core.settings import LogicalDb
 log = get_logger(__name__)
 
 _SCHEMAS: Final = frozenset({"automation"})
-DISPATCH_GRACE: Final = timedelta(seconds=60)  # a kicked job not claimed by then is kicked again
+DISPATCH_GRACE: Final = timedelta(seconds=60)  # a kicked job not claimed by then may be kicked again
 STUCK_AFTER: Final = timedelta(minutes=15)  # longest legitimate task run (PDF + upload + send)
 
 # {t} = <schema>.scheduled_jobs (validated schema name, never user input)
@@ -54,11 +56,12 @@ _SQL: Final[dict[str, str]] = {
     ),
     "pull": (
         "UPDATE {t} SET run_at = :now, updated_at = :now WHERE dedup_key = :k AND status = 'todo' "
-        "RETURNING id"
+        "RETURNING id, task"
     ),
     "dispatched": "UPDATE {t} SET dispatched_at = :now WHERE id = ANY(:ids)",
     "due": (
-        "SELECT id FROM {t} WHERE status = 'todo' AND run_at <= :now "
+        "SELECT id, task, dispatched_at IS NOT NULL AS resend FROM {t} "
+        "WHERE status = 'todo' AND run_at <= :now "
         "AND (dispatched_at IS NULL OR dispatched_at < :grace) ORDER BY run_at, created_at LIMIT :n"
     ),
     "recover": (
@@ -84,7 +87,7 @@ _SQL: Final[dict[str, str]] = {
         "WHERE id = :id"
     ),
     "next_on_lock": (
-        "SELECT id FROM {t} WHERE lock_key = :k AND status = 'todo' AND run_at <= :now "
+        "SELECT id, task FROM {t} WHERE lock_key = :k AND status = 'todo' AND run_at <= :now "
         "ORDER BY created_at, id LIMIT 1"
     ),
     "fail": (
@@ -127,11 +130,20 @@ class NewJob:
     max_attempts: int = 5
 
 
-class Kicker(Protocol):
-    """Hands due job ids to the worker pool (Celery `send_task` in the app). Must not raise for a broker
-    outage: the rows stay `todo` and the next Beat sweep sends them again."""
+@dataclass(frozen=True, slots=True)
+class Kick:
+    """A due job for the worker pool; the task name lets the kicker pick the queue."""
 
-    async def kick(self, job_ids: Sequence[uuid.UUID]) -> None: ...
+    job_id: uuid.UUID
+    task: str
+
+
+class Kicker(Protocol):
+    """Hands due jobs to the worker pool (Celery `send_task` in the app) and returns the ids it sent. A broker
+    outage may raise: the rows stay `todo` and the next Beat sweep sends them again. `resend`: these were
+    sent over a minute ago and not claimed; the kicker may skip those whose queue still holds messages."""
+
+    async def kick(self, jobs: Sequence[Kick], *, resend: bool = False) -> Sequence[uuid.UUID]: ...
 
 
 class RetryLater(Exception):
@@ -195,7 +207,7 @@ class JobStore:
         job = NewJob(task, args, dedup_key, lock_key, run_at, max_attempts)
         async with self._db.transaction(self._logical) as s:
             job_id = await self._insert(s, job)
-        await self._kick_if_due(job_id, job.run_at)
+        await self._kick_if_due(job_id, job)
         return job_id
 
     async def replace(
@@ -213,15 +225,15 @@ class JobStore:
         async with self._db.transaction(self._logical) as s:
             await s.execute(self._q["cancel_key"], {"v": dedup_key, "now": self._now()})
             job_id = await self._insert(s, job)
-        await self._kick_if_due(job_id, job.run_at)
+        await self._kick_if_due(job_id, job)
         return job_id
 
     async def pull_forward(self, dedup_key: str) -> int:
         """Run the waiting job with this key now (e.g. the approver pressed 2: escalate at once)."""
         async with self._db.transaction(self._logical) as s:
-            ids = list((await s.execute(self._q["pull"], {"k": dedup_key, "now": self._now()})).scalars())
-        await self._kick(ids)
-        return len(ids)
+            rows = (await s.execute(self._q["pull"], {"k": dedup_key, "now": self._now()})).all()
+        await self._kick([Kick(r.id, r.task) for r in rows])
+        return len(rows)
 
     async def cancel(self, *, dedup_key: str | None = None, dedup_prefix: str | None = None) -> int:
         """Cancel pending jobs by exact key or key prefix (§8.1 step 2: an opt-out cancels every queued
@@ -250,35 +262,40 @@ class JobStore:
         found: uuid.UUID | None = (await s.execute(self._q["insert"], params)).scalar_one_or_none()
         return found
 
-    async def _kick_if_due(self, job_id: uuid.UUID | None, run_at: datetime | None) -> None:
-        if job_id is not None and (run_at is None or run_at <= self._now()):
-            await self._kick([job_id])
+    async def _kick_if_due(self, job_id: uuid.UUID | None, job: NewJob) -> None:
+        if job_id is not None and (job.run_at is None or job.run_at <= self._now()):
+            await self._kick([Kick(job_id, job.task)])
 
-    async def _kick(self, ids: Sequence[uuid.UUID]) -> None:
-        if not ids or self.kicker is None:
+    async def _kick(self, jobs: Sequence[Kick], *, resend: bool = False) -> None:
+        if not jobs or self.kicker is None:
             return
         try:
-            await self.kicker.kick(ids)
+            sent = list(await self.kicker.kick(jobs, resend=resend))
         except Exception:  # broker down: the rows stay todo; the next sweep sends them
-            log.warning("jobs.kick_failed", count=len(ids), exc_info=True)
+            log.warning("jobs.kick_failed", count=len(jobs), exc_info=True)
             return
-        async with self._db.transaction(self._logical) as s:
-            await s.execute(self._q["dispatched"], {"ids": list(ids), "now": self._now()})
+        if sent:
+            async with self._db.transaction(self._logical) as s:
+                await s.execute(self._q["dispatched"], {"ids": sent, "now": self._now()})
 
     # ------------------------------------------------------------ dispatch (Beat)
     async def due(self, limit: int = 500) -> list[uuid.UUID]:
         """Todo jobs whose time has come and that were not kicked in the last minute, oldest first."""
+        return [k.job_id for k, _ in await self._due(limit)]
+
+    async def _due(self, limit: int) -> list[tuple[Kick, bool]]:
         now = self._now()
         async with self._db.transaction(self._logical) as s:
             rows = await s.execute(self._q["due"], {"now": now, "grace": now - DISPATCH_GRACE, "n": limit})
-            return list(rows.scalars())
+            return [(Kick(r.id, r.task), bool(r.resend)) for r in rows]
 
     async def dispatch_due(self, limit: int = 500) -> int:
         """Beat's 30-second sweep: recover stuck rows, then kick everything due."""
         await self.recover()
-        ids = await self.due(limit)
-        await self._kick(ids)
-        return len(ids)
+        due = await self._due(limit)
+        await self._kick([k for k, again in due if not again])
+        await self._kick([k for k, again in due if again], resend=True)
+        return len(due)
 
     async def recover(self, stuck_after: timedelta = STUCK_AFTER) -> int:
         """A worker died mid-job (or acks_late redelivery lost the race): back to todo, attempt counted."""
@@ -326,13 +343,14 @@ class JobStore:
         )
 
     async def finish(self, job: Job) -> None:
-        nxt: uuid.UUID | None = None
+        nxt = None
         async with self._db.transaction(self._logical) as s:
             await s.execute(self._q["finish"], {"id": job.id, "now": self._now()})
             if job.lock_key is not None:  # the next job on the same thread runs straight away
-                nxt = await s.scalar(self._q["next_on_lock"], {"k": job.lock_key, "now": self._now()})
+                found = await s.execute(self._q["next_on_lock"], {"k": job.lock_key, "now": self._now()})
+                nxt = found.first()
         if nxt is not None:
-            await self._kick([nxt])
+            await self._kick([Kick(nxt.id, nxt.task)])
 
     async def fail(self, job: Job, error: str, *, retry: bool, backoff_seconds: int = 6) -> str:
         """Retry later (back-off) while attempts remain; else `failed`. Returns the new status."""
