@@ -85,7 +85,7 @@ from kx.core.logging import get_logger
 from kx.core.passwords import SeedBox
 from kx.core.platform import Field, Modes, order, resolved
 from kx.core.retention import prune_batches
-from kx.core.settings import CoreSettings, Environment, LogicalDb, get_settings
+from kx.core.settings import AuthSettings, CoreSettings, Environment, LogicalDb, get_settings
 from kx.core.spend import SpendCaps, SpendMeter
 from kx.crm import jobs as crm_jobs
 from kx.crm.deps import CrmDeps
@@ -418,7 +418,7 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             tokens=_token_issuer(core),  # D26 in-house login (RS256)
             seed_box=_seed_box(core),
             mailer=StaffCodeMailer([email_sender]),
-            auth=core.auth,
+            auth=staff_auth(core.auth, s.cors_origins),
             fx_source=OpenRatesFx(http, s.fx_rates_url) if s.fx_rates_auto else None,  # 18 Nov
         )
         media = S3MediaStore(s3, st.bucket, prefix="media/")
@@ -622,6 +622,14 @@ def _token_issuer(core: CoreSettings) -> TokenIssuer:
     if core.jwt_private_key is None and core.env in {Environment.STAGING, Environment.PRODUCTION}:
         raise RuntimeError("KX_JWT_PRIVATE_KEY is required outside local and test")
     return TokenIssuer.from_settings(core)
+
+
+def staff_auth(auth: AuthSettings, cors_origins: tuple[str, ...]) -> AuthSettings:
+    """M2: /v1/auth accepts browser calls only from the CRM origins; unless KX_AUTH__CRM_ORIGINS says
+    otherwise these are the credentialed CORS origins (KX_APP_CORS_ORIGINS)."""
+    if auth.crm_origins is not None:
+        return auth
+    return auth.model_copy(update={"crm_origins": cors_origins})
 
 
 _BACKGROUND: set[asyncio.Task[None]] = set()  # alert tasks started from LiveKit callbacks (kept referenced)

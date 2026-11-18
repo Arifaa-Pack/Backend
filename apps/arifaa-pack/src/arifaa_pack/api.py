@@ -8,10 +8,10 @@ from typing import Any
 
 import orjson
 from fastapi import FastAPI, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
 
 from arifaa_pack.config import app_settings
 from arifaa_pack.container import build
+from arifaa_pack.cors import SplitCors
 from arifaa_pack.telemetry import beat_health, init_telemetry, instrument_api
 from kx.agents.website import build_router as website_router
 from kx.automation.admin_api import build_router as channels_admin_router
@@ -45,12 +45,10 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Kairox CRM API", version="1.0.0", lifespan=lifespan)
     instrument_api(app)  # HTTP + Celery producer spans to SigNoz (no-op without KX_APP_OTLP_ENDPOINT)
     install_problem_handlers(app)  # also turns bad webhook signatures into 401s
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=list(app_settings().cors_origins),
-        allow_methods=["*"],
-        allow_headers=["*"],
-        allow_credentials=True,
+    app.add_middleware(  # M2: credentials only for the CRM; the website only reaches /v1/public/*
+        SplitCors,
+        crm_origins=app_settings().cors_origins,
+        public_origins=app_settings().cors_public_origins,
     )
 
     @app.get("/healthz", include_in_schema=False)

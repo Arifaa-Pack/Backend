@@ -20,6 +20,12 @@ Things a mock cannot do: the Turnstile check, the real AI reply, the LiveKit roo
 `make up && kx migrate && kx api` (base URL `http://localhost:8000`). Locally the Turnstile check is skipped
 when no secret is configured; staging and production refuse to start without it.
 
+CORS (security review M2, 19 Nov): the website's origin is listed in `KX_APP_CORS_PUBLIC_ORIGINS`, not in
+`KX_APP_CORS_ORIGINS` (that one is for the CRM screens only). The website may call `/v1/public/*` and nothing
+else, **without credentials**: use `fetch(url, {headers: {Authorization: "Bearer <session token>"}})`, never
+`credentials: "include"`. Staff routes give the website's origin no CORS access, and `/v1/auth/*` answers it
+with `403`.
+
 ---
 
 ## 2. What the website does with the API (core design)

@@ -343,3 +343,34 @@ async def test_reset_password_by_email_code(env: Env) -> None:
     async with env.databases.transaction(LogicalDb.CRM) as s:
         cred = await s.get(StaffCredential, user_id)
         assert cred is not None and cred.password_hash.startswith("$argon2id$")
+
+
+async def test_auth_routes_refuse_a_browser_origin_that_is_not_the_crm(env: Env) -> None:
+    """M2: a script on the public website (same site as the API) cannot swap the refresh cookie for a token."""
+    crm, www = "https://crm.example.ae", "https://www.example.ae"
+    deps = replace(env.deps, auth=AuthSettings(cookie_secure=False, crm_origins=(crm,)))
+    app = FastAPI()
+    app.include_router(build_router(env.databases, deps), prefix="/v1")
+    install_problem_handlers(app)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as client:
+        email, password, _ = await new_user(env, "sales")
+        login = await client.post("/v1/auth/login", json={"email": email, "password": password})
+        assert login.status_code == 200
+        assert (await client.post("/v1/auth/mfa/email/send", json=login.json())).status_code == 204
+        body = {"challenge_token": login.json()["challenge_token"], "code": env.mailer.last_code()}
+        signed = await client.post("/v1/auth/mfa/email/verify", json=body, headers={"Origin": crm})
+        assert signed.status_code == 200
+        assert "samesite=strict" in signed.headers["set-cookie"].lower()  # M2: Strict, not Lax
+
+        stolen = await client.post("/v1/auth/refresh", headers={"Origin": www})
+        assert stolen.status_code == 403 and "access_token" not in stolen.text
+        assert (await client.post("/v1/auth/refresh", headers={"Origin": "null"})).status_code == 403
+        assert (await client.post("/v1/auth/logout", headers={"Origin": www})).status_code == 403
+        r = await client.post(
+            "/v1/auth/login", json={"email": email, "password": password}, headers={"Origin": www}
+        )
+        assert r.status_code == 403
+        assert (await client.post("/v1/auth/refresh", headers={"Origin": crm})).status_code == 200
+        assert (
+            await client.post("/v1/auth/refresh")
+        ).status_code == 200  # non-browser clients send no Origin

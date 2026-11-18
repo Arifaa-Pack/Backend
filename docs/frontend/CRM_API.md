@@ -97,10 +97,15 @@ Rules the screens must respect:
      10 minutes), then `POST /v1/auth/mfa/email/verify {challenge_token, code}` -> tokens with `mfa: false`.
 3. Answer (`TokenOut`): `access_token` (RS256 JWT, 15 minutes), `expires_in`, `mfa`, `amr`,
    `must_change_password`, `totp_enrolled`, `user`. Send `Authorization: Bearer <access_token>` on every call.
-4. The refresh token is set as an **HttpOnly cookie `kx_refresh`** (path `/v1/auth`, SameSite=Lax, Secure in
-   production). Call `POST /v1/auth/refresh` (with `credentials: "include"`) before the access token expires;
+4. The refresh token is set as an **HttpOnly cookie `kx_refresh`** (path `/v1/auth`, SameSite=Strict, Secure
+   in production). Call `POST /v1/auth/refresh` (with `credentials: "include"`) before the access token expires;
    each refresh **rotates** the cookie. A reused old refresh token ends every session of that user: on `401`
    from refresh, send the user to the login screen. Non-browser clients may send `{"refresh_token": ...}`.
+   Security review M2 (19 Nov): every `/v1/auth/*` call from a browser must come from a CRM origin
+   (`KX_APP_CORS_ORIGINS`, or `KX_AUTH__CRM_ORIGINS` when set); any other `Origin` gets `403`. CORS with
+   credentials is given only to these CRM origins. The public website's origin belongs in
+   `KX_APP_CORS_PUBLIC_ORIGINS`: it may call `/v1/public/*` without credentials and nothing else, so never
+   list the website in `KX_APP_CORS_ORIGINS`.
 5. `must_change_password: true` (a new user's one-time password): force `POST /v1/auth/password` first.
    `totp_enrolled: false`: offer `POST /v1/auth/totp/enrol` (returns `secret` + `otpauth_uri` to show as a QR
    code), then `POST /v1/auth/totp/confirm {code}`; the next sign-in can use the authenticator.

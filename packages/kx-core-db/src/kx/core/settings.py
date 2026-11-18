@@ -45,6 +45,9 @@ class AuthSettings(BaseModel):
     cookie_secure: bool = True
     cookie_domain: str | None = None
     totp_issuer: str = "Kairox CRM"
+    # M2: browser origins (the CRM screens) that may call /v1/auth; a request from any other Origin is
+    # refused. None = the app fills it from its credentialed CORS origins (KX_APP_CORS_ORIGINS).
+    crm_origins: tuple[str, ...] | None = None
 
 
 Plan = Literal["paid", "free"]

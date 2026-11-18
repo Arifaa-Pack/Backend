@@ -24,7 +24,11 @@ class AppSettings(BaseSettings):
     forwarded_allow_ips: str = "127.0.0.1"  # uvicorn proxy headers: only from the Coolify proxy (D53)
     cms_url: str = "http://localhost:3000"  # Payload CMS (KB source)
     cms_api_key: SecretStr | None = None
+    # M2: CORS with credentials (the refresh cookie) only for the CRM screens; these are also the only
+    # browser origins /v1/auth accepts. The public website goes in cors_public_origins: it may call
+    # /v1/public/* (chat, voice, unsubscribe) without credentials and nothing else.
     cors_origins: tuple[str, ...] = ("http://localhost:3001",)
+    cors_public_origins: tuple[str, ...] = ()
     # 18 Nov: automatic daily FX rates for quotes in other currencies (false = manual rates only)
     fx_rates_auto: bool = True
     fx_rates_url: str = "https://open.er-api.com/v6/latest/AED"

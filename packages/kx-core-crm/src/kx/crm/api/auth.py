@@ -1,10 +1,14 @@
 """Staff login + MFA routes (11 Nov, D26). Public: login, second step, refresh, recovery. Authenticated: me,
 logout, TOTP enrolment, password change.
 
-The refresh token travels only in an HttpOnly, Secure, SameSite=Lax cookie scoped to `/v1/auth` (the CRM
-screens on Vercel and the API share the company domain); the access token is returned in the body and sent as
+The refresh token travels only in an HttpOnly, Secure, SameSite=Strict cookie scoped to `/v1/auth` (the CRM
+screens and the API share the company domain); the access token is returned in the body and sent as
 `Authorization: Bearer`. Each route opens its own transaction so a refused attempt still counts toward the
 lock-out before the 401/429 answer.
+
+M2: the public website is the same site as the API, so SameSite alone does not keep a script on it from
+swapping the cookie for an access token. Every /v1/auth route therefore refuses a browser request whose
+`Origin` is not a CRM origin (`AuthSettings.crm_origins`); non-browser clients send no Origin.
 """
 
 # No `from __future__ import annotations` here: FastAPI resolves the closure-local annotations.
@@ -19,7 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, current_principal
-from kx.core.errors import TooManyRequests, Unauthorized, Unavailable
+from kx.core.errors import Forbidden, TooManyRequests, Unauthorized, Unavailable
 from kx.core.settings import LogicalDb
 from kx.crm.api.context import ApiContext
 from kx.crm.models import User
@@ -114,9 +118,17 @@ def _refuse(r: svc.Refused) -> Exception:
 
 
 def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler per auth step
-    r = APIRouter(prefix="/auth", tags=["auth"])
     deps = ctx.deps
     dbs = ctx.databases
+
+    def crm_origin_only(request: Request) -> None:
+        """M2: a browser call from any origin but the CRM screens is refused before the cookie is read."""
+        origin = request.headers.get("origin")
+        allowed = deps.auth.crm_origins
+        if origin is not None and allowed is not None and origin not in allowed:
+            raise Forbidden("staff sign-in is only available from the CRM")
+
+    r = APIRouter(prefix="/auth", tags=["auth"], dependencies=[Depends(crm_origin_only)])
 
     def tx() -> AbstractAsyncContextManager[AsyncSession]:
         return dbs.transaction(LogicalDb.CRM)
@@ -130,7 +142,7 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
             domain=deps.auth.cookie_domain,
             secure=deps.auth.cookie_secure,
             httponly=True,
-            samesite="lax",
+            samesite="strict",  # M2
         )
         return TokenOut(
             access_token=t.access_token,
