@@ -226,3 +226,19 @@ def test_uuid_ids_are_v7() -> None:
     from kx.core.identity import new_id
 
     assert new_id().version == 7 and isinstance(new_id(), uuid.UUID)
+
+
+@pytest.mark.parametrize("lead", ["=", "+", "-", "@", "\t", "\r"])
+def test_export_cells_never_carry_a_formula(lead: str) -> None:
+    """M4: CSV text cells that start like a formula get a `'`; XLSX text cells are explicit strings."""
+    from openpyxl import Workbook  # type: ignore[import-untyped]
+
+    from kx.crm.api.reports import csv_cell, xlsx_cell
+
+    hostile = lead + "cmd|' /C calc'!A0"
+    assert csv_cell(hostile) == "'" + hostile
+    assert csv_cell("Omar") == "Omar" and csv_cell(None) == "" and csv_cell(D("-5")) == "-5"
+    ws = Workbook(write_only=True).create_sheet("x")
+    cell = xlsx_cell(ws, hostile)
+    assert cell.value == hostile and cell.data_type == "s"  # type: ignore[attr-defined]
+    assert xlsx_cell(ws, D("-5")) == D("-5")

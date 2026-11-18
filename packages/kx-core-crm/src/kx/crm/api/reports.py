@@ -17,11 +17,12 @@ import io
 import uuid
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Final, Literal
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Response
 from openpyxl import Workbook  # type: ignore[import-untyped]  # types-openpyxl not in uv.lock
+from openpyxl.cell import WriteOnlyCell  # type: ignore[import-untyped]
 from pydantic import BaseModel
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -55,6 +56,30 @@ Staff = Annotated[Principal, Depends(require_role(*STAFF))]
 Manager = Annotated[Principal, Depends(require_role(*MANAGERS))]
 Md = Annotated[Principal, Depends(require_role(Role.MD))]
 OPEN = [st.value for st in OPEN_STAGES]
+# M4: a spreadsheet runs a text cell starting with one of these as a formula (buyers choose their names)
+FORMULA_LEADS: Final = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_cell(v: object) -> str:
+    """M4: one CSV value; a text cell that a spreadsheet would run as a formula gets a leading `'`."""
+    if v is None:
+        return ""
+    if isinstance(v, str) and v.startswith(FORMULA_LEADS):
+        return "'" + v
+    return str(v)
+
+
+def xlsx_cell(ws: Any, v: object) -> object:
+    """M4: one XLSX value; text is always stored as an explicit string, never as a formula."""
+    if isinstance(v, datetime):
+        return v.replace(tzinfo=None)
+    if isinstance(v, uuid.UUID):
+        return str(v)
+    if isinstance(v, str):
+        cell = WriteOnlyCell(ws, value=v)
+        cell.data_type = "s"  # openpyxl would store a leading `=` as a formula
+        return cell
+    return v
 
 
 class MdBoard(BaseModel):
@@ -282,7 +307,7 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one handler per das
             buf = io.StringIO()
             writer = csv.writer(buf)
             writer.writerow(columns)
-            writer.writerows(["" if v is None else str(v) for v in row] for row in rows)
+            writer.writerows([csv_cell(v) for v in row] for row in rows)
             return Response(
                 buf.getvalue(),
                 media_type="text/csv; charset=utf-8",
@@ -292,14 +317,7 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one handler per das
         ws = wb.create_sheet(entity)
         ws.append(list(columns))
         for row in rows:
-            ws.append(
-                [
-                    v.replace(tzinfo=None)
-                    if isinstance(v, datetime)
-                    else (str(v) if isinstance(v, uuid.UUID) else v)
-                    for v in row
-                ]
-            )
+            ws.append([xlsx_cell(ws, v) for v in row])
         out = io.BytesIO()
         wb.save(out)
         return Response(

