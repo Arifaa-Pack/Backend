@@ -20,6 +20,12 @@ Things a mock cannot do: the Turnstile check, the real AI reply, the LiveKit roo
 `make up && kx migrate && kx api` (base URL `http://localhost:8000`). Locally the Turnstile check is skipped
 when no secret is configured; staging and production refuse to start without it.
 
+CORS (security review M2, 19 Nov): the website's origin is listed in `KX_APP_CORS_PUBLIC_ORIGINS`, not in
+`KX_APP_CORS_ORIGINS` (that one is for the CRM screens only). The website may call `/v1/public/*` and nothing
+else, **without credentials**: use `fetch(url, {headers: {Authorization: "Bearer <session token>"}})`, never
+`credentials: "include"`. Staff routes give the website's origin no CORS access, and `/v1/auth/*` answers it
+with `403`.
+
 ---
 
 ## 2. What the website does with the API (core design)
@@ -74,8 +80,9 @@ When the visitor says "stop" in voice, the agent stops talking and listens (§8.
 
 | Status | When | What to show |
 |---|---|---|
-| `429` | Too many requests from this IP (30 a minute) or session (12 a minute) | "Please slow down" and retry after a few seconds |
+| `429` | Too many requests from this IP (30 a minute) or session (12 a minute); the site as a whole is over its AI turns a minute (`KX_APP_PUBLIC_TURNS_PER_MINUTE`, 60); or this IP started too many sessions today (`KX_APP_PUBLIC_SESSIONS_PER_IP_PER_DAY`, 20) | "Please slow down" and retry after a few seconds |
 | `503` | The daily AI budget is used up, or the assistant is unavailable | Offer **WhatsApp click-to-chat** (the documented last resort) |
+| `200`, `handed_over: true` | The website's own share of the daily AI budget is used up (security review M6: `KX_APP_SPEND_PUBLIC_AI_SHARE`, 30 %); the reply is the safe line and the sales team takes over, while WhatsApp and email keep the AI. Voice answers `503` then | Show the reply and offer WhatsApp click-to-chat |
 | `401` | Session token missing or expired | Start a new session |
 | `403` | Turnstile failed, or the token belongs to another session | Reload the widget |
 | `422` | See the `reason` values above; field errors come as `{"detail": [...]}` | |

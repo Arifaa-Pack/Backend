@@ -97,15 +97,26 @@ Rules the screens must respect:
      10 minutes), then `POST /v1/auth/mfa/email/verify {challenge_token, code}` -> tokens with `mfa: false`.
 3. Answer (`TokenOut`): `access_token` (RS256 JWT, 15 minutes), `expires_in`, `mfa`, `amr`,
    `must_change_password`, `totp_enrolled`, `user`. Send `Authorization: Bearer <access_token>` on every call.
-4. The refresh token is set as an **HttpOnly cookie `kx_refresh`** (path `/v1/auth`, SameSite=Lax, Secure in
-   production). Call `POST /v1/auth/refresh` (with `credentials: "include"`) before the access token expires;
+4. The refresh token is set as an **HttpOnly cookie `kx_refresh`** (path `/v1/auth`, SameSite=Strict, Secure
+   in production). Call `POST /v1/auth/refresh` (with `credentials: "include"`) before the access token expires;
    each refresh **rotates** the cookie. A reused old refresh token ends every session of that user: on `401`
    from refresh, send the user to the login screen. Non-browser clients may send `{"refresh_token": ...}`.
+   Security review M2 (19 Nov): every `/v1/auth/*` call from a browser must come from a CRM origin
+   (`KX_APP_CORS_ORIGINS`, or `KX_AUTH__CRM_ORIGINS` when set); any other `Origin` gets `403`. CORS with
+   credentials is given only to these CRM origins. The public website's origin belongs in
+   `KX_APP_CORS_PUBLIC_ORIGINS`: it may call `/v1/public/*` without credentials and nothing else, so never
+   list the website in `KX_APP_CORS_ORIGINS`.
 5. `must_change_password: true` (a new user's one-time password): force `POST /v1/auth/password` first.
    `totp_enrolled: false`: offer `POST /v1/auth/totp/enrol` (returns `secret` + `otpauth_uri` to show as a QR
    code), then `POST /v1/auth/totp/confirm {code}`; the next sign-in can use the authenticator.
-6. 5 wrong passwords or codes lock the account for 15 minutes (`429`). Forgotten password:
-   `POST /v1/auth/password/reset/start {email}` (always `202`), then `/reset/finish {email, code, new_password}`.
+6. 5 wrong passwords or codes from one IP lock that IP out of the account for 15 minutes (`429`); 50 from all
+   IPs together lock the account (security review M3, 19 Nov). Sign-in, the email code and password recovery are
+   rate limited per IP and per typed address (`429`, the same for unknown addresses; show "too many attempts,
+   try again in a few minutes"). Forgotten password: `POST /v1/auth/password/reset/start {email}` (`202`;
+   at most 3 an hour per address), then `/reset/finish {email, code, new_password}`. Only the newest code works;
+   5 wrong codes lock recovery for 15 minutes. Limits: `KX_AUTH__MAX_FAILED_ATTEMPTS`,
+   `KX_AUTH__ACCOUNT_LOCK_FAILURES`, `KX_AUTH__RESET_MAX_WRONG_CODES`, `KX_AUTH__RATE_<ROUTE>__BURST` /
+   `__PER_MINUTE` (`kx.core.settings.AuthSettings`).
 
 Public key for verifying tokens elsewhere: `GET /.well-known/jwks.json`.
 

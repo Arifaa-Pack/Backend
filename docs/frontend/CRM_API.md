@@ -726,7 +726,7 @@ Change the password (ends every other session).
 
 #### `POST /v1/auth/password/reset/start`
 
-Recovery: a code to the work address. Always 202 (nobody learns which addresses exist).
+Recovery: a code to the work address. Always 202 (nobody learns which addresses exist); 429 when the rate limit for this IP or this typed address is reached (the same for unknown addresses, M3).
 
 **Who:** public
 
@@ -1376,9 +1376,9 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 
 #### `PATCH /v1/deals/orders/{order_id}`
 
-§15.3 order tracking: in production -> ready -> shipped -> delivered (the buyer is told if configured).
+§15.3 order tracking: in production -> ready -> shipped -> delivered (the buyer is told if configured). §3 / §5 step 14: the deal's salesperson (or the colleague covering them) updates it, as do the manager and the MD; cancelling an order is not in the SRS's salesperson list, so it stays with the manager / MD.
 
-**Who:** manager, md
+**Who:** sales, manager, md
 
 **Parameters**
 
