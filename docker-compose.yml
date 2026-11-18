@@ -9,6 +9,14 @@
 #
 # Postgres init (first start of the volume): the same db_bootstrap.sh as the server (prefix pack_), then db/ddl
 # applied as each owning role. Models are cached on D: (KX_MODELS_DIR). Reset: docker compose down -v
+#
+# M12 (live-test infra review 18 Nov): every port is published on 127.0.0.1 only. Docker Desktop otherwise
+# listens on every interface, so anyone on the same Wi-Fi reached Postgres (postgres/postgres), Redis (no
+# password), the Stalwart admin and LiveKit's dev keys. The credentials here are local defaults only; to reach
+# the stack from another device on purpose (a phone on the LAN), set KX_DEV_BIND=0.0.0.0 for that session.
+# M4: memory ceilings: the default stack (postgres, redis, migrate, api, worker, beat) stays under ≈ 5 GB, and
+# under ≈ 6 GB with the mail, obs or pgbouncer profile added. voice (≈ 5.5 GB: speech models + LiveKit + worker)
+# and embed (4 GB: the model) are sized for their models: run them with `make up` only, not with up-all.
 
 x-kx-env: &kx-env
   KX_ENV: local
@@ -50,7 +58,7 @@ x-logs: &logs
 
 services:
   postgres:
-    image: pgvector/pgvector:pg18
+    image: pgvector/pgvector:0.8.7-pg18-bookworm   # = the server image's base
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -58,7 +66,7 @@ services:
       KX_INIT_APPLY_DDL: "1"
       KX_COMPANY_PREFIX: pack_
     ports:
-      - "5432:5432"
+      - "${KX_DEV_BIND:-127.0.0.1}:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql
       - ./db/ddl:/kx/ddl:ro
@@ -69,6 +77,9 @@ services:
       interval: 5s
       timeout: 3s
       retries: 30
+    deploy:
+      resources:
+        limits: { memory: 1g }
     logging: *logs
 
   pgbouncer:
@@ -81,21 +92,27 @@ services:
       MAX_DB_CONNECTIONS: "40"
       IGNORE_STARTUP_PARAMETERS: extra_float_digits,search_path,statement_timeout
     ports:
-      - "6432:5432"
+      - "${KX_DEV_BIND:-127.0.0.1}:6432:5432"
     depends_on:
       postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits: { memory: 128m }
 
   redis:
-    image: redis:8.2
+    image: redis:8.2.3   # ≥ 8.2.2: CVE-2025-49844, as on the server
     command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory-policy", "noeviction"]
     ports:
-      - "6379:6379"
+      - "${KX_DEV_BIND:-127.0.0.1}:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 20
+    deploy:
+      resources:
+        limits: { memory: 256m }
 
   embeddings:
     profiles: ["embed"]
@@ -105,9 +122,12 @@ services:
     command: ["--model-id", "${LOCAL_EMBEDDING_MODEL_ID:-Qwen/Qwen3-Embedding-0.6B}", "--port", "80",
               "--auto-truncate", "--max-batch-tokens", "1024"]
     ports:
-      - "8080:80"
+      - "${KX_DEV_BIND:-127.0.0.1}:8080:80"
     volumes:
       - ${KX_MODELS_DIR:-D:/kx-models}/tei:/data
+    deploy:
+      resources:
+        limits: { memory: 4g }
 
   speech:
     profiles: ["voice"]
@@ -117,27 +137,33 @@ services:
     environment:
       STT_THREADS: "4"
     ports:
-      - "8100:8100"
+      - "${KX_DEV_BIND:-127.0.0.1}:8100:8100"
     volumes:
       - ${KX_MODELS_DIR:-D:/kx-models}/speech:/models
+    deploy:
+      resources:
+        limits: { memory: 3g }
 
   livekit:
     profiles: ["voice"]
     image: livekit/livekit-server:v1.13.11
     command: ["--dev", "--bind", "0.0.0.0"]  # dev keys: devkey / secret
     ports:
-      - "7880:7880"
-      - "7881:7881"
-      - "7882:7882/udp"   # --dev mode: one UDP media port (rtc.udp_port 7882), not the server's range
-      - "50000-50020:50000-50020/udp"
+      - "${KX_DEV_BIND:-127.0.0.1}:7880:7880"
+      - "${KX_DEV_BIND:-127.0.0.1}:7881:7881"
+      - "${KX_DEV_BIND:-127.0.0.1}:7882:7882/udp"   # --dev mode: one UDP media port (rtc.udp_port 7882), not the server's range
+      - "${KX_DEV_BIND:-127.0.0.1}:50000-50020:50000-50020/udp"
+    deploy:
+      resources:
+        limits: { memory: 512m }
 
   stalwart:
     profiles: ["mail"]
     image: stalwartlabs/stalwart:v1.1.1
     init: true
     ports:
-      - "2525:25"
-      - "8090:8080"   # web admin + JMAP: finish the setup wizard once, create the sales@ account
+      - "${KX_DEV_BIND:-127.0.0.1}:2525:25"
+      - "${KX_DEV_BIND:-127.0.0.1}:8090:8080"   # web admin + JMAP: finish the setup wizard once, create the sales@ account
     environment:
       STALWART_RECOVERY_ADMIN: admin:local-dev-only   # local only; known admin password for the wizard
       SES_SMTP_PASSWORD: ${KX_SES_SMTP_PASSWORD:-unused-locally}
@@ -145,12 +171,18 @@ services:
       # v1 volumes are new on purpose: v1 cannot read the v0.14 `stalwart` volume (no in-place upgrade)
       - stalwart-v1-etc:/etc/stalwart    # config.json
       - stalwart-v1:/var/lib/stalwart    # RocksDB (mail, accounts, settings, DKIM keys)
+    deploy:
+      resources:
+        limits: { memory: 512m }
 
   phoenix:
     profiles: ["obs"]
     image: arizephoenix/phoenix:version-12.9.0
     ports:
-      - "6006:6006"
+      - "${KX_DEV_BIND:-127.0.0.1}:6006:6006"
+    deploy:
+      resources:
+        limits: { memory: 1g }
 
   migrate:
     <<: *kx-app
@@ -159,6 +191,9 @@ services:
       <<: *kx-env
       KX_PROCESS: migrate
     restart: "no"
+    deploy:
+      resources:
+        limits: { memory: 768m }
     depends_on:
       postgres:
         condition: service_healthy
@@ -171,7 +206,10 @@ services:
       KX_PROCESS: api
       KX_APP_FORWARDED_ALLOW_IPS: "*"
     ports:
-      - "8000:8000"
+      - "${KX_DEV_BIND:-127.0.0.1}:8000:8000"
+    deploy:
+      resources:
+        limits: { memory: 1g }
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -184,6 +222,9 @@ services:
     environment:
       <<: *kx-env
       KX_PROCESS: worker
+    deploy:
+      resources:
+        limits: { memory: 1536m }
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -197,6 +238,9 @@ services:
     environment:
       <<: *kx-env
       KX_PROCESS: beat
+    deploy:
+      resources:
+        limits: { memory: 384m }
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -217,6 +261,9 @@ services:
       KX_APP_LIVEKIT_API_KEY: devkey
       KX_APP_LIVEKIT_API_SECRET: secret
       KX_APP_VOICE_IDLE_PROCESSES: "1"
+    deploy:
+      resources:
+        limits: { memory: 2g }
     depends_on:
       migrate:
         condition: service_completed_successfully
