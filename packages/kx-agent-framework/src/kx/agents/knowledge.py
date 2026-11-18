@@ -22,6 +22,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from kx.agents.orm import KbChunk, KbDocument, KnowledgeGap
 from kx.core.db import Databases
+from kx.core.fallback import CircuitBreaker
 from kx.core.identity import sha256_hex
 from kx.core.logging import get_logger, mask_pii
 from kx.core.settings import LogicalDb
@@ -144,6 +145,7 @@ class KnowledgeBase:
         candidates: int = 40,
         min_similarity: float = 0.35,
         query_timeout_seconds: float = 2.0,
+        breaker: CircuitBreaker | None = None,
     ) -> None:
         self._db = databases
         self._embedder = embedder
@@ -151,16 +153,28 @@ class KnowledgeBase:
         self._n = candidates
         self._min_sim = min_similarity
         self._query_timeout = query_timeout_seconds
+        # D-8: D30 breaker (3 failures in 60 s -> skip the embedding server 5 min, then one trial call)
+        self._breaker = breaker if breaker is not None else CircuitBreaker()
 
     async def _query_vector(self, query: str) -> list[float] | None:
         """D28 / D47: the embedding, or None when the call fails or takes longer than 2 s (then full-text
         only). Only chunks of the same model take part in the vector leg (a model switch mid re-index is
-        safe: chunks not yet re-embedded are found by full-text)."""
+        safe: chunks not yet re-embedded are found by full-text). D-8: while the breaker is open the call
+        is skipped, so a search does not wait for a server known to be down."""
+        if not self._breaker.allow():
+            log.info("kb.embedding_skipped", model=self._embedder.model, breaker=self._breaker.state)
+            return None
         try:
-            return await asyncio.wait_for(self._embedder.embed_query(query), self._query_timeout)
+            qv = await asyncio.wait_for(self._embedder.embed_query(query), self._query_timeout)
+        except asyncio.CancelledError:
+            self._breaker.release()  # the turn was cancelled: says nothing about the server
+            raise
         except Exception as exc:
+            self._breaker.failure()
             log.warning("kb.embedding_fallback", model=self._embedder.model, error=type(exc).__name__)
             return None
+        self._breaker.success()
+        return qv
 
     async def search(self, query: str, language: str, limit: int = 5) -> KbResult:
         qv = await self._query_vector(query)
