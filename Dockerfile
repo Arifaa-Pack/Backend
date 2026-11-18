@@ -7,8 +7,10 @@
 #   docker buildx build --platform linux/amd64 -t kairox/app:dev .
 #   docker run --rm kairox/app:dev api
 # =============================================================================================
-ARG PYTHON_IMAGE=python:3.14-slim-trixie
-ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.13.7
+# M16: tag + digest (18 Nov), so a rebuild uses the base that was tested; .github/workflows/image-scan.yml rebuilds
+# weekly and fails on fixable CRITICAL CVEs, which is the signal to move these digests (and to release).
+ARG PYTHON_IMAGE=python:3.14-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
+ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490
 
 # checkov:skip=CKV_DOCKER_7: base images are pinned through the ARGs above
 FROM ${UV_IMAGE} AS uv

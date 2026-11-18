@@ -1,10 +1,19 @@
 name: release
 
-# Tag v* -> build the amd64 app and speech images -> push to GitHub Container Registry -> ask Coolify to redeploy
-# the staging app stack; production is redeployed by hand in Coolify (or a manual run with target=production).
-# Coolify then runs `migrate` first and rolls api / worker / voice (Beat stop-then-start). D49.
+# Tag v* -> build the amd64 app and speech images -> push to GitHub Container Registry -> point Coolify's app stack
+# at the new image (by digest) -> redeploy -> wait for the deployment and /healthz. D49.
+# Staging is redeployed on every tag; production by a manual run with target=production, from a tag only.
 #
-# Repository secrets: COOLIFY_TOKEN; variables: COOLIFY_URL, COOLIFY_STAGING_UUID, COOLIFY_PRODUCTION_UUID.
+# Not a rolling restart (M5): Coolify's Docker Compose deploy is `docker compose up -d`, which recreates each
+# container in place. `migrate` runs first; the api is down for the seconds its container takes to restart; workers
+# finish running jobs within their stop_grace_period (compose.app.yml). Migrations must stay expand / contract.
+#
+# Repository / environment settings (docs/DEPLOYMENT.md "Release pipeline"):
+#   secrets   COOLIFY_TOKEN (Coolify API token: write + deploy, not root),
+#             CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET (Cloudflare Access service token in front of the API)
+#   variables COOLIFY_URL (the Access-protected API hostname), COOLIFY_STAGING_UUID, COOLIFY_PRODUCTION_UUID,
+#             KX_HEALTH_URL per environment (https://api.<domain>/healthz)
+#   environments `staging` and `production`; production: required reviewers + deployment branch/tag rule `v*` (M3)
 
 on:
   push:
@@ -17,9 +26,8 @@ on:
         options: [staging, production]
         default: staging
 
-permissions:
-  contents: read
-  packages: write
+# M3: nothing by default; each job asks for what it needs
+permissions: {}
 
 concurrency:
   group: release
@@ -30,61 +38,125 @@ jobs:
   # PostgreSQL, image build, server-stack checks) has passed on this exact commit.
   ci:
     uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
 
   images:
     needs: ci
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write   # M3: only this job pushes to GHCR
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
+      app_ref: ${{ steps.meta.outputs.app }}:${{ steps.meta.outputs.tag }}@${{ steps.app.outputs.digest }}
+      speech_ref: ${{ steps.meta.outputs.speech }}:${{ steps.meta.outputs.tag }}@${{ steps.speech.outputs.digest }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
+        with:
+          persist-credentials: false   # M3: no Git token left on the runner for later steps
 
       - id: meta
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then tag="${GITHUB_REF_NAME}"; else tag="sha-${GITHUB_SHA::12}"; fi
-          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
-          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          {
+            echo "tag=${tag}"
+            echo "app=ghcr.io/${owner}/app"
+            echo "speech=ghcr.io/${owner}/speech"
+          } >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
 
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550  # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # no cache import here (M3): a release image is built from scratch, never from a cache a PR run could write
       - name: app image
-        uses: docker/build-push-action@v7
+        id: app
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
         with:
           context: .
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/${{ steps.meta.outputs.owner }}/app:${{ steps.meta.outputs.tag }}
-          cache-from: type=gha,scope=app
-          cache-to: type=gha,scope=app,mode=max
+          tags: ${{ steps.meta.outputs.app }}:${{ steps.meta.outputs.tag }}
 
       - name: speech image
-        uses: docker/build-push-action@v7
+        id: speech
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
         with:
           context: services/speech
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/${{ steps.meta.outputs.owner }}/speech:${{ steps.meta.outputs.tag }}
-          cache-from: type=gha,scope=speech
-          cache-to: type=gha,scope=speech,mode=max
+          tags: ${{ steps.meta.outputs.speech }}:${{ steps.meta.outputs.tag }}
 
   deploy:
     needs: images
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
+    permissions: {}
     environment: ${{ inputs.target || 'staging' }}
+    env:
+      TARGET: ${{ inputs.target || 'staging' }}
+      APP_REF: ${{ needs.images.outputs.app_ref }}
+      COOLIFY_URL: ${{ vars.COOLIFY_URL }}
+      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+      CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+      CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+      UUID: ${{ (inputs.target || 'staging') == 'production' && vars.COOLIFY_PRODUCTION_UUID || vars.COOLIFY_STAGING_UUID }}
+      HEALTH_URL: ${{ vars.KX_HEALTH_URL }}
     steps:
-      - name: Coolify redeploy
-        env:
-          COOLIFY_URL: ${{ vars.COOLIFY_URL }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-          UUID: ${{ (inputs.target || 'staging') == 'production' && vars.COOLIFY_PRODUCTION_UUID || vars.COOLIFY_STAGING_UUID }}
+      # M3: production only from a release tag, whatever branch a manual run was started on (the environment's
+      # deployment rule in GitHub says the same; this keeps it true if that setting is ever loosened)
+      - name: Guard
         run: |
-          curl -fsS -X GET "${COOLIFY_URL}/api/v1/deploy?uuid=${UUID}&force=false" \
-            -H "Authorization: Bearer ${COOLIFY_TOKEN}"
+          if [[ "$TARGET" == "production" && "$GITHUB_REF_TYPE" != "tag" ]]; then
+            echo "::error::production deploys run from a v* tag only (this run: ${GITHUB_REF_TYPE} ${GITHUB_REF_NAME})"
+            exit 1
+          fi
+          for v in COOLIFY_URL COOLIFY_TOKEN UUID HEALTH_URL APP_REF; do
+            [[ -n "${!v}" ]] || { echo "::error::${v} is not set for environment ${TARGET}"; exit 1; }
+          done
+
+      # M1: set the immutable image reference, deploy, and fail unless Coolify finishes and /healthz answers.
+      # Coolify API v4 (verify the paths against the installed version: a Docker Compose resource created from a
+      # Git repository is an "application"; if it was created as a "service", use /services/{uuid}/envs).
+      - name: Coolify deploy
+        run: |
+          set -euo pipefail
+          auth=(-H "Authorization: Bearer ${COOLIFY_TOKEN}" -H "Accept: application/json")
+          if [[ -n "${CF_ACCESS_CLIENT_ID}" ]]; then
+            auth+=(-H "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}" -H "CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}")
+          fi
+          api() { curl -fsS -m 30 --retry 3 "${auth[@]}" "$@"; }
+
+          echo "KX_APP_IMAGE=${APP_REF}"
+          jq -n --arg v "$APP_REF" '{key: "KX_APP_IMAGE", value: $v}' \
+            | api -X PATCH -H "Content-Type: application/json" --data @- \
+                "${COOLIFY_URL}/api/v1/applications/${UUID}/envs" >/dev/null
+
+          dep="$(api "${COOLIFY_URL}/api/v1/deploy?uuid=${UUID}&force=false" | jq -r '.deployments[0].deployment_uuid // empty')"
+          [[ -n "$dep" ]] || { echo "::error::Coolify returned no deployment id"; exit 1; }
+          echo "deployment ${dep}"
+
+          status=""
+          for _ in $(seq 1 120); do   # 20 minutes
+            status="$(api "${COOLIFY_URL}/api/v1/deployments/${dep}" | jq -r '.status // empty')"
+            case "$status" in
+              finished) break ;;
+              failed|cancelled*|error) echo "::error::Coolify deployment ${dep}: ${status}"; exit 1 ;;
+            esac
+            sleep 10
+          done
+          [[ "$status" == "finished" ]] || { echo "::error::deployment ${dep} still '${status}' after 20 minutes"; exit 1; }
+
+          for _ in $(seq 1 30); do    # 5 minutes
+            if curl -fsS -m 10 -o /dev/null "$HEALTH_URL"; then echo "healthy: ${HEALTH_URL}"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::${HEALTH_URL} did not answer 200 within 5 minutes of the deploy"
+          exit 1

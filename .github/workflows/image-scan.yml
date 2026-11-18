@@ -1,0 +1,74 @@
+name: image-scan
+
+# M16 (live-test infra review 18 Nov): base images and apt packages (Chromium above all) take new CVEs every month,
+# and nothing rebuilt or checked them between releases. Every Monday this rebuilds the app, speech and postgres
+# images from the current main (no cache, so apt and pip fetch today's packages) and scans them with Trivy.
+# It fails on a CRITICAL vulnerability that has a fix, which means: merge the pending Dependabot PRs (.github/
+# dependabot.yml: base-image digests, actions, uv.lock) or cut a release, so the rebuilt image ships the fix.
+
+on:
+  schedule:
+    - cron: "17 4 * * 1"   # Monday 04:17 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: image-scan
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: app, context: ., file: Dockerfile }
+          - { name: speech, context: services/speech, file: services/speech/Dockerfile }
+          - { name: postgres, context: infra/server/postgres, file: infra/server/postgres/Dockerfile }
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
+
+      - name: build (no cache)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          platforms: linux/amd64
+          push: false
+          load: true
+          no-cache: true
+          pull: true
+          tags: kx-scan/${{ matrix.name }}:weekly
+
+      - name: trivy (fail on fixable CRITICAL)
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8  # v0.36.0
+        with:
+          version: v0.76.2
+          image-ref: kx-scan/${{ matrix.name }}:weekly
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: trivy (HIGH, report only)
+        if: always()
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8  # v0.36.0
+        with:
+          version: v0.76.2
+          image-ref: kx-scan/${{ matrix.name }}:weekly
+          scanners: vuln
+          severity: HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+          format: table
+          skip-setup-trivy: true

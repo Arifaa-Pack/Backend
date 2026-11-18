@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 20
     services:
       postgres:
-        image: pgvector/pgvector:pg18
+        image: pgvector/pgvector:0.8.7-pg18-bookworm   # = the server image's base (infra/server/postgres/Dockerfile)
         env:
           POSTGRES_PASSWORD: postgres
         ports:
@@ -36,10 +36,12 @@ jobs:
     env:
       KX_TEST_PG_DSN: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
+        with:
+          persist-credentials: false   # M3: no Git token left on the runner for later steps
 
       # setup-uv v8 publishes immutable releases only: pin the full version.
-      - uses: astral-sh/setup-uv@v8.1.0
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -68,12 +70,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
+        with:
+          persist-credentials: false   # M3: no Git token left on the runner for later steps
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
 
       - name: Build the app image (no push)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
         with:
           context: .
           platforms: linux/amd64
@@ -92,7 +96,7 @@ jobs:
           docker run --rm -e KX_PLATFORM_PLAN=free kairox/app:ci platform show
 
       - name: Build the speech image (no push)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
         with:
           context: services/speech
           platforms: linux/amd64
@@ -106,7 +110,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
+        with:
+          persist-credentials: false   # M3: no Git token left on the runner for later steps
 
       - name: docker compose config (every stack, dummy env)
         run: |
@@ -114,18 +120,24 @@ jobs:
           cd infra/server/stacks
           cp env/pack.env.example env/pack.env
           cp env/pack-cms.env.example env/pack-cms.env
-          export POSTGRES_PASSWORD=x R2_BUCKET=x R2_ENDPOINT_URL=https://x R2_ACCESS_KEY_ID=x R2_SECRET_ACCESS_KEY=x                  LIVEKIT_NODE_IP=203.0.113.1 LIVEKIT_API_KEY=x LIVEKIT_API_SECRET=x PHOENIX_DB_PASSWORD=x                  CROWDSEC_CF_BOUNCER_KEY=x CROWDSEC_FW_BOUNCER_KEY=x CLOUDFLARE_API_TOKEN=x PUBLIC_API_URL=https://x KX_ENV_FILE=env/pack.env.example KX_CMS_ENV_FILE=env/pack-cms.env.example REDIS_PASSWORD=x WALG_LIBSODIUM_KEY=x PHOENIX_SECRET=x KX_SES_SMTP_PASSWORD=x
+          export POSTGRES_PASSWORD=x R2_BUCKET=x R2_ENDPOINT_URL=https://x R2_ACCESS_KEY_ID=x R2_SECRET_ACCESS_KEY=x                  LIVEKIT_NODE_IP=203.0.113.1 LIVEKIT_API_KEY=x LIVEKIT_API_SECRET=x PHOENIX_DB_PASSWORD=x                  CROWDSEC_CF_BOUNCER_KEY=x CROWDSEC_FW_BOUNCER_KEY=x CLOUDFLARE_API_TOKEN=x PUBLIC_API_URL=https://x KX_ENV_FILE=env/pack.env.example KX_CMS_ENV_FILE=env/pack-cms.env.example REDIS_PASSWORD=x WALG_LIBSODIUM_KEY=x PHOENIX_SECRET=x KX_SES_SMTP_PASSWORD=x KX_APP_IMAGE=ghcr.io/x/app:ci KX_CMS_IMAGE=ghcr.io/x/cms:ci
           for f in compose.*.yml; do echo "== $f"; docker compose -f "$f" config -q; done
           cd ../../..
           docker compose -f docker-compose.yml config -q
 
       - name: shellcheck
-        run: shellcheck infra/server/postgres/db_bootstrap.sh infra/server/backup/volumes-to-r2.sh docker/postgres/initdb.sh
+        run: >-
+          shellcheck infra/server/postgres/db_bootstrap.sh infra/server/backup/volumes-to-r2.sh
+          infra/server/backup/pg-health-check.sh infra/server/backup/volumes-restore-test.sh docker/postgres/initdb.sh
 
-      - uses: astral-sh/setup-uv@v8.1.0
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
 
       - name: actionlint
         run: uvx --from actionlint-py==1.7.12.25 actionlint
+
+      # M3: workflow security lint (unpinned actions, credential persistence, injection, over-broad permissions)
+      - name: zizmor
+        run: uvx zizmor==1.32.0 --offline --min-severity medium .github/workflows
 
       - name: hadolint
         run: |

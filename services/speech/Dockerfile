@@ -1,7 +1,8 @@
 # Free speech server (D52): faster-whisper Small INT8 (speech-to-text) + Piper (text-to-speech) on CPU,
 # behind an OpenAI-compatible API that livekit-plugins-openai talks to. Own image (Python 3.12), linux/amd64.
 #   docker build -t kairox/speech:dev services/speech
-FROM python:3.12-slim-bookworm
+# M16: tag + digest (18 Nov); Dependabot (docker) proposes new digests, image-scan.yml checks them weekly
+FROM python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 \
     MODELS=/models HF_HOME=/models/hf PORT=8100 \
