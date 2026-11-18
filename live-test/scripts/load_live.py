@@ -215,12 +215,20 @@ def reply_lag(since: float) -> dict[str, Any]:
             "lag_max_s": round(vals[-1], 2) if vals else None, "outbound_by_status": blocked.strip().splitlines()}
 
 
+def proxy_stats() -> dict[str, Any] | None:
+    """Diagnostic only: a busy LLM proxy must not abort the run (it timed out after 5 s, 19 Nov)."""
+    try:
+        return httpx.get("http://localhost:39100/_stats", timeout=30).json()
+    except httpx.HTTPError:
+        return None
+
+
 async def main(users: int, minutes: float, label: str) -> None:
     n_staff = max(1, min(len(STAFF), round(users * 0.1)))
     n_wa = round(users * 0.4)
     n_web = users - n_staff - n_wa
     m, s = M(), Sampler()
-    proxy0 = httpx.get("http://localhost:39100/_stats").json()
+    proxy0 = proxy_stats()
     s.start()
     await asyncio.sleep(6)
     start = time.time()
@@ -233,7 +241,7 @@ async def main(users: int, minutes: float, label: str) -> None:
     res = {"label": label, "users": users, "mix": {"web": n_web, "whatsapp": n_wa, "staff": n_staff}, "minutes": minutes,
            "started": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start)), "endpoints": m.summary(),
            "resources": s.summary(), "whatsapp_reply": reply_lag(start),
-           "llm_proxy": {"before": proxy0, "after": httpx.get("http://localhost:39100/_stats").json()}}
+           "llm_proxy": {"before": proxy0, "after": proxy_stats()}}
     reqs = sum(v["n"] for v in res["endpoints"].values())
     errs = sum(n for v in res["endpoints"].values() for code, n in v["codes"].items() if not code.startswith(("2", "3")))
     res["totals"] = {"requests": reqs, "errors": errs, "error_rate_pct": round(100 * errs / max(reqs, 1), 2),

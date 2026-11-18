@@ -1,0 +1,10 @@
+00:49:25 drained, due=0
+00:49:25 === 10 users, worker 3 + worker-ai 10 threads
+{"label": "c10_w3a10_cap10", "mix": {"web": 5, "whatsapp": 4, "staff": 1}, "totals": {"requests": 582, "errors": 7, "error_rate_pct": 1.2, "throughput_rps": 1.21}, "whatsapp_reply": {"inbound": 129, "replied": 129, "lag_p50_s": 6.95, "lag_p95_s": 12.77, "lag_max_s": 14.14, "outbound_by_status": ["sent:|133"]}}
+01:18:54 drained, due=1
+01:19:24 === 30 users, worker 3 + worker-ai 10 threads
+Traceback (most recent call last):
+01:40:01 drained, due=1
+01:40:01 === 50 users, worker 3 + worker-ai 10 threads
+{"label": "c50_w3a10_cap10", "mix": {"web": 25, "whatsapp": 20, "staff": 5}, "totals": {"requests": 2900, "errors": 43, "error_rate_pct": 1.48, "throughput_rps": 6.04}, "whatsapp_reply": {"inbound": 635, "replied": 635, "lag_p50_s": 8.03, "lag_p95_s": 14.54, "lag_max_s": 32.4, "outbound_by_status": ["sent:|635"]}}
+01:48:48 done

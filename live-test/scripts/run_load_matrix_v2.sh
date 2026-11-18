@@ -12,7 +12,7 @@ trap 'rmdir "$LOCK"' EXIT
 due() { docker exec kxlive-postgres-1 psql -U postgres -d pack_automation -tAc "select count(*) from automation.scheduled_jobs where status='todo' and run_at<=now()" < /dev/null; }
 drain() {
   docker exec kxlive-redis-1 redis-cli -n 8 del kx kx.ai < /dev/null >/dev/null
-  for i in $(seq 1 120); do [ "$(due)" = "0" ] && break; sleep 10; done
+  for i in $(seq 1 30); do [ "$(due)" = "0" ] && break; sleep 10; done
   echo "$(date +%T) drained, due=$(due)"
 }
 $DC up -d migrate api worker worker-ai beat < /dev/null >/dev/null 2>&1; sleep 40
