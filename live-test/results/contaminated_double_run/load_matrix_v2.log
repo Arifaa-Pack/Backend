@@ -1,0 +1,10 @@
+21:55:03 drained, due=0
+21:55:03 === 10 users, worker 3 + worker-ai 10 threads
+{"label": "c10_w3a10", "mix": {"web": 5, "whatsapp": 4, "staff": 1}, "totals": {"requests": 545, "errors": 7, "error_rate_pct": 1.28, "throughput_rps": 1.14}, "whatsapp_reply": {"inbound": 89, "replied": 89, "lag_p50_s": 7.33, "lag_p95_s": 24.56, "lag_max_s": 31.42, "outbound_by_status": ["sent:|88"]}}
+22:03:44 drained, due=0
+22:03:45 === 30 users, worker 3 + worker-ai 10 threads
+{"label": "c30_w3a10", "mix": {"web": 15, "whatsapp": 12, "staff": 3}, "totals": {"requests": 1869, "errors": 0, "error_rate_pct": 0.0, "throughput_rps": 3.89}, "whatsapp_reply": {"inbound": 718, "replied": 718, "lag_p50_s": 11.68, "lag_p95_s": 32.15, "lag_max_s": 53.79, "outbound_by_status": ["sent:|485"]}}
+22:33:05 drained, due=200
+22:33:06 === 50 users, worker 3 + worker-ai 10 threads
+{"label": "c50_w3a10", "mix": {"web": 25, "whatsapp": 20, "staff": 5}, "totals": {"requests": 2630, "errors": 16, "error_rate_pct": 0.61, "throughput_rps": 5.48}, "whatsapp_reply": {"inbound": 1322, "replied": 1322, "lag_p50_s": 13.26, "lag_p95_s": 31.76, "lag_max_s": 44.68, "outbound_by_status": ["sent:|914"]}}
+22:43:17 done

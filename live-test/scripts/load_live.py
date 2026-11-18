@@ -195,15 +195,17 @@ class Sampler(threading.Thread):
 
 def reply_lag(since: float) -> dict[str, Any]:
     """WhatsApp: seconds from each inbound message to the next outbound reply on the same thread."""
+    # 'none' for a message with no reply yet: psql prints NULL as an empty line, which split() dropped, so
+    # "inbound" used to equal "replied" whatever happened
     sql = f"""
-      select extract(epoch from (select min(o.created_at) from automation.outbound_messages o
+      select coalesce(extract(epoch from (select min(o.created_at) from automation.outbound_messages o
                                  where o.thread_id = i.thread_id and o.created_at >= i.received_at and o.kind='reply')
-                     - i.received_at)
+                     - i.received_at)::text, 'none')
       from automation.inbound_messages i where i.provider='meta_cloud' and i.received_at >= to_timestamp({since})"""
     out = subprocess.run(["docker", "exec", "kxlive-postgres-1", "psql", "-U", "postgres", "-d", "pack_automation", "-tAc", sql],
                          capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=60).stdout.split()
-    vals = sorted(float(x) for x in out if x.strip())
-    total = len(out) if out else 0
+    vals = sorted(float(x) for x in out if x != "none")
+    total = len(out)
     blocked = subprocess.run(["docker", "exec", "kxlive-postgres-1", "psql", "-U", "postgres", "-d", "pack_automation", "-tAc",
                               f"select status||':'||coalesce(block_reason,''), count(*) from automation.outbound_messages "
                               f"where created_at >= to_timestamp({since}) group by 1"], capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=60).stdout
