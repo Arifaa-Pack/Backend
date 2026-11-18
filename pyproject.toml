@@ -44,7 +44,7 @@ target-version = "py314"
 line-length = 110
 src = ["packages/*/src", "apps/*/src"]
 # measurement scripts of the 14 Nov resource bench (not platform code; they run in their own containers)
-extend-exclude = ["resource-usage-bench"]
+extend-exclude = ["resource-usage-bench", "live-test"]  # test harnesses, not platform code
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "ASYNC", "S", "PERF", "PL", "TRY", "DTZ", "N"]

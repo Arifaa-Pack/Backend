@@ -253,7 +253,9 @@ def test_gemini_standby_joins_after_claude_only_when_switched_on() -> None:
     keys = AppSettings(anthropic_api_key=SecretStr("a"), gemini_api_key=SecretStr("g"))
     on = _model_router(keys, resolve_modes("free", {}, llm_standby="gemini"), {"claude", "gemini"})
     chain = on.for_tier(ModelTier.FAST)
-    assert type(chain.primary).__name__ == "ChatAnthropic"
+    from langchain_anthropic import ChatAnthropic
+
+    assert isinstance(chain.primary, ChatAnthropic)  # our subclass with its own HTTP pool (threads pool)
     assert [type(m).__name__ for m in chain.fallbacks] == ["ChatGoogleGenerativeAI"]
     off = _model_router(keys, resolve_modes("free", {}), {"claude", "gemini"})
     assert off.for_tier(ModelTier.FAST).fallbacks == ()
