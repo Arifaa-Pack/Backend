@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Literal
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -58,6 +59,7 @@ class Timeline:
     ref_type: str | None = None
     ref_id: str | None = None
     actor_type: Literal["user", "ai", "system", "buyer"] | None = None
+    at: datetime | None = None  # when it happened, if not now (a message: when the buyer sent it)
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +111,7 @@ async def record(
                 ref_id=timeline.ref_id,
                 actor_type=timeline.actor_type or actor.type,
                 actor_id=actor.id,
+                **({"at": timeline.at} if timeline.at is not None else {}),
             )
         )
     for e in (emit,) if isinstance(emit, Emit) else emit:

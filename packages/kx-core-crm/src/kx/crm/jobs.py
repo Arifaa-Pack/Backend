@@ -204,6 +204,7 @@ async def on_message_received(session: AsyncSession, deps: CrmDeps, event: Event
             ref_type="inbound_message",
             ref_id=str(m.message_ref),
             actor_type="buyer",
+            at=m.received_at,  # in order on the timeline even when recorded after a retry (D-3)
         ),
     )
 

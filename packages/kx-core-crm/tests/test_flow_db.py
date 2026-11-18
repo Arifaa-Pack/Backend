@@ -809,16 +809,19 @@ async def test_first_message_of_a_new_buyer_waits_for_the_deal(
     buyer's first message never reached the timeline. A fresh unmatched message is retried; once the deal
     exists the retry records it; an old unmatched message is only logged."""
     gw, rt, phone = CrmGatewayImpl(databases, deps), CrmRuntime(databases, deps, publish=_noop), new_phone()
-    event = _message_from(phone, deps.now())
+    sent_at = deps.now() - timedelta(seconds=2)
+    event = _message_from(phone, sent_at)
     with pytest.raises(RetryLater):
         await dispatch(rt, event)
     deal_id = await gw.resolve_deal("whatsapp", phone, None)  # the agents create the deal meanwhile
     await dispatch(rt, event)
     async with databases.transaction(CRM) as s:
-        kinds = (
-            await s.execute(select(m.TimelineEvent.kind).where(m.TimelineEvent.deal_id == deal_id))
-        ).scalars()
-        assert "message_in" in list(kinds)
+        at = await s.scalar(
+            select(m.TimelineEvent.at).where(
+                m.TimelineEvent.deal_id == deal_id, m.TimelineEvent.kind == "message_in"
+            )
+        )
+        assert at == sent_at  # in order on the timeline: when the buyer sent it, not when recorded
     await dispatch(rt, _message_from(new_phone(), deps.now() - timedelta(minutes=5)))  # no raise
 
 
