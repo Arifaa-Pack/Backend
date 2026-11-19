@@ -25,8 +25,8 @@ from kx.crm.contacts import phone
 from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Company, Contact, Deal, DealRequirement, Product
-from kx.crm.pdf import SummaryDocument, SummaryLine, summary_caption, summary_key, summary_phrase
-from kx.crm.services.issuing import local_today
+from kx.crm.quotes.issuing import local_today
+from kx.crm.quotes.pdf import SummaryDocument, SummaryLine, summary_caption, summary_key, summary_phrase
 from kx.crm.services.journal import Actor, Emit, Timeline, record
 
 Route = Literal["whatsapp", "email"]

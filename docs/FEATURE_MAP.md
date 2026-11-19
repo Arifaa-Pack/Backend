@@ -71,9 +71,9 @@ other mapping files, and this table is updated with each move.
 | `kx.automation.ports:TaskScheduler` | `kx.automation.jobs:JobScheduler` | `packages/kx-core-automation/src/kx/automation/jobs.py` |
 | `kx.core.jobs:Kicker` | `arifaa_pack.jobqueue:CeleryKicker` | `apps/arifaa-pack/src/arifaa_pack/jobqueue.py` |
 | `kx.crm.auth.throttle:AuthThrottle` | `arifaa_pack.adapters:RedisAuthThrottle`<br>`kx.crm.auth.throttle:MemoryThrottle` | `apps/arifaa-pack/src/arifaa_pack/adapters.py`<br>`packages/kx-core-crm/src/kx/crm/auth/throttle.py` |
-| `kx.crm.pdf:PdfEngine` | `kx.crm.pdf:ChromiumEngine`<br>`kx.crm.pdf:WeasyPrintEngine` | `packages/kx-core-crm/src/kx/crm/pdf.py`<br>`packages/kx-core-crm/src/kx/crm/pdf.py` |
-| `kx.crm.pdf:PdfUploader` | `kx.crm.pdf:S3PdfUploader` | `packages/kx-core-crm/src/kx/crm/pdf.py` |
 | `kx.crm.pricing.fx:FxSource` | `arifaa_pack.adapters:OpenRatesFx` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.crm.quotes.pdf:PdfEngine` | `kx.crm.quotes.pdf:ChromiumEngine`<br>`kx.crm.quotes.pdf:WeasyPrintEngine` | `packages/kx-core-crm/src/kx/crm/quotes/pdf.py`<br>`packages/kx-core-crm/src/kx/crm/quotes/pdf.py` |
+| `kx.crm.quotes.pdf:PdfUploader` | `kx.crm.quotes.pdf:S3PdfUploader` | `packages/kx-core-crm/src/kx/crm/quotes/pdf.py` |
 
 ## Events: who reacts
 
@@ -127,8 +127,8 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/admin/message-templates` | `kx.automation.admin_api:build_router.<locals>.templates` | - |
 | PUT | `/v1/admin/message-templates` | `kx.automation.admin_api:build_router.<locals>.upsert_template` | - |
 | POST | `/v1/admin/message-templates/{template_id}/status` | `kx.automation.admin_api:build_router.<locals>.template_status` | - |
-| GET | `/v1/approvals` | `kx.crm.api.quotes:router.<locals>.list_approvals` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
-| POST | `/v1/approvals/{approval_id}/decision` | `kx.crm.api.quotes:router.<locals>.decide` | `kx.crm.approvals.service:decide` |
+| GET | `/v1/approvals` | `kx.crm.quotes.router:router.<locals>.list_approvals` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
+| POST | `/v1/approvals/{approval_id}/decision` | `kx.crm.quotes.router:router.<locals>.decide` | `kx.crm.approvals.service:decide` |
 | POST | `/v1/auth/login` | `kx.crm.auth.router:router.<locals>.login` | `kx.crm.auth.service:login` |
 | POST | `/v1/auth/logout` | `kx.crm.auth.router:router.<locals>.logout` | `kx.crm.auth.service:logout` |
 | GET | `/v1/auth/me` | `kx.crm.auth.router:router.<locals>.me` | - |
@@ -148,7 +148,7 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/change-requests/{cr_id}` | `kx.crm.change_requests.router:router.<locals>.card` | `kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_view` |
 | POST | `/v1/change-requests/{cr_id}/decline` | `kx.crm.change_requests.router:router.<locals>.decline` | `kx.crm.change_requests.service:decline` |
 | POST | `/v1/change-requests/{cr_id}/resolve` | `kx.crm.change_requests.router:router.<locals>.resolve` | `kx.crm.change_requests.service:resolve` |
-| POST | `/v1/change-requests/{cr_id}/revise` | `kx.crm.change_requests.router:router.<locals>.revise` | `kx.crm.change_requests.service:link_revision`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.quotes:revise_quote` |
+| POST | `/v1/change-requests/{cr_id}/revise` | `kx.crm.change_requests.router:router.<locals>.revise` | `kx.crm.change_requests.service:link_revision`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.quotes.service:revise_quote`<br>`kx.crm.services.access:check_edit` |
 | POST | `/v1/change-requests/{cr_id}/start` | `kx.crm.change_requests.router:router.<locals>.start` | `kx.crm.change_requests.service:start` |
 | GET | `/v1/companies` | `kx.crm.records.router:router.<locals>.companies` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of`<br>`kx.crm.deals.router:visible_to` |
 | POST | `/v1/companies` | `kx.crm.records.router:router.<locals>.create_company` | `kx.crm.services.journal:record` |
@@ -176,9 +176,9 @@ other mapping files, and this table is updated with each move.
 | POST | `/v1/deals/{deal_id}/payments` | `kx.crm.deals.actions_router:router.<locals>.payment` | `kx.crm.deals.service:get_deal`<br>`kx.crm.orders.service:record_payment`<br>`kx.crm.services.access:check_edit` |
 | POST | `/v1/deals/{deal_id}/personal-contact-shared` | `kx.crm.deals.actions_router:router.<locals>.personal_contact_shared` | `kx.crm.deals.router:deal_detail`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.deals.service:personal_contact_shared`<br>`kx.crm.services.access:check_edit` |
 | GET | `/v1/deals/{deal_id}/quotes` | `kx.crm.deals.router:router.<locals>.deal_quotes` | `kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_view` |
-| POST | `/v1/deals/{deal_id}/quotes` | `kx.crm.deals.router:router.<locals>.request_quote` | `kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.quotes:request_quote` |
-| POST | `/v1/deals/{deal_id}/quotes/manual` | `kx.crm.assignment.router:router.<locals>.manual_quote` | `kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.quotes:manual_quote` |
-| POST | `/v1/deals/{deal_id}/quotes/revise` | `kx.crm.deals.router:router.<locals>.revise_quote` | `kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.quotes:revise_quote` |
+| POST | `/v1/deals/{deal_id}/quotes` | `kx.crm.deals.router:router.<locals>.request_quote` | `kx.crm.deals.service:get_deal`<br>`kx.crm.quotes.service:request_quote`<br>`kx.crm.services.access:check_edit` |
+| POST | `/v1/deals/{deal_id}/quotes/manual` | `kx.crm.assignment.router:router.<locals>.manual_quote` | `kx.crm.deals.service:get_deal`<br>`kx.crm.quotes.service:manual_quote`<br>`kx.crm.services.access:check_edit` |
+| POST | `/v1/deals/{deal_id}/quotes/revise` | `kx.crm.deals.router:router.<locals>.revise_quote` | `kx.crm.deals.service:get_deal`<br>`kx.crm.quotes.service:revise_quote`<br>`kx.crm.services.access:check_edit` |
 | POST | `/v1/deals/{deal_id}/reassign` | `kx.crm.assignment.router:router.<locals>.reassign` | `kx.crm.assignment.service:reassign`<br>`kx.crm.deals.router:deal_detail` |
 | POST | `/v1/deals/{deal_id}/reopen` | `kx.crm.deals.actions_router:router.<locals>.reopen` | `kx.crm.deals.router:deal_detail`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.deals.service:reopen` |
 | POST | `/v1/deals/{deal_id}/stage` | `kx.crm.deals.router:router.<locals>.move` | `kx.crm.assignment.service:assign`<br>`kx.crm.deals.service:contact_of`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.deals.service:missing_for`<br>`kx.crm.deals.service:move_stage`<br>`kx.crm.deals.service:requirements_of`<br>`kx.crm.services.access:check_edit` |
@@ -212,8 +212,8 @@ other mapping files, and this table is updated with each move.
 | POST | `/v1/public/sessions/{session_id}/voice` | `kx.agents.website:build_router.<locals>.voice` | - |
 | GET | `/v1/public/unsubscribe` | `kx.automation.unsubscribe:build_router.<locals>.unsubscribe_page` | - |
 | POST | `/v1/public/unsubscribe` | `kx.automation.unsubscribe:build_router.<locals>.unsubscribe` | `kx.automation.optout:apply_stop` |
-| GET | `/v1/quote-versions/{version_id}` | `kx.crm.api.quotes:router.<locals>.get_version` | `kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_view`<br>`kx.crm.services.issuing:lines_of` |
-| GET | `/v1/quote-versions/{version_id}/costs` | `kx.crm.api.quotes:router.<locals>.get_costs` | `kx.crm.services.quotes:costs_of` |
+| GET | `/v1/quote-versions/{version_id}` | `kx.crm.quotes.router:router.<locals>.get_version` | `kx.crm.deals.service:get_deal`<br>`kx.crm.quotes.issuing:lines_of`<br>`kx.crm.services.access:check_view` |
+| GET | `/v1/quote-versions/{version_id}/costs` | `kx.crm.quotes.router:router.<locals>.get_costs` | `kx.crm.quotes.service:costs_of` |
 | GET | `/v1/settings` | `kx.crm.admin.router:router.<locals>.list_settings` | - |
 | PUT | `/v1/settings/{key}` | `kx.crm.admin.router:router.<locals>.put_setting` | - |
 | GET | `/v1/stock` | `kx.crm.screens.router:router.<locals>.stock` | - |
@@ -265,7 +265,7 @@ other mapping files, and this table is updated with each move.
 | `crm.approval_sweep` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.sweep` | `kx.crm.approvals.service:sweep_overdue`<br>`kx.crm.change_requests.service:sweep_escalations` |
 | `crm.fx_rates` | <crontab: 5 2 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.fx_rates` | `kx.crm.pricing.fx:update_rates`<br>`kx.crm.pricing.fx:wanted` |
 | `crm.lost_proposals` | <crontab: 7 4 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.lost` | `kx.crm.deals.lost_proposals:propose_lost` |
-| `crm.price_staleness` | <crontab: 23 5 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.staleness` | `kx.crm.pricing.proposals:emit_stale`<br>`kx.crm.services.quotes:expire_quotes` |
+| `crm.price_staleness` | <crontab: 23 5 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.staleness` | `kx.crm.pricing.proposals:emit_stale`<br>`kx.crm.quotes.service:expire_quotes` |
 | `crm.retention` | <crontab: 41 23 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.retention_` | `kx.crm.retention.service:run_retention` |
 | `crm.scheduled_reports` | <crontab: */15 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.reports` | `kx.crm.reports.scheduled:send_due` |
 | `jobs.dispatch_due` | 0:00:30 | `arifaa_pack.container:_periodic.<locals>.dispatch_due` | - |

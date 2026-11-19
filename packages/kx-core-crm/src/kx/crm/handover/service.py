@@ -29,8 +29,9 @@ from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import build_context
 from kx.crm.models import Deal, User
-from kx.crm.services import access, issuing
-from kx.crm.services.grants import SendChannel, recipient, recipient_on
+from kx.crm.quotes import issuing
+from kx.crm.quotes.grants import SendChannel, recipient, recipient_on
+from kx.crm.services import access
 from kx.crm.services.journal import Actor, Timeline, record
 
 SIGNATURE: Final = "— {name}, {company}"

@@ -18,7 +18,8 @@ from kx.crm.change_requests import service as change_requests
 from kx.crm.deals import service as deal_svc
 from kx.crm.deals.router import visible_to
 from kx.crm.models import ChangeRequest, Deal
-from kx.crm.services import access, quotes
+from kx.crm.quotes import service as quotes
+from kx.crm.services import access
 from kx.crm.services.journal import Actor
 
 

@@ -29,10 +29,10 @@ from kx.core.identity import new_id
 from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Contact, Deal, Order, OrderStatusHistory, Payment, StockItem, StockMovement
+from kx.crm.quotes.grants import recipient
+from kx.crm.quotes.service import ISSUED, latest_version
 from kx.crm.services import staff
-from kx.crm.services.grants import recipient
 from kx.crm.services.journal import Actor, Emit, Timeline, record
-from kx.crm.services.quotes import ISSUED, latest_version
 
 ORDER_FLOW: Final[dict[str, frozenset[str]]] = {
     "in_production": frozenset({"ready", "cancelled"}),

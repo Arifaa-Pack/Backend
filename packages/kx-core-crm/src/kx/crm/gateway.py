@@ -69,9 +69,11 @@ from kx.crm.pricing.service import (
     current_costing,
     lead_time_text,
 )
+from kx.crm.quotes import grants
+from kx.crm.quotes import service as quotes
+from kx.crm.quotes.issuing import lines_of
 from kx.crm.rules import pause_reason
-from kx.crm.services import grants, quotes, staff
-from kx.crm.services.issuing import lines_of
+from kx.crm.services import staff
 from kx.crm.services.journal import Actor
 
 

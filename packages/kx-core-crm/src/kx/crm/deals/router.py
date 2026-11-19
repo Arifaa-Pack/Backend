@@ -45,7 +45,8 @@ from kx.crm.models import (
     User,
 )
 from kx.crm.negotiation import service as negotiation
-from kx.crm.services import access, quotes
+from kx.crm.quotes import service as quotes
+from kx.crm.services import access
 from kx.crm.services.journal import Actor
 
 

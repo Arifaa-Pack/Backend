@@ -13,7 +13,7 @@ from kx.core.contracts import DealStage
 from kx.crm.rules import LostReason
 
 if TYPE_CHECKING:
-    from kx.crm.services.quotes import QuoteEdits
+    from kx.crm.quotes.service import QuoteEdits
 
 
 class _Out(BaseModel):
@@ -275,7 +275,7 @@ class QuoteEditsIn(BaseModel):
 
     def to_edits(self, note: str | None) -> QuoteEdits:
         """The service's QuoteEdits (review D8: the revise and change-request routes built it twice)."""
-        from kx.crm.services.quotes import LineEdit, QuoteEdits  # noqa: PLC0415 - schemas stay import-light
+        from kx.crm.quotes.service import LineEdit, QuoteEdits  # noqa: PLC0415 - schemas stay import-light
 
         return QuoteEdits(
             lines=tuple(LineEdit(e.line_no, e.unit_price, e.quantity) for e in self.lines),

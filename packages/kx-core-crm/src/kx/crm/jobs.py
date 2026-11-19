@@ -51,10 +51,12 @@ from kx.crm.models import Contact, Deal, FxRate
 from kx.crm.models.base import SCHEMA
 from kx.crm.pricing import fx
 from kx.crm.pricing import proposals as price_proposals
+from kx.crm.quotes import issuing
+from kx.crm.quotes import service as quotes
 from kx.crm.reports import scheduled as scheduled_reports
 from kx.crm.retention import service as retention
 from kx.crm.rules import OPEN_STAGES
-from kx.crm.services import issuing, quotes, staff
+from kx.crm.services import staff
 from kx.crm.services.journal import Actor, Emit, Timeline, record
 
 log = get_logger(__name__)

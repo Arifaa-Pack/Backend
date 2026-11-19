@@ -93,7 +93,14 @@ from kx.crm import jobs as crm_jobs
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import ApprovalStatusReaderImpl, CrmGatewayImpl, GrantConsumerImpl
 from kx.crm.models import Product
-from kx.crm.pdf import ChromiumEngine, Letterhead, PdfEngine, QuoteRenderer, S3PdfUploader, WeasyPrintEngine
+from kx.crm.quotes.pdf import (
+    ChromiumEngine,
+    Letterhead,
+    PdfEngine,
+    QuoteRenderer,
+    S3PdfUploader,
+    WeasyPrintEngine,
+)
 from kx.crm.retention import service as crm_retention
 from kx.crm.services.settings import SettingsService
 

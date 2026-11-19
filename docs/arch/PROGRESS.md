@@ -477,3 +477,18 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 22.51s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `admin` @ `c1fe47c`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-admin`, COMPLETED
+
+## 1.21 slice `quotes` — TESTING (COMPLETED when tagged `arch-slice/crm-quotes`)
+
+- **Moved:** `services/quotes.py` → `quotes/service.py`, `services/issuing.py` → `quotes/issuing.py`, `services/grants.py` → `quotes/grants.py` (byte-identical), `pdf.py` → `quotes/pdf.py`, `api/quotes.py` → `quotes/router.py`; shims at the five old paths; 31 imports rewritten across 19 modules; `tests/unit/test_featuremap.py` asserts the new `revise_quote` path.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 428 files already formatted
+  - mypy: Success: no issues found in 272 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 22.41s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `deals` @ `bb67d8f`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-deals`, COMPLETED

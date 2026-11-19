@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core import events as ev
 from kx.core.errors import RuleViolation
 from kx.core.event_payloads import StaffNotice
-from kx.crm.pdf import Letterhead
+from kx.crm.quotes.pdf import Letterhead
 from kx.crm.services import staff
 from kx.crm.services.journal import Actor, Emit, record
 
