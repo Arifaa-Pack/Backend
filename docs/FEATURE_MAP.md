@@ -128,7 +128,7 @@ other mapping files, and this table is updated with each move.
 | PUT | `/v1/admin/message-templates` | `kx.automation.admin_api:build_router.<locals>.upsert_template` | - |
 | POST | `/v1/admin/message-templates/{template_id}/status` | `kx.automation.admin_api:build_router.<locals>.template_status` | - |
 | GET | `/v1/approvals` | `kx.crm.api.quotes:router.<locals>.list_approvals` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
-| POST | `/v1/approvals/{approval_id}/decision` | `kx.crm.api.quotes:router.<locals>.decide` | `kx.crm.services.approvals:decide` |
+| POST | `/v1/approvals/{approval_id}/decision` | `kx.crm.api.quotes:router.<locals>.decide` | `kx.crm.approvals.service:decide` |
 | POST | `/v1/auth/login` | `kx.crm.auth.router:router.<locals>.login` | `kx.crm.auth.service:login` |
 | POST | `/v1/auth/logout` | `kx.crm.auth.router:router.<locals>.logout` | `kx.crm.auth.service:logout` |
 | GET | `/v1/auth/me` | `kx.crm.auth.router:router.<locals>.me` | - |
@@ -262,7 +262,7 @@ other mapping files, and this table is updated with each move.
 | `automation.mail_poll` | 0:00:30 | `kx.automation.jobs:periodic_jobs.<locals>.mail_poll` | `kx.automation.channels.stalwart:raw_key` |
 | `automation.price_scrapes` | <crontab: 0 2 * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.scrapes` | - |
 | `automation.requeue_outbound` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.requeue` | `kx.automation.outbox:emit` |
-| `crm.approval_sweep` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.sweep` | `kx.crm.change_requests.service:sweep_escalations`<br>`kx.crm.services.approvals:sweep_overdue` |
+| `crm.approval_sweep` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.sweep` | `kx.crm.approvals.service:sweep_overdue`<br>`kx.crm.change_requests.service:sweep_escalations` |
 | `crm.fx_rates` | <crontab: 5 2 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.fx_rates` | `kx.crm.pricing.fx:update_rates`<br>`kx.crm.pricing.fx:wanted` |
 | `crm.lost_proposals` | <crontab: 7 4 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.lost` | `kx.crm.services.lost_proposals:propose_lost` |
 | `crm.price_staleness` | <crontab: 23 5 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.staleness` | `kx.crm.pricing.proposals:emit_stale`<br>`kx.crm.services.quotes:expire_quotes` |

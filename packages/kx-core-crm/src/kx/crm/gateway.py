@@ -41,6 +41,7 @@ from kx.core.db import Databases
 from kx.core.identity import phone_kind
 from kx.core.money import MONEY_PLACES, q
 from kx.core.settings import LogicalDb
+from kx.crm.approvals import service as approvals
 from kx.crm.assignment import service as assignment
 from kx.crm.change_requests import service as change_requests
 from kx.crm.contacts import consent
@@ -67,8 +68,8 @@ from kx.crm.pricing.service import (
     lead_time_text,
 )
 from kx.crm.rules import pause_reason
-from kx.crm.services import approvals, grants, negotiation, quotes, staff
 from kx.crm.services import deals as deal_svc
+from kx.crm.services import grants, negotiation, quotes, staff
 from kx.crm.services.issuing import lines_of
 from kx.crm.services.journal import Actor
 
