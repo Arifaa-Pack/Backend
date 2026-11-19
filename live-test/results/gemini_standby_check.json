@@ -1,0 +1,34 @@
+{
+ "status": 200,
+ "reply": "Hello, I am the AI sales assistant for the team. \n\nOur team will be happy to confirm the exact aluminium container sizes and specifications we manufacture for your specific needs. \n\nCould you share what product or application you plan to use the containers for, as well as the approximate volume or dimensions you have in mind? Also, what quantity are you looking to order?",
+ "proxy_stats_after_outage": {
+  "mode": "real",
+  "counts": {
+   "requests": 9,
+   "tier:claude-haiku-5-5": 9,
+   "forced_529": 9
+  },
+  "latency_s": {}
+ },
+ "api_llm_events": [
+  {
+   "event": "kb.embedding_fallback",
+   "level": "warning",
+   "model": "Qwen/Qwen3-Embedding-0.6B",
+   "provider": null,
+   "error": "TimeoutError",
+   "from": null,
+   "to": null
+  },
+  {
+   "event": "kb.any_word_fallback",
+   "level": "info",
+   "model": null,
+   "provider": null,
+   "error": null,
+   "from": null,
+   "to": null
+  }
+ ],
+ "answered_by_standby": true
+}

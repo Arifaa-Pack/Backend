@@ -3,8 +3,8 @@
 The deal opened by the buyer's e-mail (D-2026-00001, salesperson kxsales2) gets a revised quote at a price above
 the tier minimum; every approval is decided with the role it needs; then the e-mail the platform sent is read
 back from the platform's own Stalwart mailbox (Sent copy) and checked:
-  * the subject names the quotation ("Quotation Q-YYYY-NNNNN from ..."; a quote e-mail has its own subject, so
-    it is not sent as "Re:" to the buyer's thread: that threading is for AI replies, which have none);
+  * it answers in the buyer's thread: "Re: <the buyer's subject>" with In-Reply-To (client decision 19 Nov; the
+    buyer of this deal wrote by e-mail, so the quote continues that thread);
   * the greeting does not say "Hi Customer";
   * the quote PDF is attached and its "To" block names the buyer (text read with pdftotext).
 Output: results/email_quote_check.json and results/retest_quote.pdf. Message bodies are not printed.
@@ -33,7 +33,7 @@ import kxclient as k  # noqa: E402
 envload.load()
 BUYER = "muhammadhamthan660@gmail.com"
 RES = Path(__file__).resolve().parents[1] / "results"
-PRICE_USD = "0.0715"  # = AED 0.2626 per piece, above the 10,000-49,999 tier minimum of AED 0.255
+PRICE_USD = "0.0710"  # = AED 0.2607 per piece, above the 10,000-49,999 tier minimum of AED 0.255
 
 
 def sql(db: str, q: str) -> str:
@@ -107,7 +107,7 @@ async def check(out: dict[str, object], t0: float) -> None:
     first = (text.get_content() if text else "").strip().splitlines()[:1]
     pdfs = [p for p in msg.iter_attachments() if p.get_content_type() == "application/pdf"]
     out["subject"] = str(msg["Subject"])
-    out["subject_names_the_quotation"] = bool(re.match(r"^Quotation Q-[0-9]{4}-[0-9]{5} ", out["subject"]))
+    out["in_the_buyers_thread"] = out["subject"].startswith("Re: ") and bool(msg["In-Reply-To"])
     out["greeting"] = first[0][:60] if first else ""
     out["no_hi_customer"] = "customer" not in (first[0].lower() if first else "")
     out["pdf_attached"] = len(pdfs) == 1
@@ -119,7 +119,7 @@ async def check(out: dict[str, object], t0: float) -> None:
         to_block = re.search(r"(?s)\bTo\b(.{0,300})", txt)
         out["pdf_to_block_names_buyer"] = bool(to_block and BUYER in to_block.group(1))
         out["pdf_currency_usd"] = "USD" in txt
-    out["pass"] = all(out.get(x) for x in ("subject_names_the_quotation", "no_hi_customer",
+    out["pass"] = all(out.get(x) for x in ("in_the_buyers_thread", "no_hi_customer",
                                            "pdf_attached", "pdf_to_block_names_buyer"))
     (RES / "email_quote_check.json").write_text(json.dumps(out, indent=1, ensure_ascii=False))
     print(json.dumps(out, ensure_ascii=False))

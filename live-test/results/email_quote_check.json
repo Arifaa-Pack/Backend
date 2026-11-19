@@ -1,6 +1,24 @@
 {
- "subject": "Quotation Q-2026-00002 from ARIFA PACKING & PACKAGING LLC",
- "subject_names_the_quotation": true,
+ "deal": {
+  "number": "D-2026-00001",
+  "stage": "QUOTATION",
+  "currency": "USD"
+ },
+ "revise": 201,
+ "approvals": [
+  [
+   "special_price",
+   "kxmgr",
+   200
+  ],
+  [
+   "revision",
+   "kxsales2",
+   200
+  ]
+ ],
+ "subject": "Re: Quotation Q-2026-00002 from ARIFA PACKING & PACKAGING LLC",
+ "in_the_buyers_thread": true,
  "greeting": "Hi,",
  "no_hi_customer": true,
  "pdf_attached": true,

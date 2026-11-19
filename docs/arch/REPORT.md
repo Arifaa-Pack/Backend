@@ -104,9 +104,7 @@ Each gate was run on every commit. Shown here: the final head (`4f41149`), plus 
 
 ## Questions for the lead
 
-1. **Owners:** fill in the `@OWNER_*` handles in `.github/CODEOWNERS`, then turn on "Require review from Code
-   Owners".
-2. **Removed shims:** the Arifaa Auto team must switch any imports of the 19 removed paths, listed in
-   `PROGRESS.md` §2.5. Should the remaining 38 be removed once the tests move to the new paths?
+1. **Owners:** done (19 Nov): `@muhammadhamthan` owns the backend in `.github/CODEOWNERS`.
+2. **Removed shims:** Arifaa Auto is parked (19 Nov); what it will need is in `docs/ARIFAA_AUTO_NOTES.md`. Should the remaining 38 be removed once the tests move to the new paths?
 3. **Model names:** do you want the two `ChangeOut` / `CompanyIn` pairs renamed to unique names? That changes four
    OpenAPI component names (a frontend-visible change), but it removes the `__module__` pins.

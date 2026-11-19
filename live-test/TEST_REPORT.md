@@ -602,13 +602,17 @@ Each fix has a test that fails without it, and the full suite was run on it.
 
 - **Waiting for keys (step 13.3):** Claude, WhatsApp, Telnyx, SES. The harness is ready to re-run against them.
 - **TRN:** still the placeholder, as decided. Arifa provides it.
-- **Gemini standby:** needs a paid key (the free tier allows 20 requests a day).
-- **Decision for you: thread quote emails too?** A quote email has its own subject ("Quotation Q-… from …"), so it starts a new Gmail thread. AI replies already continue the buyer's thread. Sending quotes as "Re:" in the buyer's thread is a small change.
-- **Architecture:**
-  - fill the `@OWNER_*` handles in `.github/CODEOWNERS`;
-  - the Arifaa Auto team must update 19 removed import paths (list in `docs/arch/PROGRESS.md` §2.5).
 - **Deferred cleanup** (touches the money or approval paths, or conflicts with the restructure): review items §3.3, §3.4 (D5, D7), §3.5 (D11), §3.7 (D14, D15), §3.11, §3.12, §3.14, D16, D17.
-- **Repository hygiene:** two Office lock files (162 bytes each, holding Windows account names) were committed on 18 Nov. They are no longer tracked and `~$*` is ignored, but they remain in older commits.
+
+### 15.6 Your decisions of 19 Nov, done and checked
+
+| Decision | Done | Checked |
+|---|---|---|
+| Quote emails continue the buyer's email thread | A quote (or counter-offer) is sent as "Re: <the buyer's subject>" with In-Reply-To when the buyer has emailed on the thread; otherwise it keeps "Quotation Q-… from …" | Test that fails without the change; full suite 992 tests, 0 failed. **Live (2nd real email):** the revised quote arrived as "Re: Quotation Q-2026-00002 from ARIFA PACKING & PACKAGING LLC", in your Gmail thread |
+| Paid Gemini key | `.env`: the platform's `KX_APP_GEMINI_API_KEY` now holds the same paid key as `GEMINI_API_KEY` | **Live:** every Claude call forced to fail (9 × 529); the website visitor still got a real answer from the Gemini standby (`results/gemini_standby_check.json`) |
+| Code owners | `.github/CODEOWNERS`: Hamthan (`@muhammadhamthan`) owns the backend | — |
+| Arifaa Auto parked | One note, `docs/ARIFAA_AUTO_NOTES.md`: old → new import paths (19 removed, 38 temporary aliases), the public surface, the changes it inherits | Generated from the actual move list |
+| Office lock files | Removed from the whole history of the pushed branches and tags | — |
 
 ---
 
@@ -630,6 +634,7 @@ Each fix has a test that fails without it, and the full suite was run on it.
 | `scripts/run_tests_linux.sh` | Full pytest in the Linux image |
 | `scripts/m8_check.py` | Round 2: a real Gmail message and a forged one through Stalwart, judged by the platform's M8 check |
 | `scripts/email_quote_check.py` | Round 2: one real quote email to Gmail, read back and checked (subject, greeting, PDF "To" block) |
+| `scripts/gemini_standby_check.py` | Claude forced down (proxy `fail` mode); the platform's Gemini standby must answer |
 | `scripts/postman_run.py` | Round 2: the tester's Postman collection with newman (tokens from real MFA sign-ins; summary only in `results/postman_run.json`) |
 | `results/*` | Raw JSON, logs, reviews, sample quote PDFs |
 
@@ -639,5 +644,5 @@ Each fix has a test that fails without it, and the full suite was run on it.
 - Developer DB `pack_automation.automation.scheduled_jobs` ids `01a1edaa-e2c5-764f-90d3-2fc18251c22e` (ingest_inbound_email, done) and `01a1edab-7e41-77a9-a550-eca8bb9d8e24` (handle_event, done).
 - Emails sent to muhammadhamthan660@gmail.com: 2 channel tests (the first bounced at Gmail), 1 AI auto-reply, 1 real quote with PDF.
 - Your 4 Gmail replies are stored in the test stack only (Stalwart and `kxlive` Postgres).
-- Round 2 (19 Nov): **1 email** to muhammadhamthan660@gmail.com: revised quotation Q-2026-00002 v4 (USD 1,501.50). The M8 check copied your newest Gmail message from the Hostinger inbox (read-only) to the local test mailbox `kxadmin` only.
+- Round 2 (19 Nov): **2 emails** to muhammadhamthan660@gmail.com: revised quotation Q-2026-00002 v4 (USD 1,501.50) and v5 (USD 0.0710 a piece, sent as a reply in your thread). The M8 check copied your newest Gmail message from the Hostinger inbox (read-only) to the local test mailbox `kxadmin` only.
 - Your `.env` now also holds `KX_MAIL_USER` / `KX_MAIL_PASSWORD` (git-ignored).
