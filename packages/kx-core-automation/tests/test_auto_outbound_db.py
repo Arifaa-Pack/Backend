@@ -22,8 +22,10 @@ from automation_fakes import (
 from sqlalchemy import select, text
 
 from kx.automation.channels import ChannelError
+from kx.automation.channels.email import parse_inbound
+from kx.automation.inbound import record_email
 from kx.automation.models import OutboundMessage
-from kx.automation.outbound import OutboundService, TransientDeliveryError, content_sha256
+from kx.automation.outbound import OutboundService, TransientDeliveryError, content_sha256, reply_subject
 from kx.automation.settings import AutomationSettings
 from kx.core.contracts import OutboundKind, OutboundRequest
 from kx.core.errors import RuleViolation
@@ -484,3 +486,28 @@ async def test_whatsapp_quote_not_delivered_in_time_is_reported_with_its_content
     assert row[1]["message_ref"] == str(message_id) and row[1]["body"] == "Quote Q-1045 total AED 11,390.20"
     await env.sql("UPDATE outbound_messages SET status = 'delivered' WHERE id = :i", i=message_id)
     assert not await env.service.check_quote_delivery(message_id)  # delivered: nothing more to do
+
+
+BUYER_MAIL = (
+    b"From: Buyer <buyer@example.com>\r\nTo: sales@arifapack.com\r\nSubject: RE: Packaging enquiry\r\n"
+    b"Message-ID: <abc123@mail.example.com>\r\nDate: Wed, 18 Nov 2026 10:00:00 +0000\r\n"
+    b"Authentication-Results: mail.arifapack.com; dmarc=pass\r\n\r\nWe need 20,000 pcs.\r\n"
+)
+
+
+async def test_an_email_reply_without_a_subject_answers_in_the_buyers_thread(env: Env) -> None:
+    """Live test 18 Nov: AI email replies went out titled with the company name and no In-Reply-To, which can
+    break Gmail threading. Now: "Re: <the buyer's subject>" once, and In-Reply-To the buyer's Message-ID."""
+    async with env.db.transaction(LogicalDb.AUTOMATION) as s:
+        await record_email(s, parse_inbound(BUYER_MAIL, fallback_id="k1"), s3_key=None, attachment_keys=())
+    message_id = await env.service.send(req(channel="email", to_address="buyer@example.com", body="Thanks!"))
+    await env.service.deliver(message_id)
+    (mail,) = env.email.sent
+    assert mail["subject"] == "Re: Packaging enquiry" and mail["in_reply_to"] == "<abc123@mail.example.com>"
+    assert (await env.rows())[0].subject == "Re: Packaging enquiry"  # stored: the outbox shows what went out
+
+
+def test_reply_subject_says_re_once() -> None:
+    assert reply_subject("RE: Fwd: AW: Packaging enquiry") == "Re: Packaging enquiry"
+    assert reply_subject("Packaging enquiry") == "Re: Packaging enquiry"
+    assert reply_subject("Re: ") is None and reply_subject(None) is None

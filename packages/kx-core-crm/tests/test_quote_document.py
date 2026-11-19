@@ -117,3 +117,16 @@ def test_final_quote_has_no_discuss_line_and_a_revision_says_what_changed() -> N
         replace(DOC, kind="revision", change_summary="Updated: delivery in 5 working days from stock.")
     )[1]
     assert "updated quotation" in revised and "Updated: delivery in 5 working days from stock." in revised
+
+
+def test_no_hi_customer_and_the_to_block_shows_the_email_without_a_name() -> None:
+    """Live test 18 Nov: "Hi Customer" when no name was known, and an empty "To" block on the PDF."""
+    nameless = replace(DOC, buyer_name="", buyer_company=None, buyer_email="ahmed@gulfcatering.ae")
+    _, body = quote_message(nameless)
+    assert body.startswith("Hi,\n") and "Customer" not in body
+    _, body_ar = quote_message(replace(nameless, language="ar"))
+    assert body_ar.startswith("مرحباً،\n")
+    assert "<strong>ahmed@gulfcatering.ae</strong>" in QuoteRenderer().html(nameless)
+    named = QuoteRenderer().html(replace(DOC, buyer_email="ahmed@gulfcatering.ae"))
+    assert "<strong>Ahmed</strong> — Gulf Catering" in named and "ahmed@gulfcatering.ae" in named
+    assert quote_message(DOC)[1].startswith("Hi Ahmed,\n")

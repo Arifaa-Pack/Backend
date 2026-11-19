@@ -36,7 +36,14 @@ from kx.automation.channels import ChannelError
 from kx.automation.channels.email import Attachment
 from kx.automation.channels.whatsapp import DocumentRef
 from kx.automation.contact_hours import WEEK, next_followup_slot
-from kx.automation.models import ChannelAccount, MessageTemplate, OutboundMessage, OutboundStatus, Thread
+from kx.automation.models import (
+    ChannelAccount,
+    InboundMessage,
+    MessageTemplate,
+    OutboundMessage,
+    OutboundStatus,
+    Thread,
+)
 from kx.automation.outbox import emit
 from kx.automation.ports import Clock, MediaStore, TaskScheduler, utc_now
 from kx.automation.ratelimit import Bucket, Decision
@@ -472,9 +479,9 @@ class OutboundService:
         claimed = await self._claim(message_id)
         if claimed is None:
             return
-        row, channel, template = claimed
+        row, channel, template, in_reply_to = claimed
         try:
-            provider_id = await self._transmit(row, channel, template, template_params)
+            provider_id = await self._transmit(row, channel, template, template_params, in_reply_to)
         except ChannelError as exc:
             if exc.retryable and not final_attempt:
                 await self._set_status(message_id, "queued", error=exc.detail)
@@ -493,7 +500,7 @@ class OutboundService:
 
     async def _claim(
         self, message_id: uuid.UUID
-    ) -> tuple[OutboundMessage, str, MessageTemplate | None] | None:
+    ) -> tuple[OutboundMessage, str, MessageTemplate | None, str | None] | None:
         async with self._db.transaction(LogicalDb.AUTOMATION) as s:
             found = (
                 await s.execute(
@@ -516,7 +523,11 @@ class OutboundService:
                 await self._mark(s, row, "blocked", block_reason="window_closed")
                 return None
             row.status, row.sending_at = "sending", self._now()  # D6: the stuck-send sweep reads sending_at
-            return row, channel, template
+            in_reply_to = None
+            if channel == "email" and not row.subject and row.thread_id is not None:
+                subject, in_reply_to = await _email_reply_to(s, row.thread_id)
+                row.subject = subject or row.subject  # stored too: the outbox shows what went out
+            return row, channel, template, in_reply_to
 
     async def _thread_open(self, s: AsyncSession, row: OutboundMessage) -> bool:
         """Scheduled messages can outlive the 24 h window they were accepted in: check again."""
@@ -526,7 +537,12 @@ class OutboundService:
         )
 
     async def _transmit(
-        self, row: OutboundMessage, channel: str, template: MessageTemplate | None, params: tuple[str, ...]
+        self,
+        row: OutboundMessage,
+        channel: str,
+        template: MessageTemplate | None,
+        params: tuple[str, ...],
+        in_reply_to: str | None = None,
     ) -> str:
         pdf = await self._media.get(row.media_s3_key) if row.media_s3_key else None
         filename = (row.media_s3_key or "document.pdf").rsplit("/", 1)[-1]
@@ -543,6 +559,7 @@ class OutboundService:
                 attachment=attachment,
                 list_unsubscribe=unsubscribe,
                 from_name=row.sender_name,
+                in_reply_to=in_reply_to,  # the buyer's mail program keeps the reply in its thread
             )
         if template is not None:
             document = None
@@ -637,3 +654,34 @@ def _recipient(request: OutboundRequest) -> tuple[str, str]:
         )
     except ValueError as exc:
         raise RuleViolation("invalid recipient address", reason="invalid_recipient") from exc
+
+
+# Re / AW (German) / Fw / Fwd / Arabic "rd" / Chinese "huifu" (written with a full-width colon)
+_REPLY_PREFIX: Final = re.compile(
+    r"^\s*((re|aw|fw|fwd|رد|回复)\s*(\[\d+\])?\s*[:：]\s*)+",  # noqa: RUF001 - the full-width colon is the point
+    re.IGNORECASE,
+)
+
+
+def reply_subject(original: str | None) -> str | None:
+    """ "Re: <the buyer's subject>" once, whatever prefixes the thread already has (Re: RE: Fwd: AW:)."""
+    base = _REPLY_PREFIX.sub("", original or "").strip()
+    return f"Re: {base}" if base else None
+
+
+async def _email_reply_to(s: AsyncSession, thread_id: uuid.UUID) -> tuple[str | None, str | None]:
+    """(subject, Message-ID) for an email reply that has no subject of its own: the buyer's newest email on
+    the thread (live test 18 Nov: AI replies went out titled with the company name, which can break Gmail
+    threading)."""
+    found = (
+        await s.execute(
+            select(InboundMessage.raw["subject"].astext, InboundMessage.provider_message_id)
+            .where(InboundMessage.thread_id == thread_id, InboundMessage.raw.has_key("subject"))
+            .order_by(InboundMessage.received_at.desc())
+            .limit(1)
+        )
+    ).one_or_none()
+    if found is None:
+        return None, None
+    subject, message_id = found
+    return reply_subject(subject), (message_id or None)

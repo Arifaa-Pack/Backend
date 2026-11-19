@@ -105,6 +105,8 @@ async def build_document(
         else SalesContact(name=signer.full_name, phone=signer.phone_e164, email=str(signer.email)),
         cover_note=version.cover_note,
         change_summary=version.change_summary,
+        buyer_email=contact.email,
+        buyer_phone=contact.phone_e164 or contact.whatsapp_e164,
     )
 
 

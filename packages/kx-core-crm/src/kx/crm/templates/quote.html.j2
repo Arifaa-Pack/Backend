@@ -28,7 +28,9 @@
 
 <section class="buyer">
   <span class="label">{{ t.to }}</span>
-  <strong>{{ doc.buyer_name }}</strong>{% if doc.buyer_company %} — {{ doc.buyer_company }}{% endif %}
+  {%- set who = doc.buyer_name or doc.buyer_company or doc.buyer_email or doc.buyer_phone or "" %}
+  <strong>{{ who }}</strong>{% if doc.buyer_name and doc.buyer_company %} — {{ doc.buyer_company }}{% endif %}
+  {%- if doc.buyer_email and who != doc.buyer_email %}<br><span class="contact">{{ doc.buyer_email }}</span>{% endif %}
 </section>
 
 <table class="lines">

@@ -178,6 +178,7 @@ class FakeEmail:
                 "attachment": attachment,
                 "list_unsubscribe": list_unsubscribe,
                 "from_name": from_name,
+                "in_reply_to": in_reply_to,
             }
         )
         return f"ses-{len(self.sent)}"

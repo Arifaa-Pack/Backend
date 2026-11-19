@@ -245,11 +245,17 @@ _QUOTE_HEADER: Final = re.compile(
 
 
 def strip_quoted(text: str) -> str:
-    """Keep only the new reply: stop at the first quote header; drop '>' quoted lines."""
+    """Keep only the new reply: stop at the first quote header; drop '>' quoted lines.
+
+    Gmail wraps a long header over two lines ("On Wed, ... Arifa Packing Team <" / "sales@... wrote:"); the
+    live test of 18 Nov kept that first line, and the AI then greeted the buyer as our own team. So a line is
+    also checked joined with the next one."""
+    lines = text.replace("\r\n", "\n").split("\n")
     kept: list[str] = []
-    for line in text.replace("\r\n", "\n").split("\n"):
+    for i, line in enumerate(lines):
         stripped = line.strip()
-        if _QUOTE_HEADER.match(stripped):
+        joined = f"{stripped} {lines[i + 1].strip()}" if i + 1 < len(lines) else stripped
+        if _QUOTE_HEADER.match(stripped) or _QUOTE_HEADER.match(joined):
             break
         if not stripped.startswith(">"):
             kept.append(line.rstrip())

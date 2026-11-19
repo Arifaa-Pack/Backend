@@ -178,6 +178,9 @@ class QuoteDocument:
     salesperson: SalesContact | None = None
     # message only, never printed on the PDF (D9, §13.3)
     cover_note: str | None = None
+    # the "To" block when the buyer gave no name (live test 18 Nov: it was printed empty)
+    buyer_email: str | None = None
+    buyer_phone: str | None = None
     change_summary: str | None = None
 
     @property
@@ -241,7 +244,7 @@ def quote_message(doc: QuoteDocument) -> tuple[str, str]:
     values = {
         "number": doc.number,
         "seller": seller,
-        "name": doc.buyer_name or "Customer",
+        "name": doc.buyer_name.strip(),  # no "Hi Customer" (live test 18 Nov): an unknown name is left out
         "what": TEXTS.raw(_WHAT_KEY.get(doc.kind, "buyer.quote_what_other"), doc.lang),
         "summary": _summary(doc),
         "currency": doc.currency,
@@ -250,10 +253,14 @@ def quote_message(doc: QuoteDocument) -> tuple[str, str]:
         "extra": extra,
         "signer": f"{doc.salesperson.name}, {seller}" if doc.salesperson else seller,
     }
-    return (
-        TEXTS.get("buyer.quote_subject", doc.lang, **values),
-        TEXTS.get("buyer.quote_body", doc.lang, **values),
-    )
+    body = TEXTS.get("buyer.quote_body", doc.lang, **values)
+    if not values["name"]:  # "Hi ," -> "Hi," / "مرحباً ،" -> "مرحباً،" (any language, also an edited text)
+        first, sep, rest = body.partition("\n")
+        body = _NAMELESS.sub(r"\1", first) + sep + rest
+    return TEXTS.get("buyer.quote_subject", doc.lang, **values), body
+
+
+_NAMELESS: Final = re.compile(r"\s+([,،:!])")
 
 
 class PdfEngine(Protocol):

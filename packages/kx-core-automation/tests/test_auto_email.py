@@ -409,3 +409,14 @@ def test_sender_verified_from_authentication_results(
     """M8: DMARC pass, or (no DMARC result) SPF or DKIM pass; only our server's header counts."""
     mail = parse_inbound(_with_auth(*results), fallback_id="k", authserv_id=authserv_id)
     assert mail.sender_verified is verified
+
+
+def test_a_gmail_quote_header_wrapped_over_two_lines_is_cut() -> None:
+    """Live test 18 Nov: the first half of a wrapped header stayed, and the AI greeted the buyer as our team."""
+    mail = (
+        "Thanks, please send 20,000 pcs.\n\nOn Wed, Nov 18, 2026 at 10:01 PM Arifa Packing Team <\n"
+        "sales@arifapack.com> wrote:\n> Hello, here is your quote"
+    )
+    assert strip_quoted(mail) == "Thanks, please send 20,000 pcs."
+    ordinary = "We need lids\nOn the other hand, 500 ml\nThanks"
+    assert strip_quoted(ordinary) == ordinary
