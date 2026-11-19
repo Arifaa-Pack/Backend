@@ -46,7 +46,7 @@ one commit per slice). 25 tags, one per completed slice: `arch-slice/crm-<slice>
 
 ## Gates
 
-Each gate was run on every commit. Shown here: the final head (`4f41149`), plus the documentation commit after it.
+Each gate was run on every commit. Shown here: the final head (`f89f9cb`), plus the documentation commit after it.
 
 | Gate | Result |
 | --- | --- |

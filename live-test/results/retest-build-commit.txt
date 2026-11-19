@@ -1,4 +1,4 @@
 Builds of the round-2 re-test (live image kxlive/app:local, rebuilt after each re-test fix):
-- ad55b2f (end of the restructure): first API matrix, M8 check (the M8 code did not change afterwards).
-- ed6b30d: security probes 43/43, business flows 31/31, the real quote e-mail check, the load matrix.
-- 5c23541 (final; adds only the customer-type check): API matrix, security probes 43/43, Postman run.
+- ad8f604 (end of the restructure): first API matrix, M8 check (the M8 code did not change afterwards).
+- 6a8a3c3: security probes 43/43, business flows 31/31, the real quote e-mail check, the load matrix.
+- 9ea7ae7 (final; adds only the customer-type check): API matrix, security probes 43/43, Postman run.

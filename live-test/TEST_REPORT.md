@@ -449,7 +449,7 @@ Full text: `results/review_maintainability.md` (radon, vulture, pylint, jscpd; e
 
 ## 14. After the fixes: re-test of 18–19 Nov
 
-All work is on branch `fix/live-test-defects`, one commit per fix. Your uncommitted work was committed first, as-is (`bae6906`). Every fix has a test that fails without it.
+All work is on branch `fix/live-test-defects`, one commit per fix. Your uncommitted work was committed first, as-is (`ee446bf`). Every fix has a test that fails without it.
 
 ### 14.1 What was fixed, and how it was checked
 
@@ -591,12 +591,12 @@ Each fix has a test that fails without it, and the full suite was run on it.
 
 | Found by | Problem | Fix |
 |---|---|---|
-| Security probes | An admin unlock did not lift the lock-out at the staff member's own IP: they waited the full 15 minutes | Unlock also clears the account's per-IP lock-outs (`1ebe0dd`) |
-| Security probes | Anyone could keep a staff member out by spending the account's sign-in budget from other addresses (lock-out DoS through the per-account limit) | An IP where the account signed in during the last 30 days skips the per-account limit; the per-IP limits and the 5-attempt lock still apply (`520b375`) |
-| Security probes | Signing out without the browser cookie ended nothing: the access token kept working for up to 15 minutes. With the cookie, it still worked for 10 seconds | Logout also ends the session the access token names, and checks the database directly (`520b375`) |
-| Security probes (High) | A search containing a NUL character (`?q=%00`) reached PostgreSQL and answered 500 | NUL characters are refused with 400 before any route runs (`ed6b30d`) |
-| Security probes (Low) | No security headers; the API description was public everywhere | `nosniff`, no framing, no referrer, and a CSP on every answer; `/docs` and `/openapi.json` are off in production (`ed6b30d`) |
-| Postman run | Creating a company with a customer type outside the database's list answered 500 | The API accepts exactly the database's values and answers 422 otherwise (`5c23541`) |
+| Security probes | An admin unlock did not lift the lock-out at the staff member's own IP: they waited the full 15 minutes | Unlock also clears the account's per-IP lock-outs (`a1e96c0`) |
+| Security probes | Anyone could keep a staff member out by spending the account's sign-in budget from other addresses (lock-out DoS through the per-account limit) | An IP where the account signed in during the last 30 days skips the per-account limit; the per-IP limits and the 5-attempt lock still apply (`2810330`) |
+| Security probes | Signing out without the browser cookie ended nothing: the access token kept working for up to 15 minutes. With the cookie, it still worked for 10 seconds | Logout also ends the session the access token names, and checks the database directly (`2810330`) |
+| Security probes (High) | A search containing a NUL character (`?q=%00`) reached PostgreSQL and answered 500 | NUL characters are refused with 400 before any route runs (`6a8a3c3`) |
+| Security probes (Low) | No security headers; the API description was public everywhere | `nosniff`, no framing, no referrer, and a CSP on every answer; `/docs` and `/openapi.json` are off in production (`6a8a3c3`) |
+| Postman run | Creating a company with a customer type outside the database's list answered 500 | The API accepts exactly the database's values and answers 422 otherwise (`9ea7ae7`) |
 
 ### 15.5 Still open
 

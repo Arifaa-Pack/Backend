@@ -3,7 +3,7 @@
 The plan: the restructuring brief (ADR-0001 once written). Resume from the last entry. Status labels: NOT STARTED ·
 IN PROGRESS · BLOCKED · IN REVIEW · TESTING · COMPLETED.
 
-**Scope of this run: Phase 0 only** (no file moves). Branch `arch/phase0-tooling`, from `main` at `ed9e32e`.
+**Scope of this run: Phase 0 only** (no file moves). Branch `arch/phase0-tooling`, from `main` at `2389b0d`.
 
 ## How the gates are run on this machine (Windows, no `uv`)
 
@@ -21,7 +21,7 @@ this worktree's `src` folders (verified: `kx.crm.__file__` is inside the worktre
 | OpenAPI unchanged | `python scripts/gen_frontend_docs.py` then `git diff --exit-code docs/frontend` (`openapi-crm.json`, `openapi-website.json` and the two API docs) |
 | `kx map` unchanged | from 0.1 on: `kx map --format json` compared with the output of the 0.1 commit |
 
-Baseline before any change (`ed9e32e`): ruff clean, 334 files formatted, mypy clean (196 files), import-linter
+Baseline before any change (`2389b0d`): ruff clean, 334 files formatted, mypy clean (196 files), import-linter
 3 kept / 0 broken, full suite **864 tests, 0 failures, 0 errors, 4 skipped** (the 4 need `redis-server`).
 
 ---
@@ -118,10 +118,10 @@ Baseline before any change (`ed9e32e`): ruff clean, 334 files formatted, mypy cl
 
 ## Rebase onto the 19 Nov fix round — COMPLETED
 
-- **Done:** Phase 0 rebased onto `fix/live-test-defects` (head `bdf2735`). That round had removed
+- **Done:** Phase 0 rebased onto `fix/live-test-defects` (head `e459273`). That round had removed
   `EventBus.subscribers` as unused, but `kx map` reads it: restored in `arifaa_pack/container.py` with its caller
   named. `docs/FEATURE_MAP.md` regenerated; `CURRENT_STATE.md` model counts corrected (9 model modules; names per
-  group recounted on the rebased tree). Commit `782f53b`.
+  group recounted on the rebased tree). Commit `7c0aeec`.
 - **Gates:** ruff PASS; mypy (container.py) PASS; `kx map --check docs/FEATURE_MAP.md` PASS. Full suite: see 0.4.
 
 ## 0.3 Review routing — COMPLETED
@@ -130,7 +130,7 @@ Baseline before any change (`ed9e32e`): ruff clean, 334 files formatted, mypy cl
   `@OWNER_AUTOMATION`, `@OWNER_AGENTS`, `@OWNER_APP`; `contracts*`, `event_payloads*` and `events.py` need every
   owner); `.github/pull_request_template.md` (packages touched, contract changed Y/N, payload version changed Y/N,
   migration and database, FEATURE_MAP / OpenAPI refreshed, tests run); `.github/workflows/pr-labels.yml` labels a
-  PR `cross-package` when it touches more than one `packages/kx-*` folder or a contract file. Commit `b750070`.
+  PR `cross-package` when it touches more than one `packages/kx-*` folder or a contract file. Commit `2bddc13`.
 - **Deviations:** the label workflow uses no third-party action (only `gh` and the GitHub API on
   `pull_request_target`, no checkout), so there is nothing to pin and no PR code runs with the write token.
   `tests/unit/test_no_removed_vendors.py` (exact set of workflow files) admits `pr-labels.yml`.
@@ -141,8 +141,8 @@ Baseline before any change (`ed9e32e`): ruff clean, 334 files formatted, mypy cl
 - **Done:** `docs/adr/` with `README.md` (index), `0000-template.md`, ADR-0001 "Package-based modular monolith
   with feature slices" (context, decision, consequences, alternatives rejected: single app, microservices,
   documentation only), ADR-0002 "Split the contracts by conversation and publish the packages" (Phase 3, future,
-  proposed). Linked from `docs/ARCHITECTURE.md` §2 (one paragraph, nothing else rewritten). Commit `e46558e`.
-- **Gates** (on `e46558e`, the Phase 0 head):
+  proposed). Linked from `docs/ARCHITECTURE.md` §2 (one paragraph, nothing else rewritten). Commit `d258a9d`.
+- **Gates** (on `d258a9d`, the Phase 0 head):
   - `ruff check .` PASS: All checks passed!
   - `ruff format --check .` PASS: 362 files already formatted
   - `mypy` PASS: Success: no issues found in 207 source files
@@ -161,7 +161,7 @@ Baseline before any change (`ed9e32e`): ruff clean, 334 files formatted, mypy cl
 
 # Phase 1 — feature slices inside `kx.crm` (branch `arch/slices`)
 
-Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is moved and checked:
+Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `e0bf66d`). How each slice is moved and checked:
 
 - `git mv` per module; an **alias shim** at the old path (`sys.modules[old] = new`, plus a star import for type
   checkers), so old imports, private names and monkeypatching keep working; `src/` imports rewritten to the new
@@ -206,7 +206,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 17.49s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `texts` @ `32daf5d`: tests=982 failures=0 errors=0 skipped=4, exit=0 → tagged `arch-slice/crm-texts`, COMPLETED
+- **Previous slice's full suite:** `texts` @ `a3e0d1f`: tests=982 failures=0 errors=0 skipped=4, exit=0 → tagged `arch-slice/crm-texts`, COMPLETED
 
 ## 1.3 slice `operations` — TESTING (COMPLETED when tagged `arch-slice/crm-operations`)
 
@@ -221,7 +221,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 18.09s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `company` @ `2e3f95c`: tests=982 failures=0 errors=0 skipped=4, exit=0 → tagged `arch-slice/crm-company`, COMPLETED
+- **Previous slice's full suite:** `company` @ `16ff472`: tests=982 failures=0 errors=0 skipped=4, exit=0 → tagged `arch-slice/crm-company`, COMPLETED
 
 ## 1.4 slice `retention` — TESTING (COMPLETED when tagged `arch-slice/crm-retention`)
 
@@ -236,7 +236,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 17.01s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `operations` @ `8b4f851`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-operations`, COMPLETED
+- **Previous slice's full suite:** `operations` @ `bc95af3`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-operations`, COMPLETED
 
 ## 1.5 slice `reports` — TESTING (COMPLETED when tagged `arch-slice/crm-reports`)
 
@@ -251,7 +251,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 21.39s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `retention` @ `49e061e`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-retention`, COMPLETED
+- **Previous slice's full suite:** `retention` @ `42cdf0b`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-retention`, COMPLETED
 
 ## 1.6 slice `catalogue` — TESTING (COMPLETED when tagged `arch-slice/crm-catalogue`)
 
@@ -266,7 +266,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 21.98s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `reports` @ `bf06f6d`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-reports`, COMPLETED
+- **Previous slice's full suite:** `reports` @ `d03c2d2`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-reports`, COMPLETED
 
 ## 1.7 slice `pricing` — TESTING (COMPLETED when tagged `arch-slice/crm-pricing`)
 
@@ -281,7 +281,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 20.32s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `catalogue` @ `43ebedc`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-catalogue`, COMPLETED
+- **Previous slice's full suite:** `catalogue` @ `7c71ca1`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-catalogue`, COMPLETED
 
 ## 1.8 slice `contacts` — TESTING (COMPLETED when tagged `arch-slice/crm-contacts`)
 
@@ -296,7 +296,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 22.38s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `pricing` @ `a2d18bd`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-pricing`, COMPLETED
+- **Previous slice's full suite:** `pricing` @ `7954b68`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-pricing`, COMPLETED
 
 ## 1.9 slice `records` — TESTING (COMPLETED when tagged `arch-slice/crm-records`)
 
@@ -311,7 +311,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 22.12s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `contacts` @ `53a41e5`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-contacts`, COMPLETED
+- **Previous slice's full suite:** `contacts` @ `4c0c43a`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-contacts`, COMPLETED
 
 ## 1.10 slice `auth` — TESTING (COMPLETED when tagged `arch-slice/crm-auth`)
 
@@ -326,7 +326,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 21.90s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `records` @ `dee7255`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-records`, COMPLETED
+- **Previous slice's full suite:** `records` @ `63e3fe2`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-records`, COMPLETED
 
 ## 1.11 slice `handover` — TESTING (COMPLETED when tagged `arch-slice/crm-handover`)
 
@@ -341,7 +341,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 21.77s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `auth` @ `402f610`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-auth`, COMPLETED
+- **Previous slice's full suite:** `auth` @ `28d7337`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-auth`, COMPLETED
 
 ## 1.12 slice `assignment` — TESTING (COMPLETED when tagged `arch-slice/crm-assignment`)
 
@@ -356,7 +356,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 22.36s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `handover` @ `eca15e7`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-handover`, COMPLETED
+- **Previous slice's full suite:** `handover` @ `bd5562e`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-handover`, COMPLETED
 
 ## 1.13 slice `change_requests` — TESTING (COMPLETED when tagged `arch-slice/crm-change_requests`)
 
@@ -371,7 +371,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 23.15s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `assignment` @ `158667a`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-assignment`, COMPLETED
+- **Previous slice's full suite:** `assignment` @ `81ff471`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-assignment`, COMPLETED
 
 ## 1.14 slice `orders` — TESTING (COMPLETED when tagged `arch-slice/crm-orders`)
 
@@ -386,7 +386,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 20.67s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `change_requests` @ `ed25bf3`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-change_requests`, COMPLETED
+- **Previous slice's full suite:** `change_requests` @ `db70dc5`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-change_requests`, COMPLETED
 
 ## 1.15 slice `approvals` — TESTING (COMPLETED when tagged `arch-slice/crm-approvals`)
 
@@ -401,7 +401,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 23.74s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `orders` @ `a5c35e2`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-orders`, COMPLETED
+- **Previous slice's full suite:** `orders` @ `4bd8e6a`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-orders`, COMPLETED
 
 ## 1.16 slice `negotiation` — TESTING (COMPLETED when tagged `arch-slice/crm-negotiation`)
 
@@ -416,7 +416,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 22.20s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `approvals` @ `05ac529`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-approvals`, COMPLETED
+- **Previous slice's full suite:** `approvals` @ `ef0056f`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-approvals`, COMPLETED
 
 ## 1.17 slice `inbox` — TESTING (COMPLETED when tagged `arch-slice/crm-inbox`)
 
@@ -431,7 +431,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 23.66s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `negotiation` @ `c0408db`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-negotiation`, COMPLETED
+- **Previous slice's full suite:** `negotiation` @ `a1d240a`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-negotiation`, COMPLETED
 
 ## 1.18 slice `screens` — TESTING (COMPLETED when tagged `arch-slice/crm-screens`)
 
@@ -446,7 +446,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 23.11s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `inbox` @ `280ee9e`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-inbox`, COMPLETED
+- **Previous slice's full suite:** `inbox` @ `4e86747`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-inbox`, COMPLETED
 
 ## 1.19 slice `admin` — TESTING (COMPLETED when tagged `arch-slice/crm-admin`)
 
@@ -461,7 +461,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 24.24s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `screens` @ `808c859`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-screens`, COMPLETED
+- **Previous slice's full suite:** `screens` @ `264aa7e`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-screens`, COMPLETED
 
 ## 1.20 slice `deals` — TESTING (COMPLETED when tagged `arch-slice/crm-deals`)
 
@@ -476,7 +476,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 22.51s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `admin` @ `c1fe47c`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-admin`, COMPLETED
+- **Previous slice's full suite:** `admin` @ `9692a89`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-admin`, COMPLETED
 
 ## 1.21 slice `quotes` — TESTING (COMPLETED when tagged `arch-slice/crm-quotes`)
 
@@ -491,7 +491,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 22.41s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `deals` @ `bb67d8f`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-deals`, COMPLETED
+- **Previous slice's full suite:** `deals` @ `4c4b65e`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-deals`, COMPLETED
 
 ## 1.22 slice `_shared` — TESTING (COMPLETED when tagged `arch-slice/crm-_shared`)
 
@@ -506,11 +506,11 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 21.66s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `quotes` @ `99040c5`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-quotes`, COMPLETED
+- **Previous slice's full suite:** `quotes` @ `5691c11`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-quotes`, COMPLETED
 
 ## 1.23 public surface `kx/crm/__init__.py` — TESTING
 
-- **Previous slice's full suite:** `_shared` @ `d7d60e0`: tests=982, failures=0, errors=0, skipped=4, exit=0 →
+- **Previous slice's full suite:** `_shared` @ `061a513`: tests=982, failures=0, errors=0, skipped=4, exit=0 →
   tagged `arch-slice/crm-_shared`, COMPLETED. **All 22 CRM slices are COMPLETED.**
 - **Done:** `kx/crm/__init__.py` names what the app uses, with an explicit `__all__` (21 names: the wiring
   classes, `jobs`, `build_router`, `SessionGuard`, `MemoryThrottle`, the quote-PDF engines, `Actor`,
@@ -544,7 +544,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   else is identical after the renames. This commit's map is the baseline for Phase 2.
 - **Found, not fixed:** `arifaa_pack/featuremap.py:234` `calls()` can report a function that is not called when
   another module in scope has an attribute of the same name (the case above).
-- **Full suite (1.23):** `023968d`: tests=982, failures=0, errors=0, skipped=4, exit=0 → COMPLETED.
+- **Full suite (1.23):** `5d3f965`: tests=982, failures=0, errors=0, skipped=4, exit=0 → COMPLETED.
 
 **Phase 1: COMPLETED** (22 slice tags `arch-slice/crm-*`, public surface). `kx/crm/services/*` and `kx/crm/api/*`
 (except `build_router`) are alias shims only; no `src/` module imports them.
@@ -565,7 +565,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
 
 ## 2.1 slice `outbound` — TESTING (COMPLETED when tagged `arch-slice/automation-outbound`)
 
-- **Moved:** `outbound.py` → `outbound/__init__.py` (the same module `kx.automation.outbound`; OutboundService code unchanged, only its two import lines now name the new paths), `contact_hours.py` / `ratelimit.py` / `killswitch.py` → `outbound/`; shims at those three old paths; imports rewritten in `arifaa_pack/{adapters,container}.py`. `kx map` compared with the Phase 1 map (`023968d`).
+- **Moved:** `outbound.py` → `outbound/__init__.py` (the same module `kx.automation.outbound`; OutboundService code unchanged, only its two import lines now name the new paths), `contact_hours.py` / `ratelimit.py` / `killswitch.py` → `outbound/`; shims at those three old paths; imports rewritten in `arifaa_pack/{adapters,container}.py`. `kx map` compared with the Phase 1 map (`5d3f965`).
 - **Gates:**
   - ruff check: All checks passed!
   - ruff format: 440 files already formatted
@@ -576,7 +576,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 21.15s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** Phase 1 public surface @ `023968d` (see 1.23)
+- **Previous slice's full suite:** Phase 1 public surface @ `5d3f965` (see 1.23)
 
 ## 2.2 slice `inbound` — TESTING (COMPLETED when tagged `arch-slice/automation-inbound`)
 
@@ -591,7 +591,7 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 22.03s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `outbound` @ `027295f`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/automation-outbound`, COMPLETED
+- **Previous slice's full suite:** `outbound` @ `bf7a75b`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/automation-outbound`, COMPLETED
 
 ## 2.3 slice `optout` — TESTING (COMPLETED when tagged `arch-slice/automation-optout`)
 
@@ -606,15 +606,15 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 22.01s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `inbound` @ `a4b8550`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/automation-inbound`, COMPLETED
+- **Previous slice's full suite:** `inbound` @ `66df896`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/automation-inbound`, COMPLETED
 
 ## 2.1–2.3 automation slices — COMPLETED
 
 | Slice | Commit | Full suite | Tag |
 | --- | --- | --- | --- |
-| `outbound` | `027295f` | tests=982, failures=0, errors=0, skipped=4, exit=0 | `arch-slice/automation-outbound` |
-| `inbound` | `a4b8550` | tests=982, failures=0, errors=0, skipped=4, exit=0 | `arch-slice/automation-inbound` |
-| `optout` | `bac4548` | tests=982, failures=0, errors=0, skipped=4, exit=0 | `arch-slice/automation-optout` |
+| `outbound` | `bf7a75b` | tests=982, failures=0, errors=0, skipped=4, exit=0 | `arch-slice/automation-outbound` |
+| `inbound` | `66df896` | tests=982, failures=0, errors=0, skipped=4, exit=0 | `arch-slice/automation-inbound` |
+| `optout` | `c408875` | tests=982, failures=0, errors=0, skipped=4, exit=0 | `arch-slice/automation-optout` |
 
 The three feature modules (`outbound.py`, `inbound.py`, `optout.py`) are byte-identical as `__init__.py` except
 `outbound`'s two import lines (`contact_hours`, `ratelimit` now under it), checked with `diff`.
@@ -652,7 +652,7 @@ The three feature modules (`outbound.py`, `inbound.py`, `optout.py`) are byte-id
   (routers; service-side modules) and the ORM rule is a separate `forbidden` contract. The `forbidden` contract on
   `*.models` names the ORM modules explicitly because `kx.agents.models` is the LLM model router, not ORM
   (`CURRENT_STATE.md` §4).
-- **Full suite (2.4):** `a74eace`: tests=982, failures=0, errors=0, skipped=4, exit=0 → COMPLETED.
+- **Full suite (2.4):** `24b1c0c`: tests=982, failures=0, errors=0, skipped=4, exit=0 → COMPLETED.
 
 ## 2.5 shims removed where nothing imports them — TESTING
 
@@ -676,7 +676,7 @@ The three feature modules (`outbound.py`, `inbound.py`, `optout.py`) are byte-id
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 22.22s =============================
   - full suite: run on this commit; result logged in the final entry
-- **Full suite (2.5):** `4f41149`: tests=982, failures=0, errors=0, skipped=4, exit=0 → COMPLETED.
+- **Full suite (2.5):** `f89f9cb`: tests=982, failures=0, errors=0, skipped=4, exit=0 → COMPLETED.
 
 ## 2.6 documentation and the final report — COMPLETED
 
@@ -707,8 +707,8 @@ fails without it, every gate run, and the full suite:
 
 | Commit | Fix | Full suite |
 | --- | --- | --- |
-| `1ebe0dd` | an admin unlock also lifts the account's per-IP sign-in lockouts (M3) | tests=982, failures=0, errors=0, skipped=4 |
-| `520b375` | a known IP is not held back by attempts on the account from elsewhere (M3 lockout DoS); logout ends the access token's session at once (L1) | tests=984, failures=0, errors=0, skipped=4 |
-| `ed6b30d` | NUL bytes refused with 400 before PostgreSQL (was 500); security headers on every answer; no API docs in production | tests=989, failures=0, errors=0, skipped=4 |
+| `a1e96c0` | an admin unlock also lifts the account's per-IP sign-in lockouts (M3) | tests=982, failures=0, errors=0, skipped=4 |
+| `2810330` | a known IP is not held back by attempts on the account from elsewhere (M3 lockout DoS); logout ends the access token's session at once (L1) | tests=984, failures=0, errors=0, skipped=4 |
+| `6a8a3c3` | NUL bytes refused with 400 before PostgreSQL (was 500); security headers on every answer; no API docs in production | tests=989, failures=0, errors=0, skipped=4 |
 
-`kx map` stayed path-only identical and the OpenAPI changed only in the logout description (`520b375`).
+`kx map` stayed path-only identical and the OpenAPI changed only in the logout description (`2810330`).

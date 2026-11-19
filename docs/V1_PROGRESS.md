@@ -1,6 +1,6 @@
 # v1 flow progress (WP1–WP12 of docs/V1_CHANGE_PLAN.md)
 
-Baseline before the work (5 Nov, commit 6ce4a4c, Linux container with pgvector Postgres 18 + redis-server):
+Baseline before the work (5 Nov, commit 1d61062, Linux container with pgvector Postgres 18 + redis-server):
 **309 passed**, `make lint` clean.
 
 Environment note: on Windows the DB tests cannot run natively (psycopg's async pool needs a selector event
