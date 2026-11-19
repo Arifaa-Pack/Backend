@@ -204,16 +204,36 @@ def instant_actions(text: str, manifest: SiteManifest, context: SiteContext | No
                 return _done(ShowFamily(family=fam_id, layer="instant"), manifest, context, "family")
 
     # 4. a page or one of its sections ("contact", "about", "certificates", "where are you")
-    if nav or short:
-        for page in manifest.pages:
-            for sec in page.sections:
-                if any(_has(t, k) for k in sec.keywords if len(k) > 3):
-                    return _done(
-                        Navigate(page=page.key, section=sec.id, layer="instant"), manifest, context, "section"
-                    )
-            if page.key not in ("home", "products") and (_has(t, page.title) or _has(t, page.key)):
-                return _done(Navigate(page=page.key, layer="instant"), manifest, context, "page")
+    if (nav or short) and (target := _page_target(t, manifest)) is not None:
+        page_key, section = target
+        return _done(Navigate(page=page_key, section=section, layer="instant"), manifest, context, "page")
     return []
+
+
+def _page_target(t: str, manifest: SiteManifest) -> tuple[str, str | None] | None:
+    """The page (and section) the words point to. Every section is scored by its longest keyword found; a
+    page the visitor names counts first; on a tie the dedicated page beats Home (its blocks repeat words
+    like "contact" or "company"); a tie between two other pages is left to the agent."""
+    named = {
+        p.key
+        for p in manifest.pages
+        if any(n and len(normalise(n)) > 2 and _has(t, n) for n in (p.title, p.key, *p.names.values()))
+    }
+    scored: list[tuple[int, bool, str, str | None]] = []
+    for page in manifest.pages:
+        for sec in page.sections:
+            hits = [len(normalise(k)) for k in sec.keywords if len(k) > 3 and _has(t, k)]
+            if hits:
+                scored.append(
+                    (max(hits) + (100 if page.key in named else 0), page.key != "home", page.key, sec.id)
+                )
+    if not scored:
+        return (next(iter(named)), None) if len(named) == 1 else None
+    best = max(s[:2] for s in scored)
+    pages = list(dict.fromkeys(s[2] for s in scored if s[:2] == best))
+    if len(pages) != 1:
+        return None
+    return pages[0], next(s[3] for s in scored if s[:2] == best)
 
 
 def _done(action: SiteAction, manifest: SiteManifest, context: SiteContext | None, why: str) -> list[Match]:

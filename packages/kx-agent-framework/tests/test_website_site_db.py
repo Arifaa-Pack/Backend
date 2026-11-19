@@ -19,7 +19,7 @@ from sqlalchemy import select
 from kx.agents.llm.service import ModelRouter
 from kx.agents.orm import Conversation, Visitor
 from kx.agents.runtime.service import AgentService
-from kx.agents.testing import FakeCrmGateway, ScriptedChatModel, make_deal
+from kx.agents.testing import FakeCrmGateway, ScriptedChatModel, make_deal, tool_call
 from kx.agents.website.enquiry import quantity_of
 from kx.agents.website.router import WebsiteDeps, build_router
 from kx.core.contracts import (
@@ -110,11 +110,12 @@ class Env:
 
 
 @pytest.fixture
-async def env(databases: Any) -> AsyncIterator[Env]:
+async def env(databases: Any, request: pytest.FixtureRequest) -> AsyncIterator[Env]:
     deal = make_deal()
     no_contact = ContactView(**(deal.contact.model_dump() | {"has_phone": False, "has_email": False}))
     gateway = FakeCrmGateway(deal.model_copy(update={"contact": no_contact}))
-    model = ScriptedChatModel(script=["Here is our foil range."] * 6)
+    script = getattr(request, "param", None) or ["Here is our foil range."] * 6  # a test may script its own
+    model = ScriptedChatModel(script=list(script))
     service = AgentService(
         databases=databases, gateway=gateway, models=ModelRouter.static(model), deal_summaries=False
     )
@@ -300,3 +301,23 @@ async def test_an_enquiry_in_a_chat_uses_the_session_not_turnstile(env: Env) -> 
 )
 def test_the_quantity_a_buyer_types(text: str, qty: Decimal | None, unit: str | None) -> None:
     assert quantity_of(text) == (qty, unit)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize(
+    "env",
+    [[tool_call("show_product", {"product_id": "ac-8325"}), "This is our 8325 container."]],
+    indirect=True,
+)
+async def test_the_agent_moves_the_page_while_it_answers(env: Env) -> None:
+    sid, auth = await start(env)
+    r = await env.client.post(
+        f"/v1/public/sessions/{sid}/messages",
+        json={"text": "I need something for biryani takeaway", "context": PRODUCTS},
+        headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["reply"] == "This is our 8325 container."
+    (action,) = body["actions"]
+    assert (action["type"], action["product_id"], action["layer"]) == ("show_product", "ac-8325", "agent")

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Awaitable, Callable, Sequence
-from typing import Any, cast
+from typing import Any, Final, cast
 
 from langchain.agents.middleware import AgentMiddleware, AgentState, ModelRequest, ModelResponse
 from langchain_anthropic import ChatAnthropic
@@ -20,6 +20,7 @@ from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
 from kx.agents.roles.language import language_name
+from kx.agents.roles.registry import CATALOGUE_TOOLS, SITE_TOOLS, SPECIALIST_TOOLS
 from kx.agents.runtime.context import AgentContext, ToolCallRecord
 from kx.core.contracts import AllowedPrice
 from kx.core.errors import DomainError
@@ -32,6 +33,44 @@ _CHANNEL_STYLE = {
     "email": "Email: complete, polite, structured; no subject line.",
     "web_chat": "Website chat: concise and friendly.",
 }
+
+
+WEBSITE_CHANNELS: Final = frozenset({"web_chat", "web_voice"})
+WEBSITE_GUIDE: Final = (
+    "You are on Arifa Pack's website and can move the visitor's page: show_family, show_product, go_to_page, "
+    "start_factory_tour, add_to_enquiry_list, fill_enquiry_desk. Show what you talk about, once, and refer "
+    "to it in a few words; never describe the page. Get product ids from find_products; never invent one. "
+    "For a question that needs product and factory knowledge, ask both specialists at once. Give real help "
+    "first; when the visitor wants a quotation, details or a call (or after two or three useful answers), "
+    "call ask_for_contact once. WhatsApp or email only with the visitor's own yes (the ticks on the card)."
+)
+
+
+def available_tools(ctx: AgentContext) -> frozenset[str]:
+    """The role's tools this turn: the site tools only on the website with a site map, the catalogue only with
+    a site map, the specialists only when the fast model is wired for them."""
+    names = set(ctx.spec.tools)
+    if ctx.channel not in WEBSITE_CHANNELS or ctx.manifest is None:
+        names -= SITE_TOOLS
+    if ctx.manifest is None:
+        names -= CATALOGUE_TOOLS
+    if ctx.specialist_model is None:
+        names -= SPECIALIST_TOOLS
+    return frozenset(names)
+
+
+def _site_lines(ctx: AgentContext) -> list[str]:
+    if ctx.channel not in WEBSITE_CHANNELS:
+        return []
+    lines = [ctx.site.summary()] if ctx.site is not None else []
+    if ctx.manifest is not None:
+        lines.append(WEBSITE_GUIDE)
+    if ctx.log.site_actions:
+        shown = ", ".join(
+            f"{a.type} {a.resolved.path_en if a.resolved else ''}".strip() for a in ctx.log.site_actions
+        )
+        lines.append(f"Already on the visitor's screen this turn: {shown}. Do not show it again.")
+    return lines
 
 
 def deal_facts(ctx: AgentContext, allowed: Sequence[AllowedPrice] | None = None) -> str:
@@ -62,6 +101,7 @@ def deal_facts(ctx: AgentContext, allowed: Sequence[AllowedPrice] | None = None)
         )
     if ctx.summary:
         lines.append(f"Earlier in this conversation: {ctx.summary}")
+    lines.extend(_site_lines(ctx))
     return "\n".join(x for x in lines if x)
 
 
@@ -79,7 +119,7 @@ class RoleMiddleware(AgentMiddleware[AgentState[Any], AgentContext]):
         if isinstance(request.model, ChatAnthropic):
             static["cache_control"] = {"type": "ephemeral"}  # caches tools + role prompt across turns
         system = SystemMessage(content=[static, {"type": "text", "text": deal_facts(ctx)}])
-        allowed = set(ctx.spec.tools)
+        allowed = available_tools(ctx)
         tools = [t for t in request.tools if isinstance(t, dict) or t.name in allowed]
         return await handler(request.override(system_message=system, tools=tools))
 
@@ -103,7 +143,7 @@ class ToolAuditMiddleware(AgentMiddleware[AgentState[Any], AgentContext]):
                 )
             )
 
-        if name not in ctx.spec.tools:
+        if name not in available_tools(ctx):
             record("denied", "tool not allowed for role")
             return ToolMessage(content=f"Tool {name} is not available.", tool_call_id=call_id, status="error")
         try:

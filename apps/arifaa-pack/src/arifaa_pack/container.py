@@ -42,6 +42,7 @@ from arifaa_pack.adapters import (
 from arifaa_pack.config import AppSettings, Company, app_settings, company
 from arifaa_pack.jobqueue import CeleryKicker
 from arifaa_pack.telemetry import heartbeat
+from arifaa_pack.topics import ARIFA_TOPICS
 from kx.agents import (
     AgentHandlers,
     AgentService,
@@ -526,6 +527,7 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             open_checkpointer(core.agents_dsn, setup=not core.db_pgbouncer, pgbouncer=core.db_pgbouncer)
         )
 
+        site_manifest = ManifestCache(dbs)  # D55: the published site map, shared by the AI and the website
         agent_service = AgentService(
             databases=dbs,
             gateway=gateway,
@@ -542,6 +544,9 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             on_public_spend=partial(spend.add, "ai_usd_public"),  # M6 the website's own sub-cap
             public_budget_left=partial(spend.left, "ai_usd_public"),
             price_second_opinion=s.price_second_opinion,  # M7 layer 3
+            site_manifest=site_manifest,  # D61: find_products on every channel
+            specialists=True,  # D56: product / manufacturing specialists on the fast model
+            topics=ARIFA_TOPICS,
         )
         indexer = KnowledgeIndexer(dbs, embedder, CmsContentSource(dbs))  # D54: the CMS's published text
         agents = AgentHandlers(
@@ -578,7 +583,6 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             storage=R2MediaStorage(s3, st.bucket),
             website_url=s.website_url,
         )
-        site_manifest = ManifestCache(dbs)
         runner.register(CMS_PRODUCT_DRAFT, JobSpec(partial(cms_product_draft, cms_deps.service, dbs)))
         bus.route(ev.CATALOGUE_PRODUCT_CONTENT, CMS_PRODUCT_DRAFT)
         revalidator = WebsiteRevalidator(

@@ -1886,6 +1886,14 @@
             "type": "string",
             "title": "Title"
           },
+          "names": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Names",
+            "default": {}
+          },
           "path_en": {
             "type": "string",
             "title": "Path En"

@@ -1171,3 +1171,24 @@ Branch `feat/website-ai` (from `docs/tester-pack`), one commit per WP, plan `doc
     Turnstile. `CrmGateway.website_enquiry` opens a `web_form` deal (or joins the visit's deal), applies the
     contact rule D-4 and the opt-ins, saves the requirement and an English-labelled note, then assigns the
     salesperson (DEAL_ASSIGNED alert) even when some §5 fields are still missing.
+* **WP-C4 (D55, D56, D61): the agent drives the site and works as a team** (`kx/agents/tools/site.py`).
+  - Site tools, website channels only: `show_family`, `show_product`, `go_to_page`, `start_factory_tour`,
+    `add_to_enquiry_list`, `fill_enquiry_desk`, `ask_for_contact`. Each action is checked against the site
+    manifest, sent once (intent id) and sent to the browser at once, so the page moves while the reply is
+    written.
+  - On every channel: `find_products` (the site manifest; ids, names, refs, packing, never a price) and
+    `product_variants` (D61: packing, availability words, quantity breaks, never an amount).
+  - Specialists (D56): `ask_product_specialist`, `ask_manufacturing_specialist`. Fast-model calls that see
+    only approved facts, answer the assistant (not the buyer), may run together, and are metered on the
+    same run. The buyer only sees the assistant's reply, which the price guard checks.
+  - The prompt carries the visitor's page and a short website guide (show what you talk about; give value
+    first; the contact card once; WhatsApp / email only with the visitor's yes). Call limits 10 model / 14
+    tool calls.
+  - Router words per client (`TopicWords`); the app passes Arifa's aluminium-packaging words in EN / AR
+    (`arifaa_pack/topics.py`). Fixed on the way: the Arabic price word كم matched inside عندكم ("do you
+    have"), so "do you have containers?" in Arabic counted as a price question.
+  - Navigation eval (`kx/agents/evals/site_nav/cases.json`, `tests/integration/test_site_nav_eval.py`): 65
+    cases on the real site imported into the CMS (50 moves, 15 that must not move). Result: 0 wrong moves,
+    0 missed. It led to scored page / section matching (a named page wins; Home loses a tie), Arabic section
+    keywords and page names in the manifest. The cases go to the website as
+    `docs/handoff/vectors/site-nav.json`.

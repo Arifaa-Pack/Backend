@@ -10,7 +10,9 @@ It writes, for the frontend developer and the QA tester:
 * openapi/openapi-*.json for a mock server;
 * postman/: one end-to-end collection, one collection per package (CRM, CMS, Website, Automation) and the
   local / staging environments (scripts/gen_tester_pack.py);
-* endpoints.json, read by the two Word guides (docs/handoff/build/*.js, built with node, see README.md).
+* endpoints.json, read by the two Word guides (docs/handoff/build/*.js, built with node, see README.md);
+* vectors/site-nav.json: the site-navigation cases the backend's instant resolver passes (D57), for the
+  website's own optimistic resolver (copied from kx/agents/evals/site_nav/cases.json).
 
 CI regenerates the pack and fails when the committed files differ (.github/workflows/handoff.yml).
 """
@@ -18,17 +20,22 @@ CI regenerates the pack and fails when the committed files differ (.github/workf
 from __future__ import annotations
 
 import pathlib
+import shutil
 import sys
 
 import gen_frontend_docs
 import gen_tester_pack
 
-OUT = pathlib.Path(__file__).resolve().parent.parent / "docs" / "handoff"
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+OUT = ROOT / "docs" / "handoff"
+SITE_NAV = ROOT / "packages/kx-agent-framework/src/kx/agents/evals/site_nav/cases.json"
 
 
 def main(out: pathlib.Path = OUT) -> None:
     gen_tester_pack.main(out)
     gen_frontend_docs.main(out)
+    (out / "vectors").mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(SITE_NAV, out / "vectors" / "site-nav.json")
     print("hand-off pack written to", out)
 
 

@@ -14,6 +14,7 @@ from langchain_core.tools import BaseTool
 
 from kx.agents.roles.registry import Phrase, team_member
 from kx.agents.runtime.context import AgentContext
+from kx.agents.tools.site import WEB_TOOLS
 from kx.core.contracts import ChangeField, ChangeType, ContactPatch, DealStage, RequirementPatch
 
 Runtime = ToolRuntime[AgentContext]
@@ -156,6 +157,7 @@ async def raise_change_request(
 
 
 ALL_TOOLS: Final[tuple[BaseTool, ...]] = (
+    *WEB_TOOLS,  # D55 / D56 / D61: site, catalogue and specialist tools (tools/site.py)
     get_deal_context,
     update_requirement,
     set_contact,

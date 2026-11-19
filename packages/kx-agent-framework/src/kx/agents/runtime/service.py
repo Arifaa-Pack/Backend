@@ -29,7 +29,7 @@ from kx.agents.graphs.deal import build_deal_graph
 from kx.agents.graphs.quotation import build_quotation_graph
 from kx.agents.guard.service import PriceSecondOpinion, clip_for_channel, looks_like_injection
 from kx.agents.knowledge.service import KnowledgeSearch
-from kx.agents.llm.service import ModelRouter
+from kx.agents.llm.service import ModelRouter, ModelSet
 from kx.agents.memory.service import TurnStore
 from kx.agents.roles.language import reply_language
 from kx.agents.roles.registry import (
@@ -41,12 +41,12 @@ from kx.agents.roles.registry import (
     PromptStore,
     team_member,
 )
-from kx.agents.router.service import Route, route
+from kx.agents.router.service import GENERIC_TOPICS, Route, TopicWords, route
 from kx.agents.runtime.context import AgentContext, GuardEventRecord, PriceCheck, RunLog
 from kx.agents.runtime.runs import RunStatus, RunStore, UsageMeter
 from kx.agents.site.models import SiteAction, SiteContext
 from kx.agents.tracing.service import Tracer
-from kx.core.contracts import AiRole, Channel, CrmGateway, OptOutScope, SiteManifest
+from kx.core.contracts import AiRole, Channel, CrmGateway, OptOutScope, SiteManifest, SiteManifestSource
 from kx.core.db import Databases
 from kx.core.fallback import CircuitBreaker
 from kx.core.logging import get_logger, mask_pii
@@ -199,6 +199,9 @@ class AgentService:
         on_public_spend: Callable[[Decimal], Awaitable[object]] | None = None,
         public_budget_left: Callable[[], Awaitable[bool]] | None = None,
         price_second_opinion: bool = False,
+        site_manifest: SiteManifestSource | None = None,
+        specialists: bool = False,
+        topics: TopicWords = GENERIC_TOPICS,
     ) -> None:
         self.db = databases
         self.gateway = gateway
@@ -218,6 +221,10 @@ class AgentService:
         self.public_budget_left = public_budget_left
         self.deal_summaries = deal_summaries  # §7A.2 deal-page summary (one fast-model call when due)
         self.runner = GraphRunner(models, self.registry, checkpointer)
+        self.topics = topics  # the client's product / factory words for the router
+        self.site_manifest = site_manifest  # D55 / D61: the published site map (kx.cms), cached there
+        # D56: the product / manufacturing specialists answer with the fast model (the app turns them on)
+        self.specialist_model: ModelSet | None = models.for_tier(ModelTier.FAST) if specialists else None
         # M7 layer 3: the app turns it on (KX_APP_PRICE_SECOND_OPINION, default on); off by default here, so
         # tests with scripted models do not spend a script line on it unless they ask for it
         self.price_check: PriceCheck | None = (
@@ -250,7 +257,13 @@ class AgentService:
                 language=language,
             )
             history = await self.turns.history(s, conv_id)
-            rt = route(turn.text, deal, first_turn=history.turn_count == 0, disabled=self.registry.disabled())
+            rt = route(
+                turn.text,
+                deal,
+                first_turn=history.turn_count == 0,
+                disabled=self.registry.disabled(),
+                topics=self.topics,
+            )
             if rt.action in ("silent", "acknowledge"):
                 await TurnStore.append(s, conv_id, "buyer", turn.text, language=language)
             else:
@@ -299,8 +312,9 @@ class AgentService:
             summary=history.summary,
             price_check=self.price_check,
             site=turn.site,
-            manifest=turn.manifest,
+            manifest=turn.manifest or await self._manifest(),
             on_action=turn.on_action,
+            specialist_model=self.specialist_model,
         )
         ctx.log.site_actions.extend(turn.site_actions)
         if looks_like_injection(turn.text):
@@ -309,6 +323,16 @@ class AgentService:
             ctx.log.guard_events.append(GuardEventRecord("injection", "flagged", {"text": flagged}))
         assert claim is not None
         return await self._execute(ctx, rt, claim.run_id, turn.text, history.messages, deliver=deliver)
+
+    async def _manifest(self) -> SiteManifest | None:
+        """The site map for a non-website turn (find_products on WhatsApp / email); None when unavailable."""
+        if self.site_manifest is None:
+            return None
+        try:
+            return await self.site_manifest.manifest()
+        except Exception:
+            log.warning("agents.manifest_unavailable", exc_info=True)
+            return None
 
     async def _read_stop(
         self, turn: InboundTurn, language: str, deliver: Deliver | None

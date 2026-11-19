@@ -53,7 +53,7 @@ and the planned Payload CMS did not exist.
 | WP-C1 | `kx.cms` package: content model, drafts / publish / versions / restore, media (R2 presigned), preview, manifest, public + admin APIs, outbox, content editor role | done (19 Nov) |
 | WP-C2 | `kx content import-site`: the website's catalogue, clients, page layouts (section ids), chapters, stations, synonyms, Arabic | done (19 Nov) |
 | WP-C3 | Website API v2: `SiteContext` in, actions out, SSE streaming, `/events`, `/contact`, `/v1/public/enquiries` | done (20 Nov) |
-| WP-C4 | Agents drive the site: manifest resolver, `show_on_site`, `find_products`, product variants, specialists, router keywords from config, prompts | |
+| WP-C4 | Agents drive the site: manifest resolver, `show_on_site`, `find_products`, product variants, specialists, router keywords from config, prompts | done (20 Nov) |
 | WP-C5 | Voice = chat: actions and captions on the LiveKit data channel, rejoin after a page load | |
 | WP-C6 | Opt-in consent (D59) | done: CRM part with WP-C9, the API paths (`/contact`, `/enquiries`) with WP-C3 |
 | WP-C7 | Hand-off content: WEBSITE_API head, FRONTEND_GUIDE (.md + .docx), TESTER_HELPER scenarios | |

@@ -1159,6 +1159,7 @@ A factory-tour chapter (HM-05): the film opens at `seconds`.
 |---|---|---|---|
 | `key` | string | yes |  |
 | `title` | string | yes |  |
+| `names` | map of string | no | default `{}` |
 | `path_en` | string | yes |  |
 | `path_ar` | string | yes |  |
 | `sections` | list of `ManifestSection` | no | default `[]` |

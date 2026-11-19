@@ -58,6 +58,21 @@ _POST_QUOTE: Final = frozenset(
     {DealStage.QUOTATION, DealStage.NEGOTIATION, DealStage.READY_TO_CLOSE, DealStage.PAYMENT}
 )
 
+# D55: the tools that move the visitor's page (website channels only, with a site manifest)
+SITE_TOOLS: Final = frozenset(
+    {
+        "show_family",
+        "show_product",
+        "go_to_page",
+        "start_factory_tour",
+        "add_to_enquiry_list",
+        "fill_enquiry_desk",
+        "ask_for_contact",
+    }
+)
+CATALOGUE_TOOLS: Final = frozenset({"find_products"})  # need the site manifest (any channel)
+SPECIALIST_TOOLS: Final = frozenset({"ask_product_specialist", "ask_manufacturing_specialist"})  # D56
+
 _CONVERSATION_TOOLS: Final = (
     "get_deal_context",
     "search_knowledge",
@@ -68,6 +83,10 @@ _CONVERSATION_TOOLS: Final = (
     "add_timeline",
     "handoff_to_human",
     "raise_change_request",  # §13: anything the AI may not decide goes to the salesperson
+    "find_products",
+    "product_variants",  # D61: packings, availability words, quantity breaks; never an amount
+    *sorted(SITE_TOOLS),
+    *sorted(SPECIALIST_TOOLS),
 )
 
 

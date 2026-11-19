@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     )
     from kx.agents.memory.service import open_checkpointer
     from kx.agents.roles.registry import ModelTier
+    from kx.agents.router.service import TopicWords
     from kx.agents.runtime.service import AgentService
     from kx.agents.tracing.service import Tracer
     from kx.agents.voice.service import VoiceRoute, VoiceRouter, make_livekit_entrypoint, voice_routes
@@ -42,6 +43,7 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "AgentHandlers": ("kx.agents.handlers", "AgentHandlers"),
     "ReplyAddress": ("kx.agents.handlers", "ReplyAddress"),
     "AgentService": ("kx.agents.runtime.service", "AgentService"),
+    "TopicWords": ("kx.agents.router.service", "TopicWords"),
     "Tracer": ("kx.agents.tracing.service", "Tracer"),
     "open_checkpointer": ("kx.agents.memory.service", "open_checkpointer"),
     # models
@@ -83,6 +85,7 @@ __all__ = [
     "ModelTier",
     "PublicScope",
     "ReplyAddress",
+    "TopicWords",
     "Tracer",
     "VoiceRoute",
     "VoiceRouter",

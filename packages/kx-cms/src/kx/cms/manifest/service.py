@@ -45,22 +45,37 @@ async def build_manifest(databases: Databases) -> SiteManifest:
 
     pages: list[ManifestPage] = []
     for d, v in rows["pages"]:
-        en = localize(v.data, "en")
+        en, arabic = localize(v.data, "en"), localize(v.data, "ar")
         path = page_path(d.key, en)
+        ar_blocks = {b.get("section_id"): b for b in arabic.get("blocks", []) if isinstance(b, dict)}
         sections = tuple(
             ManifestSection(
                 id=b["section_id"],
                 design_id=b.get("design_id"),
                 title=_text(b.get("heading")),
                 purpose=_text(b.get("eyebrow")) or _text(b.get("kind")),
-                keywords=tuple(b.get("keywords") or ()),
+                # the words that lead the AI here, in both site languages (D55)
+                keywords=tuple(
+                    dict.fromkeys(
+                        [
+                            *(b.get("keywords") or ()),
+                            *(ar_blocks.get(b["section_id"], {}).get("keywords") or ()),
+                        ]
+                    )
+                ),
             )
             for b in en.get("blocks", [])
             if isinstance(b, dict) and b.get("section_id") and not b.get("hidden")
         )
+        names = {lang: _text(t.get("title")) for lang, t in (("en", en), ("ar", arabic)) if t.get("title")}
         pages.append(
             ManifestPage(
-                key=d.key, title=_text(en.get("title")), path_en=path, path_ar=ar(path), sections=sections
+                key=d.key,
+                title=_text(en.get("title")),
+                names=names,
+                path_en=path,
+                path_ar=ar(path),
+                sections=sections,
             )
         )
 

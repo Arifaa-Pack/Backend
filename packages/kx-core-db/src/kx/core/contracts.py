@@ -445,6 +445,7 @@ class ManifestSection(_Frozen):
 class ManifestPage(_Frozen):
     key: str  # home, products, about, quality, clients, contact, privacy ...
     title: str
+    names: dict[str, str] = {}  # language -> the page's name (en / ar): "Contact", "تواصل معنا"
     path_en: str
     path_ar: str
     sections: tuple[ManifestSection, ...] = ()

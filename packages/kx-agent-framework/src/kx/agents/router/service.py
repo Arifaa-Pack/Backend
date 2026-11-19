@@ -15,7 +15,9 @@ from kx.core.price_guard import extract_prices
 
 _PRICE_ASK: Final = re.compile(
     r"\b(?:price|prices|pricing|cost|rate|quote|quotation|how much|discount|cheaper|lowest|best offer)\b"
-    r"|سعر|الأسعار|كم|عرض سعر|خصم|价格|多少钱|报价|优惠|कीमत|दाम|रेट|कोटेशन|விலை|தள்ளுபடி|මිල|ගණන",
+    # "كم" / "بكم" (how much) only as a word of its own: inside عندكم ("do you have") it is no price ask
+    r"|سعر|الأسعار|(?<![؀-ۿ])ب?كم(?![؀-ۿ])|عرض سعر|خصم"
+    r"|价格|多少钱|报价|优惠|कीमत|दाम|रेट|कोटेशन|விலை|தள்ளுபடி|මිල|ගණන",
     re.IGNORECASE,
 )
 _COUNTER: Final = re.compile(
@@ -49,6 +51,18 @@ _PRODUCT: Final = re.compile(
     re.IGNORECASE,
 )
 
+
+@dataclass(frozen=True, slots=True)
+class TopicWords:
+    """The words that send a pre-quote turn to the product or the manufacturing role. Each client's
+    products differ, so the app passes its own (Arifa: aluminium packaging, `arifaa_pack/topics.py`)."""
+
+    product: re.Pattern[str] = _PRODUCT
+    manufacturing: re.Pattern[str] = _MANUFACTURING
+
+
+GENERIC_TOPICS: Final = TopicWords()
+
 _CONTACT_FIELDS: Final = frozenset({"contact_name", "contact_phone_or_email"})
 _AFTER_QUOTE: Final = frozenset(
     {DealStage.QUOTATION, DealStage.NEGOTIATION, DealStage.READY_TO_CLOSE, DealStage.PAYMENT}
@@ -72,10 +86,10 @@ def is_counter(text: str, currency: str) -> bool:
     return bool(extract_prices(text, default_currency=currency)) or _COUNTER.search(text) is not None
 
 
-def _topic_role(text: str) -> AiRole | None:
-    if _MANUFACTURING.search(text):
+def _topic_role(text: str, topics: TopicWords) -> AiRole | None:
+    if topics.manufacturing.search(text):
         return AiRole.MANUFACTURING
-    if _PRODUCT.search(text):
+    if topics.product.search(text):
         return AiRole.PRODUCT
     return None
 
@@ -88,7 +102,12 @@ def _qualification_role(deal: DealContext) -> AiRole:
 
 
 def route(
-    text: str, deal: DealContext, *, first_turn: bool = False, disabled: frozenset[AiRole] = frozenset()
+    text: str,
+    deal: DealContext,
+    *,
+    first_turn: bool = False,
+    disabled: frozenset[AiRole] = frozenset(),
+    topics: TopicWords = GENERIC_TOPICS,
 ) -> Route:
     conv = GraphName.CONVERSATION
     if not deal.ai_enabled:
@@ -116,7 +135,7 @@ def route(
         return Route(
             "reply",
             conv,
-            _topic_role(text)
+            _topic_role(text, topics)
             or (AiRole.COMMUNICATION if deal.stage is DealStage.NEGOTIATION else AiRole.DEAL_CLOSER),
             "post_quote",
         )
@@ -124,7 +143,7 @@ def route(
         return Route("reply", GraphName.QUOTATION, AiRole.QUOTATION, "ready_for_quote")
     if first_turn and not price:
         return Route("reply", conv, AiRole.CONCIERGE, "first_turn")
-    topic = _topic_role(text)
+    topic = _topic_role(text, topics)
     if topic is not None and not price:
         return Route("reply", conv, topic, "topic")
     if deal.stage is DealStage.QUALIFIED:

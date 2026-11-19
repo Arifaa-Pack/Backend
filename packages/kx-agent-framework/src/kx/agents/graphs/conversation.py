@@ -23,7 +23,7 @@ from kx.agents.tools.service import ALL_TOOLS
 
 
 def build_conversation_agent(
-    models: ModelSet, *, model_calls: int = 6, tool_calls: int = 8
+    models: ModelSet, *, model_calls: int = 10, tool_calls: int = 14
 ) -> CompiledStateGraph[Any, AgentContext, Any, Any]:
     return create_agent(
         models.primary,
