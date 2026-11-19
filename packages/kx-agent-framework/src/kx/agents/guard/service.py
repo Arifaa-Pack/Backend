@@ -61,8 +61,19 @@ def looks_like_injection(text: str) -> bool:
     return _INJECTION.search(text) is not None
 
 
+_MARKDOWN: Final = re.compile(r"\*\*|__|^#{1,6}\s+|^\s*(?:[-*\u2022]|\d{1,2}[.)])\s+", re.MULTILINE)
+
+
+def plain_text(text: str) -> str:
+    """The website shows plain text: no bold markers, headings or list bullets (live test 20 Nov)."""
+    return re.sub(r"[ \t]{2,}", " ", _MARKDOWN.sub("", text)).strip()
+
+
 def clip_for_channel(text: str, channel: Channel) -> str:
-    """Hard length cap per channel, cut at the last sentence end (voice must stay short)."""
+    """Hard length cap per channel, cut at the last sentence end (voice must stay short); the website's
+    channels get plain text."""
+    if channel in ("web_chat", "web_voice"):
+        text = plain_text(text)
     limit = _CHANNEL_LIMITS.get(channel, 1500)
     if len(text) <= limit:
         return text

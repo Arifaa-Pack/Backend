@@ -15,6 +15,8 @@ from langchain.agents.middleware import ModelCallLimitMiddleware, ToolCallLimitM
 from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.graph.state import CompiledStateGraph
 
+from kx.agents.guard.claims import ClaimsGuardMiddleware
+from kx.agents.guard.language import LanguageGuardMiddleware
 from kx.agents.guard.service import PriceGuardMiddleware
 from kx.agents.llm.service import ModelSet
 from kx.agents.runtime.context import AgentContext
@@ -31,6 +33,8 @@ def build_conversation_agent(
         middleware=[
             RoleMiddleware(),
             PriceGuardMiddleware(),
+            ClaimsGuardMiddleware(),  # no invented certificates / capacities
+            LanguageGuardMiddleware(),  # the visitor's script (live test 20 Nov)
             *models.middleware(),
             ToolAuditMiddleware(),
             ModelCallLimitMiddleware(run_limit=model_calls, exit_behavior="end"),

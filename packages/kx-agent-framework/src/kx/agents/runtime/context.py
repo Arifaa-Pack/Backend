@@ -19,7 +19,7 @@ from kx.agents.roles.registry import AgentSpec, PromptStore
 from kx.agents.site.models import SiteAction, SiteContext
 from kx.core.contracts import AllowedPrice, Channel, CrmGateway, DealContext, SiteManifest
 
-GuardKind = Literal["price_number", "injection", "disclosure", "cost_leak", "language"]
+GuardKind = Literal["price_number", "injection", "disclosure", "cost_leak", "language", "citation"]
 # (reply, allowed prices, run log) -> True when the reply states or implies a price not in the allowed list
 type PriceCheck = Callable[[str, Sequence[AllowedPrice], RunLog], Awaitable[bool]]
 GuardAction = Literal["blocked", "rewritten", "flagged"]

@@ -31,7 +31,8 @@ _CHANNEL_STYLE = {
     "phone": "You are speaking aloud: two or three short sentences, no lists, no markdown.",
     "whatsapp": "WhatsApp: short paragraphs, no markdown tables.",
     "email": "Email: complete, polite, structured; no subject line.",
-    "web_chat": "Website chat: concise and friendly.",
+    # live test 20 Nov: the site shows plain text, so markdown arrived as stars and numbers
+    "web_chat": "Website chat: concise and friendly, plain sentences (no markdown, bold or numbered lists).",
 }
 
 
@@ -42,7 +43,12 @@ WEBSITE_GUIDE: Final = (
     "to it in a few words; never describe the page. Get product ids from find_products; never invent one. "
     "For a question that needs product and factory knowledge, ask both specialists at once. Give real help "
     "first; when the visitor wants a quotation, details or a call (or after two or three useful answers), "
-    "call ask_for_contact once. WhatsApp or email only with the visitor's own yes (the ticks on the card)."
+    "call ask_for_contact once. WhatsApp or email only with the visitor's own yes (the ticks on the card). "
+    # live test 20 Nov: the model asked for quantity, country and contact in every reply, showed internal ids
+    # ("ac-83120") and repeated what a tool "came back" with
+    "Ask for missing details (quantity, country, name and phone or email) at most once every three replies, "
+    "one question at a time, never as a list. Call a product by its name and reference (the 8325 container), "
+    "never by its website id. Never mention tools, searches or what a lookup returned."
 )
 
 
