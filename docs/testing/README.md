@@ -1,11 +1,11 @@
 # Manual-testing pack (QA tester)
 
 Everything a QA tester needs to test the platform by hand with Postman, against the staging server or the
-developer's local live-test stack. Start with `Kairox_Manual_Test_Guide.docx`.
+developer's local live-test stack. Start with `TESTER_HELPER.docx`.
 
 | File | What it is |
 |---|---|
-| `Kairox_Manual_Test_Guide.docx` | The tester's guide: product in one page, Postman setup, roles, first sign-in with the tester's own authenticator app, 21 end-to-end scenarios, negative and security tests, Postman limits, bug template, endpoint reference, variable list. |
+| `TESTER_HELPER.docx` | The tester's guide: product in one page, Postman setup, roles, first sign-in with the tester's own authenticator app, 21 end-to-end scenarios, negative and security tests, Postman limits, bug template, endpoint reference, variable list. |
 | `postman/Kairox.postman_collection.json` | Postman v2.1 collection: one request per API route (folders 00-13, in test order) + folder 14 with 20 requests that must be refused. Scripts save ids and tokens into the environment and sign the WhatsApp, CMS and Telnyx test webhooks. |
 | `postman/Kairox-local.postman_environment.json` | Settings for the local live-test stack (`http://localhost:38000`). Holds the live-test stack's TEST-only WhatsApp secret; nothing else secret. |
 | `postman/Kairox-staging.postman_environment.json` | Settings for staging: placeholder address, every secret blank ("ask the admin"). |

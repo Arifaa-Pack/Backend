@@ -1,4 +1,4 @@
-// Builds docs/testing/Kairox_Manual_Test_Guide.docx (the QA tester's guide).
+// Builds docs/testing/TESTER_HELPER.docx (the QA tester's guide).
 //
 //   python scripts/gen_tester_pack.py        # first: refreshes endpoints.json + the Postman files
 //   node docs/testing/build_guide.js         # then: this script (needs the `docx` npm package, see README.md)
@@ -18,7 +18,7 @@ const {
 const HERE = __dirname;
 const EP = JSON.parse(fs.readFileSync(path.join(HERE, "endpoints.json"), "utf8"));
 const ENV = JSON.parse(fs.readFileSync(path.join(HERE, "postman", "Kairox-local.postman_environment.json"), "utf8"));
-const OUT = path.join(HERE, "Kairox_Manual_Test_Guide.docx");
+const OUT = path.join(HERE, "TESTER_HELPER.docx");
 
 // ------------------------------------------------------------------ look and feel
 const FONT = "Arial";
@@ -100,7 +100,7 @@ const add = (...xs) => xs.flat().forEach((x) => children.push(x));
 // Title page
 add(
   new Paragraph({ spacing: { before: 2400, after: 240 }, children: [new TextRun({ text: "Kairox platform", font: FONT, size: 56, bold: true, color: ACCENT })] }),
-  new Paragraph({ spacing: { after: 240 }, children: [new TextRun({ text: "Manual Test Guide (Postman)", font: FONT, size: 40 })] }),
+  new Paragraph({ spacing: { after: 240 }, children: [new TextRun({ text: "TESTER_HELPER: manual test guide (Postman)", font: FONT, size: 40 })] }),
   P("For QA testers. You know Postman; you do not need to know the code."),
   P("First client: Arifa Packing & Packaging LLC (Arifaa Pack), Ajman, UAE."),
   gap(),
@@ -166,7 +166,7 @@ add(
     ["`postman/Kairox.postman_collection.json`", "The collection: one request per API route, in test order, plus folder 14 with tests that must be refused."],
     ["`postman/Kairox-local.postman_environment.json`", "Settings for the developer's PC (live-test stack)."],
     ["`postman/Kairox-staging.postman_environment.json`", "Settings for the staging server. Secrets are blank: ask the admin."],
-    ["`Kairox_Manual_Test_Guide.docx`", "This guide."],
+    ["`TESTER_HELPER.docx`", "This guide."],
     ["`endpoints.json`", "The route list this guide's Appendix A is built from."],
   ], [3900, W - 3900]),
   gap(),
@@ -227,7 +227,7 @@ const roleRows = [
   ["Product workbook download / upload", "no", "MFA", "MFA", "MFA", ""],
   ["Update stock", "no", "yes", "yes", "yes", ""],
   ["Record payment, mark WON", "MFA", "MFA", "MFA", "no", "Humans only"],
-  ["Update order status", "no", "yes", "yes", "no", "See note in section 9"],
+  ["Update order status", "own deal", "yes", "yes", "no", "Cancel: manager / MD only"],
   ["Reassign a deal, switch the AI off/on", "no", "yes", "yes", "no", ""],
   ["Take over / hand back a deal", "no", "no", "yes", "no", "MD only"],
   ["Reopen a closed deal, make a manager offer", "no", "MFA", "MFA", "no", ""],
@@ -262,7 +262,7 @@ add(
     "Environment: set `staff_email` and `staff_password` (Current value).",
     "Run " + R("POST", "/v1/auth/login") + ". Expect **200** with `challenge_token` (saved) and `totp_enrolled: false`.",
     "Run " + R("POST", "/v1/auth/mfa/email/send") + ". Expect **204**. A 6-digit code arrives by email (\"Your sign-in code\"), valid 10 minutes.",
-    "Put the code in `email_code` and run " + R("POST", "/v1/auth/mfa/email/verify") + ". Expect **200**, `mfa: false`, `must_change_password: true`.",
+    "Put the code in `email_code` and run " + R("POST", "/v1/auth/mfa/email/verify") + ". Expect **200**, `mfa: false`, `must_change_password: true`. Until you change the password, every request outside `/v1/auth/*` answers **403** \"change your one-time password first\".",
     "Put a new password (12 characters or more) in `new_password` and run " + R("POST", "/v1/auth/password") + ". Expect **204**. Copy the new password into `staff_password`.",
     "Sign in again with the email code: steps 3, 4 and 5 (new code each time).",
     "Run " + R("POST", "/v1/auth/totp/enrol") + ". Expect **200**. Open the response's **Visualize** tab: scan the QR code with your app (or type the key shown).",
@@ -277,14 +277,17 @@ add(
   ...bullets([
     "**New code:** the app shows a new code every 30 seconds. Each code works **once**; a reused code answers 401 \"the code is not correct\". Wait for the next one.",
     "**Token life:** the access token lasts 15 minutes. When requests start answering 401, sign in again. " + R("POST", "/v1/auth/refresh") + " uses a secure cookie; on the local http address it may answer 401 \"no session\" (expected there).",
+    "**Signing out:** " + R("POST", "/v1/auth/logout") + " ends the session at once: the same access token then answers **401** \"your session has ended; sign in again\". A password change, an MFA reset, a deactivation or a role change also ends the person's other sessions (within 10 seconds on a second API server).",
+    "**Session end:** refreshing never keeps a sign-in alive past its absolute end; then sign in again.",
     "**Lost phone:** the admin runs " + R("POST", "/v1/users/{user_id}/reset-mfa") + "; then enrol again from an email-code sign-in. Replacing a working authenticator needs an `mfa=true` sign-in and sends you a warning email.",
   ]),
   H2("5.3 Lock-out and rate limits to expect"),
   table(["What you do", "What the server does"], [
-    ["5 wrong passwords or codes for one account from your IP", "**429** \"too many failed attempts\" from your IP for 15 minutes (other IPs still work)"],
+    ["5 wrong passwords or codes for one account from your IP", "**429** \"too many failed attempts\" from your IP for 15 minutes (other IPs still work); an admin unlock lifts it at once"],
     ["50 wrong attempts for one account from all IPs", "The whole account is locked for 15 minutes; an admin can " + R("POST", "/v1/users/{user_id}/unlock")],
     ["More than 5 codes tried on one sign-in step", "**429** \"too many codes tried; sign in again\""],
     ["Many sign-ins quickly", "**429** \"too many requests\": per IP 20 then 10 a minute; per account 10 then 2 a minute"],
+    ["Someone keeps trying your account from elsewhere", "From an IP where you signed in during the last 30 days you can still sign in (the per-account limit does not apply there); a new IP may get **429** until the attempts stop"],
     ["Many email codes", "**429**: per IP 5 then 1 a minute; per account 3 then 1 every 2 minutes"],
     ["Password reset", "At most 3 reset emails an hour per address; the answer is always **202** (it never tells whether an address exists)"],
     ["A code or sign-in step older than 10 minutes", "**401** \"the sign-in step expired; start again\""],
@@ -417,7 +420,8 @@ scenario("S6", "Email enquiry", {
   ],
   expected: [
     "A deal on the email channel; the AI reply arrives in your test mailbox from the company address, with an unsubscribe link at the bottom.",
-    "The reply is in the language of your email and contains no price.",
+    "The reply is in the language of your email and contains no price. It is titled \"Re: Packaging enquiry\" and stays in your email thread.",
+    "A quote e-mail is titled \"Quotation Q-... from ...\", greets you by name (or just \"Hi,\"; never \"Hi Customer\") and its PDF shows your name / address in the \"To\" block.",
   ],
   look: "Your test mailbox; deal timeline.",
 });
@@ -502,7 +506,7 @@ scenario("S11", "Quick messages are answered once (merge window)", {
     "All three messages are on the timeline; exactly one AI reply follows, covering all three.",
     "The same test with gaps of 20 seconds gives one reply per message.",
   ],
-  look: "Timeline. If this build does not have the merge window yet, report \"not in build\".",
+  look: "Timeline (an email buyer's quick emails are merged the same way).",
 });
 scenario("S12", "The same WhatsApp message delivered twice is handled once", {
   purpose: "Meta retries webhooks; every task is idempotent.",
@@ -530,7 +534,7 @@ scenario("S14", "Payment, WON and order tracking", {
   stepsList: [
     "As the salesperson (authenticator): " + R("POST", "/v1/deals/{deal_id}/payments") + " (201), then " + R("POST", "/v1/deals/{deal_id}/won") + " (201).",
     "Try " + R("POST", "/v1/deals/{deal_id}/won") + " on a deal that is not in PAYMENT.",
-    "As manager: " + R("GET", "/v1/orders") + " then " + R("PATCH", "/v1/deals/orders/{order_id}") + " (ready, shipped, delivered).",
+    "As the deal's salesperson: " + R("GET", "/v1/orders") + " then " + R("PATCH", "/v1/deals/orders/{order_id}") + " (ready, shipped, delivered). Another salesperson gets **403**; only the manager / MD may cancel an order.",
   ],
   expected: ["Deal WON and an order created; WON from another stage is refused (409 or 422); each order status change is on the timeline."],
   look: "Responses; timeline; orders list.",
@@ -641,6 +645,11 @@ add(
     "**CORS from the website:** only `/v1/public/*` may answer the website origin, and never with credentials. Use N18, and send an `OPTIONS` request to `/v1/public/sessions` with `Origin: {{website_origin}}` and `Access-Control-Request-Method: POST`: on staging the answer allows that origin.",
     "**Rate limits:** website chat: run " + R("POST", "/v1/public/sessions/{session_id}/messages") + " 15 times within a minute (Collection Runner): 429 after about 12. Sign-in: see section 5.3.",
     "**Tokens in errors:** no error response may contain a stack trace, SQL, a secret or another user's data.",
+    "**Request size:** a body over 1 MB (10 MB for the two spreadsheet imports) answers **413**.",
+    "**NUL characters:** " + R("GET", "/v1/contacts") + " with `q` = `%00` answers **400** \"the request contains a NUL character\" (never 500).",
+    "**Security headers:** every answer carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` and a `Content-Security-Policy` (not on a PDF). `/docs` and `/openapi.json` answer on local and staging, and are switched off in production.",
+    "**Companies:** a salesperson sees and edits the companies of their own deals' contacts, and companies no contact belongs to yet; another salesperson's customer company answers **404**.",
+    "**Admin / IT:** may not change deals or quotes, and exports only the product list (no customer lists): **403**.",
   ]),
   pageBreak(),
 );
@@ -680,7 +689,7 @@ add(
   gap(),
   note("Report at once (Blocker): any invented or unapproved price reaching a buyer; a message sent after STOP; cost or minimum price shown to a buyer; an approval accepted without the authenticator; a webhook accepted with a wrong signature; one buyer's data shown to another."),
   gap(),
-  P("Known questions for the developer (not bugs until confirmed): the order status update is manager/MD only although SRS §5 lists order tracking under the salesperson; staff sign-in does not block other actions while `must_change_password` is true."),
+  P("Answered in this build (19 Nov): the deal's salesperson updates the order status (SRS §5 step 14); while `must_change_password` is true only `/v1/auth/*` works."),
 );
 
 // Appendix A (landscape)
@@ -705,7 +714,7 @@ appendixB.push(table(["Variable", "Type", "Local default", "What it is"],
 const heading = (size, before, after) => ({ run: { font: FONT, size, bold: true, color: ACCENT }, paragraph: { spacing: { before, after }, keepNext: true } });
 const doc = new Document({
   creator: "Kairox",
-  title: "Kairox platform - Manual Test Guide",
+  title: "Kairox platform - TESTER_HELPER",
   styles: {
     default: { document: { run: { font: FONT, size: 21 } } },
     paragraphStyles: [
@@ -724,13 +733,13 @@ const doc = new Document({
   sections: [
     {
       properties: { page: { size: PAGE, margin: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN } } },
-      headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "Kairox platform - Manual Test Guide", font: FONT, size: 16, color: "808080" })] })] }) },
+      headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "Kairox platform - TESTER_HELPER", font: FONT, size: 16, color: "808080" })] })] }) },
       footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ children: ["Page ", PageNumber.CURRENT, " of ", PageNumber.TOTAL_PAGES], font: FONT, size: 16, color: "808080" })] })] }) },
       children,
     },
     {
       properties: { page: { size: { width: PAGE.width, height: PAGE.height, orientation: PageOrientation.LANDSCAPE }, margin: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN } } },
-      headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "Kairox platform - Manual Test Guide", font: FONT, size: 16, color: "808080" })] })] }) },
+      headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "Kairox platform - TESTER_HELPER", font: FONT, size: 16, color: "808080" })] })] }) },
       footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ children: ["Page ", PageNumber.CURRENT, " of ", PageNumber.TOTAL_PAGES], font: FONT, size: 16, color: "808080" })] })] }) },
       children: [...appendixA, ...appendixB],
     },
