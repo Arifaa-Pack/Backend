@@ -18,7 +18,6 @@ from kx.crm.api import (
     change_requests,
     deal_actions,
     deals,
-    operations,
     quotes,
     records,
     reports,
@@ -29,6 +28,7 @@ from kx.crm.api.context import ApiContext
 from kx.crm.api.session_guard import SessionGuard
 from kx.crm.company import router as company
 from kx.crm.deps import CrmDeps
+from kx.crm.operations import router as operations
 from kx.crm.texts import router as texts
 
 

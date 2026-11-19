@@ -122,8 +122,8 @@ other mapping files, and this table is updated with each move.
 | GET | `/healthz/beat` | `arifaa_pack.api:create_app.<locals>.healthz_beat` | `arifaa_pack.telemetry:beat_health` |
 | GET | `/v1/admin/channel-accounts` | `kx.automation.admin_api:build_router.<locals>.accounts` | - |
 | PATCH | `/v1/admin/channel-accounts/{account_id}` | `kx.automation.admin_api:build_router.<locals>.edit_account` | - |
-| GET | `/v1/admin/kill-switch` | `kx.crm.api.operations:router.<locals>.get_level` | - |
-| PUT | `/v1/admin/kill-switch` | `kx.crm.api.operations:router.<locals>.set_level` | `kx.crm.services.journal:record` |
+| GET | `/v1/admin/kill-switch` | `kx.crm.operations.router:router.<locals>.get_level` | - |
+| PUT | `/v1/admin/kill-switch` | `kx.crm.operations.router:router.<locals>.set_level` | `kx.crm.services.journal:record` |
 | GET | `/v1/admin/message-templates` | `kx.automation.admin_api:build_router.<locals>.templates` | - |
 | PUT | `/v1/admin/message-templates` | `kx.automation.admin_api:build_router.<locals>.upsert_template` | - |
 | POST | `/v1/admin/message-templates/{template_id}/status` | `kx.automation.admin_api:build_router.<locals>.template_status` | - |

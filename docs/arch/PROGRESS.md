@@ -207,3 +207,18 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 17.49s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `texts` @ `32daf5d`: tests=982 failures=0 errors=0 skipped=4, exit=0 → tagged `arch-slice/crm-texts`, COMPLETED
+
+## 1.3 slice `operations` — TESTING (COMPLETED when tagged `arch-slice/crm-operations`)
+
+- **Moved:** `api/operations.py` → `operations/router.py`; shim at the old path; import rewritten in `api/__init__.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 371 files already formatted
+  - mypy: Success: no issues found in 215 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 18.09s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `company` @ `2e3f95c`: tests=982 failures=0 errors=0 skipped=4, exit=0 → tagged `arch-slice/crm-company`, COMPLETED
