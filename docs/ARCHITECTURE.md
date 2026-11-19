@@ -49,6 +49,8 @@ The website and CRM screens (Next.js, not in this repo) run on Vercel Pro in the
 
 import-linter enforces: `kx.core` imports no other `kx.*`; the three packages are independent; nothing imports the app. Celery is imported only by the app.
 
+The direction inside each package (feature slices, public surface, the new import rules) is [ADR-0001](adr/0001-modular-monolith-with-feature-slices.md); where each Protocol, event handler, route and job is implemented today is generated in [`FEATURE_MAP.md`](FEATURE_MAP.md) (`kx map`).
+
 ## 3. Processes
 
 | Process | Command | Replicas | Does |
