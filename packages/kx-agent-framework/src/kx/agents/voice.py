@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Final, Literal, Protocol, cast
 
-from kx.agents.guard import PriceGuard
+from kx.agents.guard.service import PriceGuard
 from kx.agents.language import DEFAULT_LANGUAGE, normalise_language
 from kx.agents.registry import Phrase, PromptStore
 from kx.agents.service import AgentService, InboundTurn

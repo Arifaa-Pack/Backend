@@ -988,3 +988,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 21.00s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `memory` @ `22eb7f4`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-memory`, COMPLETED
+
+## 2b.18 slice `guard` — TESTING (COMPLETED when tagged `arch-slice/agents-guard`)
+
+- **Moved:** `guard.py` → `guard/service.py`; `guard/__init__.py` re-exports it (46 of 46 names); 4 imports rewritten.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 461 files already formatted
+  - mypy: Success: no issues found in 299 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 20.58s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `knowledge` @ `7a932b1`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-knowledge`, COMPLETED

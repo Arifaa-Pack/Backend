@@ -28,7 +28,7 @@ from kx.agents.context import AgentContext, GuardEventRecord, PriceCheck, RunLog
 from kx.agents.graphs.conversation import build_conversation_agent, final_reply
 from kx.agents.graphs.deal import build_deal_graph
 from kx.agents.graphs.quotation import build_quotation_graph
-from kx.agents.guard import PriceSecondOpinion, clip_for_channel, looks_like_injection
+from kx.agents.guard.service import PriceSecondOpinion, clip_for_channel, looks_like_injection
 from kx.agents.knowledge.service import KnowledgeSearch
 from kx.agents.language import reply_language
 from kx.agents.memory.service import TurnStore

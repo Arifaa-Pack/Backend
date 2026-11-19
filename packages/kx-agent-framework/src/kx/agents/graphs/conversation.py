@@ -16,7 +16,7 @@ from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.graph.state import CompiledStateGraph
 
 from kx.agents.context import AgentContext
-from kx.agents.guard import PriceGuardMiddleware
+from kx.agents.guard.service import PriceGuardMiddleware
 from kx.agents.middleware import RoleMiddleware, ToolAuditMiddleware
 from kx.agents.models import ModelSet
 from kx.agents.tools import ALL_TOOLS
