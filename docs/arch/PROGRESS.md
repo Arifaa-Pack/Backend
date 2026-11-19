@@ -312,3 +312,18 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 22.12s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `contacts` @ `53a41e5`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-contacts`, COMPLETED
+
+## 1.10 slice `auth` — TESTING (COMPLETED when tagged `arch-slice/crm-auth`)
+
+- **Moved:** `services/auth.py` → `auth/service.py`, `api/auth.py` → `auth/router.py`, `api/session_guard.py` → `auth/session_guard.py`, `api/users.py` → `auth/users_router.py`, `throttle.py` → `auth/throttle.py`; shims at the five old paths; imports rewritten in `api/__init__.py`, `deps.py`, `arifaa_pack/{adapters,api,cli}.py` and inside the slice.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 396 files already formatted
+  - mypy: Success: no issues found in 240 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 21.90s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `records` @ `dee7255`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-records`, COMPLETED

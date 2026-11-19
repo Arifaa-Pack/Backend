@@ -10,9 +10,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from kx.core.db import Databases
-from kx.crm.api import admin, assignment, auth, change_requests, deal_actions, deals, quotes, screens, users
+from kx.crm.api import admin, assignment, change_requests, deal_actions, deals, quotes, screens
 from kx.crm.api.context import ApiContext
-from kx.crm.api.session_guard import SessionGuard
+from kx.crm.auth import router as auth
+from kx.crm.auth import users_router as users
+from kx.crm.auth.session_guard import SessionGuard
 from kx.crm.catalogue import router as catalogue_workbook
 from kx.crm.company import router as company
 from kx.crm.deps import CrmDeps

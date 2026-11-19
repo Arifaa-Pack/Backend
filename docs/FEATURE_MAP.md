@@ -70,10 +70,10 @@ other mapping files, and this table is updated with each move.
 | `kx.automation.ports:MediaStore` | `kx.automation.media:S3MediaStore` | `packages/kx-core-automation/src/kx/automation/media.py` |
 | `kx.automation.ports:TaskScheduler` | `kx.automation.jobs:JobScheduler` | `packages/kx-core-automation/src/kx/automation/jobs.py` |
 | `kx.core.jobs:Kicker` | `arifaa_pack.jobqueue:CeleryKicker` | `apps/arifaa-pack/src/arifaa_pack/jobqueue.py` |
+| `kx.crm.auth.throttle:AuthThrottle` | `arifaa_pack.adapters:RedisAuthThrottle`<br>`kx.crm.auth.throttle:MemoryThrottle` | `apps/arifaa-pack/src/arifaa_pack/adapters.py`<br>`packages/kx-core-crm/src/kx/crm/auth/throttle.py` |
 | `kx.crm.pdf:PdfEngine` | `kx.crm.pdf:ChromiumEngine`<br>`kx.crm.pdf:WeasyPrintEngine` | `packages/kx-core-crm/src/kx/crm/pdf.py`<br>`packages/kx-core-crm/src/kx/crm/pdf.py` |
 | `kx.crm.pdf:PdfUploader` | `kx.crm.pdf:S3PdfUploader` | `packages/kx-core-crm/src/kx/crm/pdf.py` |
 | `kx.crm.pricing.fx:FxSource` | `arifaa_pack.adapters:OpenRatesFx` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
-| `kx.crm.throttle:AuthThrottle` | `arifaa_pack.adapters:RedisAuthThrottle`<br>`kx.crm.throttle:MemoryThrottle` | `apps/arifaa-pack/src/arifaa_pack/adapters.py`<br>`packages/kx-core-crm/src/kx/crm/throttle.py` |
 
 ## Events: who reacts
 
@@ -129,18 +129,18 @@ other mapping files, and this table is updated with each move.
 | POST | `/v1/admin/message-templates/{template_id}/status` | `kx.automation.admin_api:build_router.<locals>.template_status` | - |
 | GET | `/v1/approvals` | `kx.crm.api.quotes:router.<locals>.list_approvals` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
 | POST | `/v1/approvals/{approval_id}/decision` | `kx.crm.api.quotes:router.<locals>.decide` | `kx.crm.services.approvals:decide` |
-| POST | `/v1/auth/login` | `kx.crm.api.auth:router.<locals>.login` | `kx.crm.services.auth:login` |
-| POST | `/v1/auth/logout` | `kx.crm.api.auth:router.<locals>.logout` | `kx.crm.services.auth:logout` |
-| GET | `/v1/auth/me` | `kx.crm.api.auth:router.<locals>.me` | - |
-| POST | `/v1/auth/mfa/email/send` | `kx.crm.api.auth:router.<locals>.mfa_email_send` | `kx.crm.services.auth:send_email_code` |
-| POST | `/v1/auth/mfa/email/verify` | `kx.crm.api.auth:router.<locals>.mfa_email_verify` | `kx.crm.services.auth:verify_second_step` |
-| POST | `/v1/auth/mfa/totp` | `kx.crm.api.auth:router.<locals>.mfa_totp` | `kx.crm.services.auth:verify_second_step` |
-| POST | `/v1/auth/password` | `kx.crm.api.auth:router.<locals>.password_change` | `kx.crm.services.auth:change_password` |
-| POST | `/v1/auth/password/reset/finish` | `kx.crm.api.auth:router.<locals>.reset_finish` | `kx.crm.services.auth:finish_reset` |
-| POST | `/v1/auth/password/reset/start` | `kx.crm.api.auth:router.<locals>.reset_start` | `kx.crm.services.auth:start_reset` |
-| POST | `/v1/auth/refresh` | `kx.crm.api.auth:router.<locals>.refresh` | `kx.crm.services.auth:refresh` |
-| POST | `/v1/auth/totp/confirm` | `kx.crm.api.auth:router.<locals>.totp_confirm` | `kx.crm.services.auth:confirm_totp` |
-| POST | `/v1/auth/totp/enrol` | `kx.crm.api.auth:router.<locals>.totp_enrol` | `kx.crm.services.auth:begin_totp` |
+| POST | `/v1/auth/login` | `kx.crm.auth.router:router.<locals>.login` | `kx.crm.auth.service:login` |
+| POST | `/v1/auth/logout` | `kx.crm.auth.router:router.<locals>.logout` | `kx.crm.auth.service:logout` |
+| GET | `/v1/auth/me` | `kx.crm.auth.router:router.<locals>.me` | - |
+| POST | `/v1/auth/mfa/email/send` | `kx.crm.auth.router:router.<locals>.mfa_email_send` | `kx.crm.auth.service:send_email_code` |
+| POST | `/v1/auth/mfa/email/verify` | `kx.crm.auth.router:router.<locals>.mfa_email_verify` | `kx.crm.auth.service:verify_second_step` |
+| POST | `/v1/auth/mfa/totp` | `kx.crm.auth.router:router.<locals>.mfa_totp` | `kx.crm.auth.service:verify_second_step` |
+| POST | `/v1/auth/password` | `kx.crm.auth.router:router.<locals>.password_change` | `kx.crm.auth.service:change_password` |
+| POST | `/v1/auth/password/reset/finish` | `kx.crm.auth.router:router.<locals>.reset_finish` | `kx.crm.auth.service:finish_reset` |
+| POST | `/v1/auth/password/reset/start` | `kx.crm.auth.router:router.<locals>.reset_start` | `kx.crm.auth.service:start_reset` |
+| POST | `/v1/auth/refresh` | `kx.crm.auth.router:router.<locals>.refresh` | `kx.crm.auth.service:refresh` |
+| POST | `/v1/auth/totp/confirm` | `kx.crm.auth.router:router.<locals>.totp_confirm` | `kx.crm.auth.service:confirm_totp` |
+| POST | `/v1/auth/totp/enrol` | `kx.crm.auth.router:router.<locals>.totp_enrol` | `kx.crm.auth.service:begin_totp` |
 | GET | `/v1/catalogue/workbook` | `kx.crm.catalogue.router:router.<locals>.download` | `kx.crm.catalogue.workbook:download` |
 | POST | `/v1/catalogue/workbook/apply` | `kx.crm.catalogue.router:router.<locals>.apply` | `kx.crm.catalogue.workbook:apply` |
 | POST | `/v1/catalogue/workbook/preview` | `kx.crm.catalogue.router:router.<locals>.preview` | `kx.crm.catalogue.workbook:preview` |
@@ -223,12 +223,12 @@ other mapping files, and this table is updated with each move.
 | PUT | `/v1/texts/{key}` | `kx.crm.texts.router:router.<locals>.edit` | `kx.crm.texts.service:as_dict`<br>`kx.crm.texts.service:update_english` |
 | GET | `/v1/texts/{key}/history` | `kx.crm.texts.router:router.<locals>.history` | `kx.crm.texts.service:history` |
 | POST | `/v1/texts/{key}/reset` | `kx.crm.texts.router:router.<locals>.reset` | `kx.crm.texts.service:as_dict`<br>`kx.crm.texts.service:reset` |
-| GET | `/v1/users` | `kx.crm.api.users:router.<locals>.list_users` | - |
-| POST | `/v1/users` | `kx.crm.api.users:router.<locals>.create` | `kx.crm.services.auth:create_user` |
-| PATCH | `/v1/users/{user_id}` | `kx.crm.api.users:router.<locals>.patch` | `kx.crm.services.journal:record` |
+| GET | `/v1/users` | `kx.crm.auth.users_router:router.<locals>.list_users` | - |
+| POST | `/v1/users` | `kx.crm.auth.users_router:router.<locals>.create` | `kx.crm.auth.service:create_user` |
+| PATCH | `/v1/users/{user_id}` | `kx.crm.auth.users_router:router.<locals>.patch` | `kx.crm.services.journal:record` |
 | PUT | `/v1/users/{user_id}/availability` | `kx.crm.api.admin:router.<locals>.availability` | `kx.crm.services.assignment:set_availability` |
-| POST | `/v1/users/{user_id}/reset-mfa` | `kx.crm.api.users:router.<locals>.reset_mfa` | `kx.crm.services.auth:reset_mfa` |
-| POST | `/v1/users/{user_id}/unlock` | `kx.crm.api.users:router.<locals>.unlock` | `kx.crm.services.auth:unlock` |
+| POST | `/v1/users/{user_id}/reset-mfa` | `kx.crm.auth.users_router:router.<locals>.reset_mfa` | `kx.crm.auth.service:reset_mfa` |
+| POST | `/v1/users/{user_id}/unlock` | `kx.crm.auth.users_router:router.<locals>.unlock` | `kx.crm.auth.service:unlock` |
 | POST | `/webhooks/cms` | `kx.automation.cms:build_router.<locals>.cms_published` | `kx.automation.outbox:emit`<br>`kx.automation.repo:first_receipt` |
 | POST | `/webhooks/telnyx/gather/{attempt_id}` | `kx.automation.webhooks:_telnyx_routes.<locals>.telnyx_gather` | `kx.automation.channels.calls:gather_reply_texml`<br>`kx.automation.channels.calls:verify_signature` |
 | POST | `/webhooks/telnyx/status/{attempt_id}` | `kx.automation.webhooks:_telnyx_routes.<locals>.telnyx_status` | `kx.automation.channels.calls:verify_signature` |

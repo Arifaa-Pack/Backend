@@ -21,7 +21,7 @@ from kx.core.db import Databases
 from kx.core.errors import Unavailable
 from kx.core.logging import get_logger
 from kx.core.settings import LogicalDb, RateLimit
-from kx.crm.throttle import MemoryThrottle
+from kx.crm.auth.throttle import MemoryThrottle
 
 log = get_logger(__name__)
 
