@@ -18,7 +18,6 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.automation import optout
-from kx.automation.channels import whatsapp as wa
 from kx.automation.channels.email import InboundEmail
 from kx.automation.channels.feedback import MailFeedback, candidate_ids
 from kx.automation.models import ChannelAccount, InboundMessage, OutboundMessage, OutboundStatus, Thread
@@ -32,6 +31,7 @@ from kx.automation.repo import (
     suppress,
     upsert_thread,
 )
+from kx.automation.whatsapp import channel as wa
 from kx.core.event_payloads import MessageReceived, MessageStatus
 from kx.core.identity import recipient_hash
 from kx.core.logging import get_logger

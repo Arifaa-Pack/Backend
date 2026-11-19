@@ -34,7 +34,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.automation.channels import ChannelError, EmailTransport
 from kx.automation.channels.email import Attachment
-from kx.automation.channels.whatsapp import DocumentRef
 from kx.automation.models import (
     ChannelAccount,
     InboundMessage,
@@ -49,6 +48,7 @@ from kx.automation.outbox import emit
 from kx.automation.ports import Clock, MediaStore, TaskScheduler, utc_now
 from kx.automation.repo import ThreadRef, advisory_lock, channel_account, is_suppressed, upsert_thread
 from kx.automation.settings import AutomationSettings
+from kx.automation.whatsapp.channel import DocumentRef
 from kx.core.contracts import PRICED_KINDS, GrantConsumer, OutboundKind, OutboundRequest
 from kx.core.db import Databases
 from kx.core.errors import RuleViolation

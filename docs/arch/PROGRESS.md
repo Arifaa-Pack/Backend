@@ -787,3 +787,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 19.71s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `admin` @ `ace553a`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-admin`, COMPLETED
+
+## 2b.5 slice `whatsapp` — TESTING (COMPLETED when tagged `arch-slice/automation-whatsapp`)
+
+- **Moved:** `channels/whatsapp.py` → `whatsapp/channel.py`; alias shim at the old path (58 of 58 names); imports rewritten in `inbound`, `inbound/webhooks.py`, `outbound` (import line only), `arifaa_pack/container.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 437 files already formatted
+  - mypy: Success: no issues found in 275 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 21.49s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `calls` @ `b29e430`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-calls`, COMPLETED

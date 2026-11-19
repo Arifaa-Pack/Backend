@@ -60,12 +60,12 @@ other mapping files, and this table is updated with each move.
 | `kx.automation.alerts:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
 | `kx.automation.channels.email:SesV2Client` | - | - |
 | `kx.automation.channels:EmailTransport` | `kx.automation.channels.email:EmailSender`<br>`kx.automation.channels.email_chain:EmailChain`<br>`kx.automation.channels.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/channels/email.py`<br>`packages/kx-core-automation/src/kx/automation/channels/email_chain.py`<br>`packages/kx-core-automation/src/kx/automation/channels/stalwart.py` |
-| `kx.automation.jobs:MediaDownloader` | `kx.automation.channels.whatsapp:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/channels/whatsapp.py` |
+| `kx.automation.jobs:MediaDownloader` | `kx.automation.whatsapp.channel:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/whatsapp/channel.py` |
 | `kx.automation.media:S3Client` | - | - |
 | `kx.automation.outbound:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
 | `kx.automation.outbound:RateLimiter` | `kx.automation.outbound.ratelimit:TokenBucketLimiter` | `packages/kx-core-automation/src/kx/automation/outbound/ratelimit.py` |
 | `kx.automation.outbound:TemplateSpend` | `kx.core.spend:SpendMeter` | `packages/kx-core-db/src/kx/core/spend.py` |
-| `kx.automation.outbound:WhatsAppTransport` | `kx.automation.channels.whatsapp:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/channels/whatsapp.py` |
+| `kx.automation.outbound:WhatsAppTransport` | `kx.automation.whatsapp.channel:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/whatsapp/channel.py` |
 | `kx.automation.ports:ApprovalStatusReader` | `kx.crm.gateway:ApprovalStatusReaderImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
 | `kx.automation.ports:MediaStore` | `kx.automation.media:S3MediaStore` | `packages/kx-core-automation/src/kx/automation/media.py` |
 | `kx.automation.ports:TaskScheduler` | `kx.automation.jobs:JobScheduler` | `packages/kx-core-automation/src/kx/automation/jobs.py` |
@@ -232,8 +232,8 @@ other mapping files, and this table is updated with each move.
 | POST | `/webhooks/cms` | `kx.automation.cms.service:build_router.<locals>.cms_published` | `kx.automation.outbox:emit`<br>`kx.automation.repo:first_receipt` |
 | POST | `/webhooks/telnyx/gather/{attempt_id}` | `kx.automation.inbound.webhooks:_telnyx_routes.<locals>.telnyx_gather` | `kx.automation.calls.channel:gather_reply_texml`<br>`kx.automation.calls.channel:verify_signature` |
 | POST | `/webhooks/telnyx/status/{attempt_id}` | `kx.automation.inbound.webhooks:_telnyx_routes.<locals>.telnyx_status` | `kx.automation.calls.channel:verify_signature` |
-| GET | `/webhooks/whatsapp` | `kx.automation.inbound.webhooks:_whatsapp_routes.<locals>.whatsapp_verify` | `kx.automation.channels.whatsapp:verify_challenge` |
-| POST | `/webhooks/whatsapp` | `kx.automation.inbound.webhooks:_whatsapp_routes.<locals>.whatsapp_events` | `kx.automation.channels.whatsapp:parse_webhook`<br>`kx.automation.channels.whatsapp:verify_signature`<br>`kx.automation.inbound:record_whatsapp` |
+| GET | `/webhooks/whatsapp` | `kx.automation.inbound.webhooks:_whatsapp_routes.<locals>.whatsapp_verify` | `kx.automation.whatsapp.channel:verify_challenge` |
+| POST | `/webhooks/whatsapp` | `kx.automation.inbound.webhooks:_whatsapp_routes.<locals>.whatsapp_events` | `kx.automation.inbound:record_whatsapp`<br>`kx.automation.whatsapp.channel:parse_webhook`<br>`kx.automation.whatsapp.channel:verify_signature` |
 
 ## Background jobs (task table)
 
