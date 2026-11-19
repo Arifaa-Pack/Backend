@@ -36,7 +36,7 @@ other mapping files, and this table is updated with each move.
 | Protocol | Implemented by | File |
 | --- | --- | --- |
 | `kx.core.contracts:BlobStore` | `kx.automation.media:S3MediaStore` | `packages/kx-core-automation/src/kx/automation/media.py` |
-| `kx.core.contracts:ClickToCall` | `kx.automation.alerts:CallBridge` | `packages/kx-core-automation/src/kx/automation/alerts.py` |
+| `kx.core.contracts:ClickToCall` | `kx.automation.alerts.service:CallBridge` | `packages/kx-core-automation/src/kx/automation/alerts/service.py` |
 | `kx.core.contracts:CrmGateway` | `kx.crm.gateway:CrmGatewayImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
 | `kx.core.contracts:GrantConsumer` | `kx.crm.gateway:GrantConsumerImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
 | `kx.core.contracts:MessageSender` | `kx.automation.outbound:OutboundService` | `packages/kx-core-automation/src/kx/automation/outbound/__init__.py` |
@@ -56,8 +56,8 @@ other mapping files, and this table is updated with each move.
 | `kx.agents.voice:VoicePlugins` | `arifaa_pack.adapters:PlatformVoicePlugins` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.website:HumanCheck` | `arifaa_pack.adapters:TurnstileVerifier` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.website:PublicLimits` | `arifaa_pack.adapters:PublicLimiter` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
-| `kx.automation.alerts:Caller` | `kx.automation.calls.channel:TelnyxCaller` | `packages/kx-core-automation/src/kx/automation/calls/channel.py` |
-| `kx.automation.alerts:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
+| `kx.automation.alerts.service:Caller` | `kx.automation.calls.channel:TelnyxCaller` | `packages/kx-core-automation/src/kx/automation/calls/channel.py` |
+| `kx.automation.alerts.service:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
 | `kx.automation.channels:EmailTransport` | `kx.automation.email.chain:EmailChain`<br>`kx.automation.email.channel:EmailSender`<br>`kx.automation.email.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/email/chain.py`<br>`packages/kx-core-automation/src/kx/automation/email/channel.py`<br>`packages/kx-core-automation/src/kx/automation/email/stalwart.py` |
 | `kx.automation.email.channel:SesV2Client` | - | - |
 | `kx.automation.jobs:MediaDownloader` | `kx.automation.whatsapp.channel:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/whatsapp/channel.py` |

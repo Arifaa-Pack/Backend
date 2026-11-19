@@ -17,7 +17,7 @@ import orjson
 from fastapi import APIRouter, Request, Response
 
 from kx.automation import inbound
-from kx.automation.alerts import VoiceAlerts, callback_urls
+from kx.automation.alerts.service import VoiceAlerts, callback_urls
 from kx.automation.calls import channel as calls
 from kx.automation.ports import MediaStore, TaskScheduler
 from kx.automation.settings import AutomationSettings

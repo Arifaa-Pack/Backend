@@ -60,7 +60,7 @@ from kx.agents.voice import VoiceRoute, VoiceRouter, voice_routes
 from kx.agents.website import LiveKitConfig, WebsiteDeps
 from kx.automation import jobs as auto_jobs
 from kx.automation import retention as automation_retention
-from kx.automation.alerts import ApprovalLadder, CallBridge, PauseAlerts, VoiceAlerts
+from kx.automation.alerts.service import ApprovalLadder, CallBridge, PauseAlerts, VoiceAlerts
 from kx.automation.calls.channel import TelnyxCaller
 from kx.automation.email.chain import EmailChain, EmailVendor
 from kx.automation.email.channel import EmailSender

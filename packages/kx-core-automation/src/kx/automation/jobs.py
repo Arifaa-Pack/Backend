@@ -26,7 +26,7 @@ from typing import Any, Final, Protocol
 from sqlalchemy import func, select
 
 from kx.automation import inbound
-from kx.automation.alerts import ApprovalLadder, LadderTicket, PauseAlerts
+from kx.automation.alerts.service import ApprovalLadder, LadderTicket, PauseAlerts
 from kx.automation.email.channel import parse_inbound
 from kx.automation.email.feedback import parse_feedback
 from kx.automation.email.stalwart import MailboxPoller, raw_key

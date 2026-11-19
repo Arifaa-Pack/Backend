@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 from kx.core.event_payloads import DealNextActionSet, NegotiationPaused, StopUnclear
 
 if TYPE_CHECKING:
-    from kx.automation.alerts import LadderTicket
+    from kx.automation.alerts.service import LadderTicket
 
 Clock = Callable[[], datetime]
 

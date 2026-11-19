@@ -817,3 +817,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 18.72s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `whatsapp` @ `d76293e`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-whatsapp`, COMPLETED
+
+## 2b.7 slice `alerts` — TESTING (COMPLETED when tagged `arch-slice/automation-alerts`)
+
+- **Moved:** `alerts.py` → `alerts/service.py`; `alerts/__init__.py` re-exports it (67 of 67 names); imports rewritten in `handlers.py`, `inbound/webhooks.py`, `jobs.py`, `ports.py` (type-only), `arifaa_pack/container.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 443 files already formatted
+  - mypy: Success: no issues found in 281 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 19.94s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `email` @ `59f475e`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-email`, COMPLETED

@@ -15,7 +15,7 @@ from sqlalchemy import or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.automation import optout
-from kx.automation.alerts import ApprovalLadder, LadderTicket, notify_staff
+from kx.automation.alerts.service import ApprovalLadder, LadderTicket, notify_staff
 from kx.automation.models import SCHEMA, ChannelAccount, InboundMessage, Thread
 from kx.automation.outbound import TRANSIENT_REASONS
 from kx.automation.outbox import emit
