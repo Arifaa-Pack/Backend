@@ -101,5 +101,8 @@ def run() -> None:
             ws_url=s.livekit_url,
             api_key=s.livekit_api_key,
             api_secret=s.livekit_api_secret.get_secret_value() if s.livekit_api_secret else None,
+            # infra M5: let live calls finish on SIGTERM, but inside the stack's stop_grace_period (the
+            # library default is 3600 s, so Docker would kill the calls mid-sentence anyway)
+            drain_timeout=280,
         )
     )

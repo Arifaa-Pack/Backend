@@ -21,6 +21,8 @@ def _api(_: argparse.Namespace) -> None:
         proxy_headers=True,
         forwarded_allow_ips=app_settings().forwarded_allow_ips,  # the Coolify proxy only (D53)
         log_config=None,
+        # infra M5: finish in-flight requests on SIGTERM, inside the stack's 30 s stop_grace_period
+        timeout_graceful_shutdown=25,
     )
 
 

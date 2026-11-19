@@ -59,6 +59,10 @@ def celery_app() -> Celery:
         broker_connection_retry_on_startup=True,
         broker_transport_options={"visibility_timeout": s.celery_visibility_timeout_seconds},
         worker_hijack_root_logger=False,
+        # infra M4: recycle a prefork child that grew past ~1.5 GB or ran 200 tasks (PDF rendering, imports),
+        # so the container's memory limit is never the thing that stops it (the threads pool ignores both)
+        worker_max_memory_per_child=1_500_000,  # KiB
+        worker_max_tasks_per_child=200,
     )
     return app
 

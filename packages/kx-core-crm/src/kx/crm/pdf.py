@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import pathlib
+import re
 import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -261,6 +262,23 @@ class PdfEngine(Protocol):
     async def render(self, html: str) -> bytes: ...
 
 
+# infra M7: the quote HTML is ours, with the logo inline (data: URI) and system fonts, so the page may run no
+# script and load nothing from anywhere; a buyer-typed field that slipped through escaping still cannot fetch
+PDF_CSP: Final = (
+    '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; '
+    "style-src 'unsafe-inline'; font-src data:\">"
+)
+_HEAD: Final = re.compile(r"<head(\s[^>]*)?>", re.IGNORECASE)
+
+
+def _locked(html: str) -> str:
+    """The page with PDF_CSP as the first thing in its <head> (a CSP meta only applies inside <head>)."""
+    head = _HEAD.search(html)
+    if head is None:
+        raise ValueError("PDF HTML has no <head>: the content security policy cannot be applied")
+    return f"{html[: head.end()]}{PDF_CSP}{html[head.end() :]}"
+
+
 class ChromiumEngine:
     """Headless Chromium `--print-to-pdf` (best Arabic shaping). Runs as a subprocess in /tmp, the only
     writable path on the read-only ECS task; `--no-sandbox` because the task runs as a non-root user
@@ -275,7 +293,7 @@ class ChromiumEngine:
     async def render(self, html: str) -> bytes:
         with tempfile.TemporaryDirectory(prefix="kx-pdf-") as tmp:
             src, out = pathlib.Path(tmp) / "doc.html", pathlib.Path(tmp) / "doc.pdf"
-            src.write_text(html, encoding="utf-8")
+            src.write_text(_locked(html), encoding="utf-8")
             proc = await asyncio.create_subprocess_exec(
                 self._path,
                 "--headless",
@@ -283,6 +301,13 @@ class ChromiumEngine:
                 "--disable-dev-shm-usage",
                 "--disable-gpu",
                 "--no-pdf-header-footer",
+                # infra M7: no remote font and no network (on top of the page's CSP, see _locked); not
+                # --blink-settings=scriptEnabled=false: with it headless Chromium writes no PDF at all
+                "--disable-remote-fonts",
+                "--proxy-server=127.0.0.1:0",
+                "--proxy-bypass-list=<-loopback>",
+                "--disable-extensions",
+                "--no-first-run",
                 f"--print-to-pdf={out}",
                 src.as_uri(),
                 stdout=asyncio.subprocess.DEVNULL,
