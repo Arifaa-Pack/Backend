@@ -25,7 +25,7 @@ from kx.core.jobs import Job
 from kx.core.logging import get_logger
 from kx.core.settings import LogicalDb
 from kx.core.texts import CATALOG, TEXTS, TRANSLATED, check_edit
-from kx.crm.services import texts as crm_texts
+from kx.crm.texts import service as crm_texts
 
 log = get_logger(__name__)
 REFRESH_SECONDS: Final = 30.0

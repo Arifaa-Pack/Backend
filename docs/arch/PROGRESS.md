@@ -156,3 +156,39 @@ Baseline before any change (`ed9e32e`): ruff clean, 334 files formatted, mypy cl
 - **Next:** Phase 1 on branch `arch/slices`: `docs/arch/CRM_SLICES.md`, then one slice per commit.
 
 **Phase 0: COMPLETED.**
+
+---
+
+# Phase 1 — feature slices inside `kx.crm` (branch `arch/slices`)
+
+Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is moved and checked:
+
+- `git mv` per module; an **alias shim** at the old path (`sys.modules[old] = new`, plus a star import for type
+  checkers), so old imports, private names and monkeypatching keep working; `src/` imports rewritten to the new
+  paths by an AST-based script (tests stay on the old paths and so exercise the shims).
+- Gates per slice commit: ruff, ruff format, mypy (strict), lint-imports, `tests/unit`, OpenAPI regenerated and
+  diffed, `kx map --format json` compared with the Phase 0 baseline **after applying the renames** (equal = the
+  diff is path-only), `kx map --write` then `--check` on `docs/FEATURE_MAP.md`. The full Linux suite runs on
+  each slice commit in a separate worktree; the slice is tagged `arch-slice/crm-<slice>` (COMPLETED) only after
+  it passes, and the next slice is committed only after that.
+- **OpenAPI component names:** when two response / request models share a class name (`ChangeOut` in
+  `api/texts` and `api/screens`; `CompanyIn` in `api/company` and `api/records`), FastAPI names the component
+  after the module path (`kx__crm__api__texts__ChangeOut`). Moving the module would rename the component, so
+  those four classes pin `__module__` to their pre-move path (an alias of the same module) and the published
+  OpenAPI stays byte-identical.
+
+## 1.1 slice `texts` — COMPLETED
+
+- **Moved:** `services/texts.py` → `texts/service.py`, `api/texts.py` → `texts/router.py`. Shims at both old
+  paths. Imports rewritten: `api/__init__.py`, `arifaa_pack/texts_sync.py`. `texts/router.py` `ChangeOut` pins its
+  `__module__` (see above).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 366 files already formatted
+  - mypy: Success: no issues found in 210 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 24.12s =============================
+  - full suite: see the tag `arch-slice/crm-texts` (logged in the next entry)

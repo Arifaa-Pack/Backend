@@ -218,11 +218,11 @@ other mapping files, and this table is updated with each move.
 | PUT | `/v1/settings/{key}` | `kx.crm.api.admin:router.<locals>.put_setting` | - |
 | GET | `/v1/stock` | `kx.crm.api.screens:router.<locals>.stock` | - |
 | PUT | `/v1/stock` | `kx.crm.api.screens:router.<locals>.set_stock` | `kx.crm.services.orders:set_stock` |
-| GET | `/v1/texts` | `kx.crm.api.texts:router.<locals>.list_texts` | `kx.crm.services.texts:as_dict`<br>`kx.crm.services.texts:list_texts` |
-| POST | `/v1/texts/translate-missing` | `kx.crm.api.texts:router.<locals>.translate_missing` | `kx.crm.services.texts:request_missing_translations` |
-| PUT | `/v1/texts/{key}` | `kx.crm.api.texts:router.<locals>.edit` | `kx.crm.services.texts:as_dict`<br>`kx.crm.services.texts:update_english` |
-| GET | `/v1/texts/{key}/history` | `kx.crm.api.texts:router.<locals>.history` | `kx.crm.services.texts:history` |
-| POST | `/v1/texts/{key}/reset` | `kx.crm.api.texts:router.<locals>.reset` | `kx.crm.services.texts:as_dict`<br>`kx.crm.services.texts:reset` |
+| GET | `/v1/texts` | `kx.crm.texts.router:router.<locals>.list_texts` | `kx.crm.texts.service:as_dict`<br>`kx.crm.texts.service:list_texts` |
+| POST | `/v1/texts/translate-missing` | `kx.crm.texts.router:router.<locals>.translate_missing` | `kx.crm.texts.service:request_missing_translations` |
+| PUT | `/v1/texts/{key}` | `kx.crm.texts.router:router.<locals>.edit` | `kx.crm.texts.service:as_dict`<br>`kx.crm.texts.service:update_english` |
+| GET | `/v1/texts/{key}/history` | `kx.crm.texts.router:router.<locals>.history` | `kx.crm.texts.service:history` |
+| POST | `/v1/texts/{key}/reset` | `kx.crm.texts.router:router.<locals>.reset` | `kx.crm.texts.service:as_dict`<br>`kx.crm.texts.service:reset` |
 | GET | `/v1/users` | `kx.crm.api.users:router.<locals>.list_users` | - |
 | POST | `/v1/users` | `kx.crm.api.users:router.<locals>.create` | `kx.crm.services.auth:create_user` |
 | PATCH | `/v1/users/{user_id}` | `kx.crm.api.users:router.<locals>.patch` | `kx.crm.services.journal:record` |
@@ -241,7 +241,7 @@ other mapping files, and this table is updated with each move.
 | --- | --- | --- |
 | `agents.handle_event` | `arifaa_pack.container:_wire_events.<locals>.agents_event` | `kx.agents.handlers:AgentHandlers.last_resort` |
 | `app.cms_product_draft` | `arifaa_pack.container:cms_product_draft` | - |
-| `app.translate_text` | `arifaa_pack.texts_sync:translate_text` | `kx.crm.services.texts:load_edits`<br>`kx.crm.services.texts:save_translation` |
+| `app.translate_text` | `arifaa_pack.texts_sync:translate_text` | `kx.crm.texts.service:load_edits`<br>`kx.crm.texts.service:save_translation` |
 | `automation.alert_negotiation_paused` | `kx.automation.jobs:register_jobs.<locals>.pause_alert` | - |
 | `automation.deliver_outbound` | `kx.automation.jobs:register_jobs.<locals>.deliver` | - |
 | `automation.handle_event` | `kx.automation.jobs:register_jobs.<locals>.event` | - |

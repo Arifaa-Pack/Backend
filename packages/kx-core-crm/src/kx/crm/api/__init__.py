@@ -24,12 +24,12 @@ from kx.crm.api import (
     records,
     reports,
     screens,
-    texts,
     users,
 )
 from kx.crm.api.context import ApiContext
 from kx.crm.api.session_guard import SessionGuard
 from kx.crm.deps import CrmDeps
+from kx.crm.texts import router as texts
 
 
 def build_router(databases: Databases, deps: CrmDeps) -> APIRouter:
