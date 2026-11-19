@@ -35,7 +35,7 @@ from kx.automation.models import SCHEMA, ChannelAccount, OutboundMessage
 from kx.automation.outbound import STUCK_ERROR, OutboundService, TransientDeliveryError
 from kx.automation.outbox import emit
 from kx.automation.ports import MediaStore, SweepCallback, TaskScheduler
-from kx.automation.scraping import PriceScraper
+from kx.automation.scraping.service import PriceScraper
 from kx.automation.settings import AutomationSettings
 from kx.core.db import Databases
 from kx.core.event_payloads import DealNextActionSet, MessageStatus, NegotiationPaused, StopUnclear

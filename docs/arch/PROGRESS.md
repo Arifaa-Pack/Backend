@@ -712,3 +712,33 @@ fails without it, every gate run, and the full suite:
 | `6a8a3c3` | NUL bytes refused with 400 before PostgreSQL (was 500); security headers on every answer; no API docs in production | tests=989, failures=0, errors=0, skipped=4 |
 
 `kx map` stayed path-only identical and the OpenAPI changed only in the logout description (`2810330`).
+
+---
+
+# Phase 2b — the full slice layout for `kx.automation` and `kx.agents` (client decision, 19 Nov)
+
+The client asked for the brief's slices exactly, so the whole codebase can be reviewed one feature at a time
+(the 2.0 mapping had kept one-file features as files). Rules, the same in the three packages: one feature, one
+folder (`router.py` for HTTP, `service.py` for logic, helpers when needed); the data layer at the package root
+(`models.py` / `repo.py`, `orm.py`); shared code in `_shared/`; only wiring at the root; no logic in
+`__init__.py`. Map: `docs/arch/AUTOMATION_AGENTS_SLICES.md` (rewritten at the end of this phase). Same method and
+gates as Phase 1, with a new `kx map` baseline (the head of Phase 2, `917648d`).
+
+When a folder takes the name of the old module (`scraping.py` → `scraping/`), the file moves into the folder and
+the folder's `__init__.py` re-exports it (star import for public names, module `__getattr__` for private ones),
+so the old import path keeps working; every name of the moved module is checked to be reachable on the old path.
+
+## 2b.1 slice `scraping` — TESTING (COMPLETED when tagged `arch-slice/automation-scraping`)
+
+- **Moved:** `scraping.py` → `scraping/service.py`; `scraping/__init__.py` re-exports it (old path checked: 36 of 36 names reachable); imports rewritten in `jobs.py`, `arifaa_pack/container.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 430 files already formatted
+  - mypy: Success: no issues found in 268 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 21.77s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** n/a (first slice of 2b; the previous head `917648d` passed: 992 tests)

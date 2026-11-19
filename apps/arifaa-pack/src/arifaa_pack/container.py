@@ -74,7 +74,7 @@ from kx.automation.optout.unsubscribe import UnsubscribeDeps, UnsubscribeLinks
 from kx.automation.outbound import OutboundService
 from kx.automation.outbound.killswitch import KillSwitch
 from kx.automation.outbound.ratelimit import Bucket, TokenBucketLimiter
-from kx.automation.scraping import PriceScraper
+from kx.automation.scraping.service import PriceScraper
 from kx.automation.settings import AutomationSettings, OptOutSettings
 from kx.core import events as ev
 from kx.core.auth import TokenIssuer
