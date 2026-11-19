@@ -66,7 +66,7 @@ embeddings, monitoring, login, background jobs) is recorded in the read-only pla
 |---|---|---|---|
 | Embeddings | Qwen3-Embedding-0.6B in a UAE container (28/30) | BAAI/bge-m3 (26/30) | `arifaa_pack.adapters.HttpEmbedder` (WP23) |
 | Background jobs | Celery 5.7 + Celery Beat (accepted with conditions) | Procrastinate (previous) | `kx.core.jobs`, `arifaa_pack.celery_app` (WP20) |
-| Staff login | In-house, TOTP first (accepted with conditions) | Amazon Cognito (previous) | `kx.crm.services.auth`, `kx.core.auth` (WP21) |
+| Staff login | In-house, TOTP first (accepted with conditions) | Amazon Cognito (previous) | `kx.crm.auth.service`, `kx.core.auth` (WP21) |
 | Monitoring | Better Stack for uptime, errors, logs, on-call | CloudWatch alarms + SNS email | `arifaa_pack.observability` (WP24) |
 | AI brain | Claude mix: Sonnet 5.5 on money turns, Haiku 5.5 on the rest (24/30) | Gemini backups only after the suite passes and Arifa agrees | `kx.agents.models` (WP22) |
 | Alert calls | Telnyx after live du/Etisalat tests (2–1) | Twilio | `kx.automation.channels.telnyx` (WP25) |

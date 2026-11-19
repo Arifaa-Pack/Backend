@@ -676,3 +676,24 @@ The three feature modules (`outbound.py`, `inbound.py`, `optout.py`) are byte-id
   - OpenAPI diff: empty
   - unit: ============================ 124 passed in 22.22s =============================
   - full suite: run on this commit; result logged in the final entry
+- **Full suite (2.5):** `4f41149`: tests=982, failures=0, errors=0, skipped=4, exit=0 → COMPLETED.
+
+## 2.6 documentation and the final report — COMPLETED
+
+- **Done:** `docs/arch/REPORT.md` (brief §8: done, gates, diffs, deviations, found-not-fixed, questions). Living docs
+  now name the new paths: `CONTRACTS.md` §1 (the in-package rules), `CLAUDE.md` (layout, rules),
+  `docs/ARCHITECTURE.md` §2, `docs/REUSE_CATALOGUE.md` (also: payload count 23 → 33), `docs/FEATURE_MAP.md`
+  (the SRS table's slice column), `docs/DELIVERY.md`, `docs/CONTESTS.md`, `scripts/frontend_heads/crm_head.md` →
+  `docs/frontend/CRM_API.md` (head text only; the OpenAPI JSON is unchanged). Dated history (`V1_PROGRESS.md`,
+  `OPEN_QUESTIONS.md`, `V1_CHANGE_PLAN.md`) keeps the paths of its time.
+- **Gates** (docs only):
+  - ruff check: All checks passed!
+  - ruff format: 424 files already formatted
+  - mypy: Success: no issues found in 266 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+  - unit: ============================ 124 passed in 21.08s =============================
+
+**Phase 2: COMPLETED. ADR-0001 Phases 0–2: COMPLETED.**

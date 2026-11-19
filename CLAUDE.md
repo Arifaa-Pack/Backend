@@ -16,9 +16,12 @@ Kairox platform: a reusable B2B sales system (CRM + automation + AI agents). The
 ## Layout
 
 - `packages/kx-core-db` → `kx.core`: shared core, contracts, price guard, auth tokens, job store, fallback/circuit breaker.
-- `packages/kx-core-crm` → `kx.crm`: the CRM; pricing is in `kx/crm/pricing`; staff login in `kx/crm/services/auth.py`.
+- `packages/kx-core-crm` → `kx.crm`: the CRM, one folder per feature (ADR-0001: `quotes/`, `deals/`, `approvals/`,
+  `pricing/` …, shared code in `_shared/`, ORM in `models/`; map in `docs/arch/CRM_SLICES.md`); the app imports only
+  `kx.crm` (its public surface). Staff login in `kx/crm/auth/service.py`. `kx/crm/services/*` and some
+  `kx/crm/api/*` are alias shims for the old paths: never add code there.
 - `packages/kx-core-db` → `kx.core` also holds the platform modes (`kx.core.platform`: paid / free order per field) and retention helpers (`kx.core.retention`).
-- `packages/kx-core-automation` → `kx.automation`: channels (WhatsApp Meta, email Stalwart → SES, calls Telnyx), opt-out, outbound gate, jobs.
+- `packages/kx-core-automation` → `kx.automation`: channels (WhatsApp Meta, email Stalwart → SES, calls Telnyx), opt-out (`optout/`), outbound gate (`outbound/`), inbound + webhooks (`inbound/`), jobs.
 - `packages/kx-agent-framework` → `kx.agents`: LangGraph agents, knowledge search, voice, website sessions.
 - `apps/arifaa-pack` → `arifaa_pack`: wiring (`container.py`), vendor adapters (`adapters.py`), Celery app (`celery_app.py`), API, CLI `kx`, voice worker, telemetry, Alembic `migrations/`.
 - `services/speech/`: the free speech server (faster-whisper + Piper), its own image (Python 3.12), outside the uv workspace.
@@ -45,10 +48,11 @@ uv run pytest tests/spec -m bench --benchmark-enable   # speed checks
 ## Rules
 
 - **Packages never import each other** (import-linter). They cross only through `kx.core.contracts` Protocols and events (`kx.core.events`, `kx.core.event_payloads`).
+- **Inside a package** (ADR-0001, import-linter): new code goes in its feature slice; routers above services; slices don't import each other's internals (the baseline in `pyproject.toml` may only shrink); `kx map` / `docs/FEATURE_MAP.md` say where things are wired (`uv run kx map --write docs/FEATURE_MAP.md` after wiring changes).
 - **Celery is imported only by the app** (`arifaa_pack`). Packages schedule work through `kx.core.jobs` (PostgreSQL schedule table) and the `TaskScheduler` protocol. Long waits are rows in the table, never Celery ETAs. Every task is idempotent (`acks_late` can redeliver).
 - **Money:** Decimal only (`kx.core.money`), never float.
 - **IDs:** `kx.core.identity.new_id`; hashes and phone/email normalisation come from `kx.core.identity`.
-- **Every state change:** `kx.crm.services.journal.record()` writes audit + timeline + outbox in the same transaction.
+- **Every state change:** `kx.crm._shared.journal.record()` writes audit + timeline + outbox in the same transaction.
 - **The backend builds every quote** (§11.1); the AI never calculates or types a price.
 - **AI-visible data** (`DealContext` and DTOs) never contains cost, markup, the minimum price or ladder steps.
 - **Every AI reply** passes `kx.core.price_guard.check_prices` (it fails closed), whichever model or vendor answered. Priced messages go out only through `OutboundService` with a single-use send grant.
