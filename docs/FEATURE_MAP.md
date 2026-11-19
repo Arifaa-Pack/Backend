@@ -46,6 +46,7 @@ other mapping files, and this table is updated with each move.
 
 | Protocol | Implemented by | File |
 | --- | --- | --- |
+| `kx.agents.handlers:MessageBurst` | `arifaa_pack.adapters:ThreadBurst` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.handlers:ReplyAddressBook` | `arifaa_pack.adapters:ThreadAddressBook` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.knowledge:ContentSource` | `arifaa_pack.adapters:PayloadContentSource` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.knowledge:Embedder` | `arifaa_pack.adapters:HttpEmbedder` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
@@ -58,10 +59,9 @@ other mapping files, and this table is updated with each move.
 | `kx.automation.alerts:Caller` | `kx.automation.channels.calls:TelnyxCaller` | `packages/kx-core-automation/src/kx/automation/channels/calls.py` |
 | `kx.automation.alerts:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
 | `kx.automation.channels.email:SesV2Client` | - | - |
-| `kx.automation.channels.email_chain:EmailVendor` | `kx.automation.channels.email:EmailSender`<br>`kx.automation.channels.email_chain:EmailChain`<br>`kx.automation.channels.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/channels/email.py`<br>`packages/kx-core-automation/src/kx/automation/channels/email_chain.py`<br>`packages/kx-core-automation/src/kx/automation/channels/stalwart.py` |
+| `kx.automation.channels:EmailTransport` | `kx.automation.channels.email:EmailSender`<br>`kx.automation.channels.email_chain:EmailChain`<br>`kx.automation.channels.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/channels/email.py`<br>`packages/kx-core-automation/src/kx/automation/channels/email_chain.py`<br>`packages/kx-core-automation/src/kx/automation/channels/stalwart.py` |
 | `kx.automation.jobs:MediaDownloader` | `kx.automation.channels.whatsapp:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/channels/whatsapp.py` |
 | `kx.automation.media:S3Client` | - | - |
-| `kx.automation.outbound:EmailTransport` | `kx.automation.channels.email:EmailSender`<br>`kx.automation.channels.email_chain:EmailChain`<br>`kx.automation.channels.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/channels/email.py`<br>`packages/kx-core-automation/src/kx/automation/channels/email_chain.py`<br>`packages/kx-core-automation/src/kx/automation/channels/stalwart.py` |
 | `kx.automation.outbound:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
 | `kx.automation.outbound:RateLimiter` | `kx.automation.ratelimit:TokenBucketLimiter` | `packages/kx-core-automation/src/kx/automation/ratelimit.py` |
 | `kx.automation.outbound:TemplateSpend` | `kx.core.spend:SpendMeter` | `packages/kx-core-db/src/kx/core/spend.py` |
@@ -73,6 +73,7 @@ other mapping files, and this table is updated with each move.
 | `kx.crm.pdf:PdfEngine` | `kx.crm.pdf:ChromiumEngine`<br>`kx.crm.pdf:WeasyPrintEngine` | `packages/kx-core-crm/src/kx/crm/pdf.py`<br>`packages/kx-core-crm/src/kx/crm/pdf.py` |
 | `kx.crm.pdf:PdfUploader` | `kx.crm.pdf:S3PdfUploader` | `packages/kx-core-crm/src/kx/crm/pdf.py` |
 | `kx.crm.services.fx:FxSource` | `arifaa_pack.adapters:OpenRatesFx` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.crm.throttle:AuthThrottle` | `arifaa_pack.adapters:RedisAuthThrottle`<br>`kx.crm.throttle:MemoryThrottle` | `apps/arifaa-pack/src/arifaa_pack/adapters.py`<br>`packages/kx-core-crm/src/kx/crm/throttle.py` |
 
 ## Events: who reacts
 
@@ -149,9 +150,9 @@ other mapping files, and this table is updated with each move.
 | POST | `/v1/change-requests/{cr_id}/resolve` | `kx.crm.api.change_requests:router.<locals>.resolve` | `kx.crm.services.change_requests:resolve` |
 | POST | `/v1/change-requests/{cr_id}/revise` | `kx.crm.api.change_requests:router.<locals>.revise` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.change_requests:link_revision`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:revise_quote` |
 | POST | `/v1/change-requests/{cr_id}/start` | `kx.crm.api.change_requests:router.<locals>.start` | `kx.crm.services.change_requests:start` |
-| GET | `/v1/companies` | `kx.crm.api.records:router.<locals>.companies` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
+| GET | `/v1/companies` | `kx.crm.api.records:router.<locals>.companies` | `kx.crm.api.deals:visible_to`<br>`kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
 | POST | `/v1/companies` | `kx.crm.api.records:router.<locals>.create_company` | `kx.crm.services.journal:record` |
-| PATCH | `/v1/companies/{company_id}` | `kx.crm.api.records:router.<locals>.edit_company` | `kx.crm.services.journal:record` |
+| PATCH | `/v1/companies/{company_id}` | `kx.crm.api.records:router.<locals>.edit_company` | `kx.crm.api.deals:visible_to`<br>`kx.crm.services.journal:record` |
 | GET | `/v1/company` | `kx.crm.api.company:router.<locals>.show` | `kx.crm.services.company:letterhead` |
 | PATCH | `/v1/company` | `kx.crm.api.company:router.<locals>.edit` | `kx.crm.services.company:letterhead`<br>`kx.crm.services.company:update` |
 | DELETE | `/v1/company/logo` | `kx.crm.api.company:router.<locals>.remove_logo` | `kx.crm.services.company:letterhead`<br>`kx.crm.services.company:update` |
@@ -164,7 +165,7 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/dashboards/md` | `kx.crm.api.reports:router.<locals>.md` | `kx.crm.services.dashboards:counts` |
 | GET | `/v1/dashboards/salesperson` | `kx.crm.api.reports:router.<locals>.salesperson` | `kx.crm.services.dashboards:salesperson_board` |
 | GET | `/v1/deals` | `kx.crm.api.deals:router.<locals>.list_deals` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
-| PATCH | `/v1/deals/orders/{order_id}` | `kx.crm.api.deal_actions:router.<locals>.order_status` | `kx.crm.services.orders:update_order_status` |
+| PATCH | `/v1/deals/orders/{order_id}` | `kx.crm.api.deal_actions:router.<locals>.order_status` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.orders:deal_of_order`<br>`kx.crm.services.orders:update_order_status` |
 | GET | `/v1/deals/{deal_id}` | `kx.crm.api.deals:router.<locals>.get_deal` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:requirements_of` |
 | POST | `/v1/deals/{deal_id}/ai` | `kx.crm.api.deals:router.<locals>.toggle_ai` | `kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:requirements_of`<br>`kx.crm.services.negotiation:pause_ai`<br>`kx.crm.services.negotiation:resume_ai` |
 | POST | `/v1/deals/{deal_id}/call` | `kx.crm.api.deal_actions:router.<locals>.call` | `kx.crm.services.deals:get_deal`<br>`kx.crm.services.handover:call_buyer` |

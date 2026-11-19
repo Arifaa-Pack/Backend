@@ -31,7 +31,7 @@ workbook.
 `kx.crm.api` (18): admin, assignment, auth, catalogue_workbook, change_requests, company, context, deal_actions,
 deals, operations, pagination, quotes, records, reports, schemas, screens, texts, users.
 
-`kx.crm.models` (8 + `__init__` re-exporting all): base, catalogue, changes, customers, deals, fulfilment, people,
+`kx.crm.models` (9 + `__init__` re-exporting all): base, catalogue, changes, customers, deals, fulfilment, people,
 plumbing, quotes.
 
 `kx.automation`: admin_api, alerts, channels/{calls, email, email_chain, feedback, stalwart, whatsapp}, cms,
@@ -437,8 +437,8 @@ Count = imported names per importer group (a `from x import A, B` counts 2).
 
 #### What the tables say for Phase 1
 
-- `kx.crm.models.quotes` (70 names from 19 groups), `models.deals` (54 from 29 groups) and `models.catalogue`
-  (45 from 19 groups) are used almost everywhere. Moving them into one slice would create most of the rule-5
+- `kx.crm.models.quotes` (60 names from 18 groups), `models.deals` (49 from 28 groups) and `models.catalogue`
+  (32 from 18 groups) are used almost everywhere. Moving them into one slice would create most of the rule-5
   baseline; they are the candidates for `_shared/` (or for a narrow read API in their slice). The decision changes
   where the slice walls run, so it is a Phase 1 mapping question (`docs/arch/CRM_SLICES.md`), not made here.
 - `services.journal` (audit + timeline + outbox) is imported by nearly every service and many routers: a
