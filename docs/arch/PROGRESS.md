@@ -1003,3 +1003,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 20.58s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `knowledge` @ `7a932b1`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-knowledge`, COMPLETED
+
+## 2b.19 slice `tools` — TESTING (COMPLETED when tagged `arch-slice/agents-tools`)
+
+- **Moved:** `tools.py` → `tools/service.py`; `tools/__init__.py` re-exports it (32 of 32 names); 1 import rewritten (`graphs/conversation.py`).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 462 files already formatted
+  - mypy: Success: no issues found in 300 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 21.93s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `guard` @ `ad0cc41`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-guard`, COMPLETED

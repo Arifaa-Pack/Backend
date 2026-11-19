@@ -19,7 +19,7 @@ from kx.agents.context import AgentContext
 from kx.agents.guard.service import PriceGuardMiddleware
 from kx.agents.middleware import RoleMiddleware, ToolAuditMiddleware
 from kx.agents.models import ModelSet
-from kx.agents.tools import ALL_TOOLS
+from kx.agents.tools.service import ALL_TOOLS
 
 
 def build_conversation_agent(
