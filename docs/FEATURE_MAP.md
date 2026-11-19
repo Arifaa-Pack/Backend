@@ -233,7 +233,7 @@ other mapping files, and this table is updated with each move.
 | POST | `/webhooks/telnyx/gather/{attempt_id}` | `kx.automation.webhooks.router:_telnyx_routes.<locals>.telnyx_gather` | `kx.automation.calls.channel:gather_reply_texml`<br>`kx.automation.calls.channel:verify_signature` |
 | POST | `/webhooks/telnyx/status/{attempt_id}` | `kx.automation.webhooks.router:_telnyx_routes.<locals>.telnyx_status` | `kx.automation.calls.channel:verify_signature` |
 | GET | `/webhooks/whatsapp` | `kx.automation.webhooks.router:_whatsapp_routes.<locals>.whatsapp_verify` | `kx.automation.whatsapp.channel:verify_challenge` |
-| POST | `/webhooks/whatsapp` | `kx.automation.webhooks.router:_whatsapp_routes.<locals>.whatsapp_events` | `kx.automation.inbound:record_whatsapp`<br>`kx.automation.whatsapp.channel:parse_webhook`<br>`kx.automation.whatsapp.channel:verify_signature` |
+| POST | `/webhooks/whatsapp` | `kx.automation.webhooks.router:_whatsapp_routes.<locals>.whatsapp_events` | `kx.automation.inbound.service:record_whatsapp`<br>`kx.automation.whatsapp.channel:parse_webhook`<br>`kx.automation.whatsapp.channel:verify_signature` |
 
 ## Background jobs (task table)
 
@@ -245,8 +245,8 @@ other mapping files, and this table is updated with each move.
 | `automation.alert_negotiation_paused` | `kx.automation.jobs:register_jobs.<locals>.pause_alert` | - |
 | `automation.deliver_outbound` | `kx.automation.jobs:register_jobs.<locals>.deliver` | - |
 | `automation.handle_event` | `kx.automation.jobs:register_jobs.<locals>.event` | - |
-| `automation.ingest_inbound_email` | `kx.automation.jobs:register_jobs.<locals>.email` | `kx.automation.email.channel:parse_inbound`<br>`kx.automation.email.feedback:parse_feedback`<br>`kx.automation.inbound:record_email`<br>`kx.automation.inbound:record_mail_event` |
-| `automation.ingest_whatsapp_media` | `kx.automation.jobs:register_jobs.<locals>.media` | `kx.automation.inbound:attach_media`<br>`kx.automation.inbound:media_id_of` |
+| `automation.ingest_inbound_email` | `kx.automation.jobs:register_jobs.<locals>.email` | `kx.automation.email.channel:parse_inbound`<br>`kx.automation.email.feedback:parse_feedback`<br>`kx.automation.inbound.service:record_email`<br>`kx.automation.inbound.service:record_mail_event` |
+| `automation.ingest_whatsapp_media` | `kx.automation.jobs:register_jobs.<locals>.media` | `kx.automation.inbound.service:attach_media`<br>`kx.automation.inbound.service:media_id_of` |
 | `automation.optout_no_answer` | `kx.automation.jobs:register_jobs.<locals>.optout_check` | `kx.automation.handlers:stop_after_no_answer` |
 | `automation.quote_delivery_check` | `kx.automation.jobs:register_jobs.<locals>.quote_check` | - |
 | `automation.run_approval_ladder` | `kx.automation.jobs:register_jobs.<locals>.ladder` | - |

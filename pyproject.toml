@@ -316,7 +316,7 @@ modules = [
     "kx.automation.optout",
 ]
 ignore_imports = [
-    "kx.automation.inbound -> kx.automation.optout",
+    "kx.automation.inbound.service -> kx.automation.optout",
 ]  # baseline 2026-11-19: may only shrink
 
 [[tool.importlinter.contracts]]
