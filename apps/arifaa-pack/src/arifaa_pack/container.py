@@ -94,7 +94,7 @@ from kx.crm.deps import CrmDeps
 from kx.crm.gateway import ApprovalStatusReaderImpl, CrmGatewayImpl, GrantConsumerImpl
 from kx.crm.models import Product
 from kx.crm.pdf import ChromiumEngine, Letterhead, PdfEngine, QuoteRenderer, S3PdfUploader, WeasyPrintEngine
-from kx.crm.services import retention as crm_retention
+from kx.crm.retention import service as crm_retention
 from kx.crm.services.settings import SettingsService
 
 EventFn = Callable[[Event], Awaitable[Any]]

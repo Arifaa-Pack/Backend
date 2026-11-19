@@ -222,3 +222,18 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 18.09s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `company` @ `2e3f95c`: tests=982 failures=0 errors=0 skipped=4, exit=0 → tagged `arch-slice/crm-company`, COMPLETED
+
+## 1.4 slice `retention` — TESTING (COMPLETED when tagged `arch-slice/crm-retention`)
+
+- **Moved:** `services/retention.py` → `retention/service.py`; shim at the old path; imports rewritten in `jobs.py`, `arifaa_pack/container.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 373 files already formatted
+  - mypy: Success: no issues found in 217 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 17.01s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `operations` @ `8b4f851`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-operations`, COMPLETED
