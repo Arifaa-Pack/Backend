@@ -2,17 +2,30 @@
 
 from __future__ import annotations
 
+import io
+import zipfile
+from collections.abc import AsyncIterator
 from decimal import Decimal
 from typing import Any
 
 import httpx
-from fastapi import FastAPI
+import pydantic
+import pytest
+from fastapi import FastAPI, Request
+from openpyxl import Workbook  # type: ignore[import-untyped]  # types-openpyxl not in uv.lock
 
 from arifaa_pack.adapters import RedisAuthThrottle
+from arifaa_pack.bodylimit import BodyLimit
 from arifaa_pack.config import AppSettings
 from arifaa_pack.container import public_buckets, staff_auth
 from arifaa_pack.cors import SplitCors
+from kx.automation.settings import AutomationSettings
+from kx.core.contracts import ContactPatch
+from kx.core.errors import RuleViolation
 from kx.core.settings import AuthSettings, RateLimit
+from kx.core.timewindow import language_tag, valid_timezone
+from kx.crm.api.records import ContactEditIn
+from kx.crm.services.price_lists import check_xlsx
 from kx.crm.throttle import MemoryThrottle
 
 CRM, WWW, EVIL = "https://crm.arifapack.com", "https://www.arifapack.com", "https://evil.example"
@@ -116,3 +129,78 @@ def test_public_buckets_add_a_global_turn_limit_and_sessions_per_ip_per_day() ->
     assert abs(buckets["ip_sessions"].refill_per_minute * 1440 - 20) < 1e-9  # 20 per 24 hours
     assert {"ip", "session"} <= buckets.keys()
     assert AppSettings().spend_public_ai_share == Decimal("0.30")
+
+
+# ---------------------------------------------------------------- L8: contact time zone and language
+def test_l8_time_zone_and_language_checks() -> None:
+    assert valid_timezone("Asia/Dubai") and valid_timezone("UTC") and valid_timezone("Asia/Kolkata")
+    for bad in ("Not/AZone", "", "../../etc/passwd", "/etc/localtime", "Asia/Dubai/x", "x" * 80):
+        assert not valid_timezone(bad), bad
+    assert (
+        language_tag(" AR ") == "ar"
+        and language_tag("zh_Hans") == "zh-hans"
+        and language_tag("en-GB") == "en-gb"
+    )
+    for bad in ("", "english please", "e", "<script>", "a" * 20):
+        assert language_tag(bad) is None, bad
+
+
+def test_l8_the_ai_patch_drops_a_bad_zone_and_staff_get_a_422() -> None:
+
+    patch = ContactPatch(timezone="Not/AZone", language="english please")
+    assert (patch.timezone, patch.language) == (None, None)  # the AI turn goes on, nothing bad is stored
+    good = ContactPatch(timezone=" Asia/Riyadh ", language="AR")
+    assert (good.timezone, good.language) == ("Asia/Riyadh", "ar")
+    with pytest.raises(pydantic.ValidationError, match="time zone"):
+        ContactEditIn(timezone="Not/AZone")
+    with pytest.raises(pydantic.ValidationError, match="language tag"):
+        ContactEditIn(language="english please")
+    assert ContactEditIn(timezone="Asia/Dubai", language="hi").timezone == "Asia/Dubai"
+    # a zone stored before this check falls back to the default instead of failing every follow-up
+    s = AutomationSettings()
+    assert s.followup_window("Not/AZone").tz == s.followup.default_timezone
+    assert s.followup_window("Asia/Riyadh").tz == "Asia/Riyadh"
+
+
+# ---------------------------------------------------------------- L2: request body size, xlsx zip bombs
+async def test_l2_body_limit_refuses_big_bodies_declared_or_streamed() -> None:
+    app = FastAPI()
+
+    @app.post("/webhooks/whatsapp")
+    async def hook(request: Request) -> dict[str, int]:
+        return {"n": len(await request.body())}
+
+    @app.post("/v1/price-list/import")
+    async def imp(request: Request) -> dict[str, int]:
+        return {"n": len(await request.body())}
+
+    limited = BodyLimit(app, default=1_000, large=5_000)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=limited), base_url="http://t") as c:
+        assert (await c.post("/webhooks/whatsapp", content=b"x" * 900)).json() == {"n": 900}
+        big = await c.post("/webhooks/whatsapp", content=b"x" * 1_001)
+        assert big.status_code == 413 and big.headers["content-type"] == "application/problem+json"
+
+        async def chunks() -> AsyncIterator[bytes]:  # no Content-Length: counted while it streams
+            for _ in range(5):
+                yield b"x" * 400
+
+        assert (await c.post("/webhooks/whatsapp", content=chunks())).status_code == 413
+        assert (await c.post("/v1/price-list/import", content=b"x" * 4_000)).json() == {"n": 4_000}
+        assert (await c.post("/v1/price-list/import", content=b"x" * 5_001)).status_code == 413
+        lying = await c.post("/webhooks/whatsapp", content=b"x", headers={"content-length": "abc"})
+        assert lying.status_code in (400, 413)
+
+
+def test_l2_a_zip_bomb_never_reaches_openpyxl() -> None:
+    real = io.BytesIO()
+    wb = Workbook()
+    wb.active.append(["sku", "tier", "price"])
+    wb.save(real)
+    check_xlsx(real.getvalue())  # a real workbook passes
+    bomb = io.BytesIO()
+    with zipfile.ZipFile(bomb, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("xl/sharedStrings.xml", b"\0" * 50_000_000)  # 50 MB of zeros packs into ~50 KB
+    with pytest.raises(RuleViolation, match="unpacks"):
+        check_xlsx(bomb.getvalue())
+    with pytest.raises(RuleViolation, match="readable"):
+        check_xlsx(b"not a zip at all")

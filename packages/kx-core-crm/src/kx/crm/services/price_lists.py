@@ -12,6 +12,7 @@ from __future__ import annotations
 import io
 import itertools
 import uuid
+import zipfile
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -211,10 +212,27 @@ class ImportResult:
     errors: tuple[RowError, ...]
 
 
+XLSX_MAX_UNPACKED: Final = 100 * 1024 * 1024  # a real price list or catalogue is a few MB unpacked
+XLSX_MAX_RATIO: Final = 200  # zip bombs pack far tighter than spreadsheets do
+
+
+def check_xlsx(data: bytes) -> None:
+    """L2 (security review 19 Nov): refuse a zip bomb before openpyxl unpacks it. An .xlsx is a zip; its
+    directory states each member's unpacked size, so this costs nothing and reads no member."""
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            unpacked = sum(i.file_size for i in z.infolist())
+    except (zipfile.BadZipFile, ValueError) as exc:
+        raise RuleViolation("the file is not a readable .xlsx workbook") from exc
+    if unpacked > XLSX_MAX_UNPACKED or unpacked > XLSX_MAX_RATIO * max(len(data), 1):
+        raise RuleViolation("the workbook unpacks to far more data than a price list holds")
+
+
 async def import_xlsx(
     session: AsyncSession, data: bytes, *, valid_from: datetime, actor: Actor
 ) -> ImportResult:
     """§10 Excel import: validate every row, then save all of them as one new price-list version."""
+    check_xlsx(data)
     try:
         sheet = load_workbook(io.BytesIO(data), read_only=True, data_only=True).active
     except Exception as exc:

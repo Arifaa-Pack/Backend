@@ -9,6 +9,7 @@ from typing import Any
 import orjson
 from fastapi import FastAPI, Request, Response
 
+from arifaa_pack.bodylimit import BodyLimit
 from arifaa_pack.config import app_settings
 from arifaa_pack.container import build
 from arifaa_pack.cors import SplitCors
@@ -45,6 +46,9 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Kairox CRM API", version="1.0.0", lifespan=lifespan)
     instrument_api(app)  # HTTP + Celery producer spans to SigNoz (no-op without KX_APP_OTLP_ENDPOINT)
     install_problem_handlers(app)  # also turns bad webhook signatures into 401s
+    # L2: 1 MB bodies (10 MB for the spreadsheet imports), before any route reads. Added first so it sits
+    # inside CORS (the last one added is the outermost): a browser then sees the 413, not a CORS error.
+    app.add_middleware(BodyLimit)
     app.add_middleware(  # M2: credentials only for the CRM; the website only reaches /v1/public/*
         SplitCors,
         crm_origins=app_settings().cors_origins,

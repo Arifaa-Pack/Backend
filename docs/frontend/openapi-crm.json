@@ -5147,7 +5147,7 @@
           "records"
         ],
         "summary": "Companies",
-        "description": "\u00a720.6 companies: search by name, newest first.",
+        "description": "\u00a720.6 companies: search by name, newest first. A salesperson sees the companies of their own deals'\ncontacts and companies nobody is linked to yet (L3).",
         "operationId": "companies_v1_companies_get",
         "parameters": [
           {
@@ -5299,7 +5299,7 @@
           "records"
         ],
         "summary": "Edit Company",
-        "description": "Edit a company record (logged).",
+        "description": "Edit a company record (logged); a salesperson only a company they may see (L3).",
         "operationId": "edit_company_v1_companies__company_id__patch",
         "parameters": [
           {
@@ -6059,7 +6059,7 @@
           "exports"
         ],
         "summary": "Export",
-        "description": "\u00a720.12: a list as CSV or XLSX (a salesperson exports only their own deals and orders).",
+        "description": "\u00a720.12: a list as CSV or XLSX (a salesperson exports only their own deals and orders; Admin / IT\nonly the product list, L4: \u00a73 gives it users, settings and the catalogue, not customer data).",
         "operationId": "export_v1_exports__entity__get",
         "parameters": [
           {

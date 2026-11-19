@@ -13,7 +13,9 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Literal, Protocol, runtime_checkable
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from kx.core.timewindow import language_tag, valid_timezone
 
 
 class DealStage(StrEnum):
@@ -162,6 +164,19 @@ class ContactPatch(BaseModel):
     preferred_channel: Literal["whatsapp", "email", "phone"] | None = None
     language: str | None = None
     timezone: str | None = None
+
+    @field_validator("language", mode="after")
+    @classmethod
+    def _language(cls, v: str | None) -> str | None:
+        """L8: the AI (or the website) may only store a real language tag; anything else is dropped, never
+        an error that would stop the turn."""
+        return language_tag(v) if v else None
+
+    @field_validator("timezone", mode="after")
+    @classmethod
+    def _timezone(cls, v: str | None) -> str | None:
+        """L8: only a zone ZoneInfo can load ("Asia/Dubai"); "Not/AZone" is dropped (it broke follow-ups)."""
+        return v.strip() if v and valid_timezone(v.strip()) else None
 
 
 class QualifyResult(_Frozen):

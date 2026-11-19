@@ -17,12 +17,13 @@ from decimal import Decimal
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import Select, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
 from kx.core.errors import Forbidden, NotFound
+from kx.core.timewindow import language_tag, valid_timezone
 from kx.crm.api.context import MANAGERS, STAFF, ApiContext
 from kx.crm.api.deals import visible_to
 from kx.crm.api.pagination import Page, keyset, page_of
@@ -62,6 +63,26 @@ class ContactEditIn(BaseModel):
     preferred_channel: Literal["whatsapp", "email", "phone"] | None = None
     language: str | None = Field(default=None, max_length=16)
     timezone: str | None = Field(default=None, max_length=64)
+
+    @field_validator("language")
+    @classmethod
+    def _language(cls, v: str | None) -> str | None:
+        """L8: staff get a clear 422 for a value that is not a language tag ("en", "ar", "zh-hans")."""
+        if v is None:
+            return None
+        if (tag := language_tag(v)) is None:
+            raise ValueError("not a language tag (for example en, ar, hi)")
+        return tag
+
+    @field_validator("timezone")
+    @classmethod
+    def _timezone(cls, v: str | None) -> str | None:
+        """L8: an IANA time zone such as Asia/Dubai; a wrong one used to break the contact's follow-ups."""
+        if v is None:
+            return None
+        if not valid_timezone(v.strip()):
+            raise ValueError("unknown time zone (use an IANA name such as Asia/Dubai)")
+        return v.strip()
 
 
 class CompanyRow(_Row):
@@ -150,6 +171,17 @@ def _own_contacts[S: Select[Any]](stmt: S, p: Principal) -> S:
     return stmt.where(Contact.id.in_(deals))
 
 
+def _own_companies[S: Select[Any]](stmt: S, p: Principal) -> S:
+    """L3 (security review 19 Nov): a salesperson sees and edits the companies of their own deals' contacts,
+    plus companies no contact belongs to yet (one they just created, so they can link a contact to it); never
+    another salesperson's customer."""
+    if p.role is not Role.SALES:
+        return stmt
+    mine = _own_contacts(select(Contact.company_id).where(Contact.company_id.is_not(None)), p)
+    claimed = select(Contact.company_id).where(Contact.company_id.is_not(None))
+    return stmt.where(or_(Company.id.in_(mine), Company.id.not_in(claimed)))
+
+
 def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler per screen action
     r = APIRouter(tags=["records"])
     Session = Annotated[AsyncSession, Depends(ctx.session)]  # noqa: N806
@@ -189,6 +221,8 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
         through the deal)."""
         c = await _contact(s, p, contact_id)
         changes = body.model_dump(exclude_unset=True)
+        if changes.get("company_id") is not None:  # L3: only a company this salesperson may see
+            await _company(s, p, changes["company_id"])
         before = {k: getattr(c, k) for k in changes}
         for k, v in changes.items():
             setattr(c, k, v)
@@ -197,12 +231,19 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
         return ContactRow.model_validate(c)
 
     # ---------------------------------------------------------------- companies (§20.6)
+    async def _company(s: AsyncSession, p: Principal, company_id: uuid.UUID) -> Company:
+        found = (await s.execute(_own_companies(select(Company).where(Company.id == company_id), p))).scalar()
+        if found is None:
+            raise NotFound("company not found")
+        return found
+
     @r.get("/companies", response_model=Page[CompanyRow])
     async def companies(
-        s: Session, _: Staff, q: str | None = None, cursor: str | None = None, limit: Limit = 50
+        s: Session, p: Staff, q: str | None = None, cursor: str | None = None, limit: Limit = 50
     ) -> Page[CompanyRow]:
-        """§20.6 companies: search by name, newest first."""
-        stmt = select(Company).where(Company.anonymised_at.is_(None))
+        """§20.6 companies: search by name, newest first. A salesperson sees the companies of their own deals'
+        contacts and companies nobody is linked to yet (L3)."""
+        stmt = _own_companies(select(Company).where(Company.anonymised_at.is_(None)), p)
         if q:
             stmt = stmt.where(Company.name.ilike(f"%{q.strip()}%"))
         stmt = keyset(
@@ -222,10 +263,8 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
 
     @r.patch("/companies/{company_id}", response_model=CompanyRow)
     async def edit_company(company_id: uuid.UUID, body: CompanyIn, s: Session, p: Staff) -> CompanyRow:
-        """Edit a company record (logged)."""
-        company = await s.get(Company, company_id)
-        if company is None:
-            raise NotFound("company not found")
+        """Edit a company record (logged); a salesperson only a company they may see (L3)."""
+        company = await _company(s, p, company_id)
         changes = body.model_dump(exclude_unset=True)
         before = {k: getattr(company, k) for k in changes}
         for k, v in changes.items():

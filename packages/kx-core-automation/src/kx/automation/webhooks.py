@@ -91,13 +91,13 @@ def _telnyx_routes(router: APIRouter, deps: WebhookDeps) -> None:
         if not urls.verify(attempt_id, request.query_params.get("t", "")):
             raise Unauthorized("bad callback token")
         public_key = tx.public_key.get_secret_value()
-        signature = request.headers.get(calls.SIGNATURE_HEADER)
-        if (
-            public_key
-            and signature is not None
-            and not calls.verify_signature(
-                public_key, raw, request.headers.get(calls.TIMESTAMP_HEADER), signature
-            )
+        # L5 (security review 19 Nov): with the public key configured the Ed25519 signature is required; a
+        # missing header no longer skips the check (TeXML callbacks carry telnyx-signature-ed25519)
+        if public_key and not calls.verify_signature(
+            public_key,
+            raw,
+            request.headers.get(calls.TIMESTAMP_HEADER),
+            request.headers.get(calls.SIGNATURE_HEADER),
         ):
             raise Unauthorized("bad signature")
         # TeXML callbacks are application/x-www-form-urlencoded; stdlib parsing avoids a multipart dependency

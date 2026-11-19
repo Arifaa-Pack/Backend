@@ -12,7 +12,7 @@ from functools import cached_property, lru_cache
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from kx.core.timewindow import Window
+from kx.core.timewindow import Window, valid_timezone
 
 
 class _Group(BaseModel):
@@ -176,7 +176,9 @@ class AutomationSettings(BaseSettings):
         return Window.parse(self.alerts.window_start, self.alerts.window_end, self.alerts.timezone)
 
     def followup_window(self, buyer_timezone: str | None) -> Window:
-        tz = buyer_timezone or self.followup.default_timezone
+        # L8: a contact's stored zone that no longer loads falls back to the default instead of failing
+        tz = buyer_timezone if buyer_timezone and valid_timezone(buyer_timezone) else None
+        tz = tz or self.followup.default_timezone
         return Window.parse(self.followup.window_start, self.followup.window_end, tz)
 
 

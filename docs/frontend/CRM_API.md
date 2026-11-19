@@ -1008,7 +1008,7 @@ Remove the logo from quotes.
 
 #### `GET /v1/exports/{entity}`
 
-§20.12: a list as CSV or XLSX (a salesperson exports only their own deals and orders).
+§20.12: a list as CSV or XLSX (a salesperson exports only their own deals and orders; Admin / IT only the product list, L4: §3 gives it users, settings and the catalogue, not customer data).
 
 **Who:** sales, manager, admin, md
 
@@ -1892,7 +1892,7 @@ Edit name, designation, company, preferred channel, language, time zone (phone /
 
 #### `GET /v1/companies`
 
-§20.6 companies: search by name, newest first.
+§20.6 companies: search by name, newest first. A salesperson sees the companies of their own deals' contacts and companies nobody is linked to yet (L3).
 
 **Who:** sales, manager, admin, md
 
@@ -1932,7 +1932,7 @@ Create a company record.
 
 #### `PATCH /v1/companies/{company_id}`
 
-Edit a company record (logged).
+Edit a company record (logged); a salesperson only a company they may see (L3).
 
 **Who:** sales, manager, admin, md
 

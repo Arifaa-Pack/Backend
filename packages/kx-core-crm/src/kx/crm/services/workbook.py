@@ -45,7 +45,7 @@ from kx.core.event_payloads import ProductContentChanged
 from kx.core.price_guard import extract_prices
 from kx.crm.models import Product, ProductCategory, ProductPriceTier
 from kx.crm.services.journal import Actor, Emit, record
-from kx.crm.services.price_lists import RowError, parse_rows
+from kx.crm.services.price_lists import RowError, check_xlsx, parse_rows
 from kx.crm.services.pricing import current_tiers
 
 PRODUCTS: Final = "Products"
@@ -214,6 +214,7 @@ def _norm_header(h: Any) -> str:
 
 def read_sheets(data: bytes) -> dict[str, list[tuple[int, dict[str, Any]]]]:
     """{sheet: [(row number, {column key: raw cell})]} for the three data sheets (headers by name)."""
+    check_xlsx(data)  # L2: no zip bomb reaches openpyxl
     try:
         wb = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     except Exception as exc:

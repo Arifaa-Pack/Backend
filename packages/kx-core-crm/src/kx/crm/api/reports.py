@@ -287,7 +287,10 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one handler per das
         p: Staff,
         format: Literal["csv", "xlsx"] = "csv",
     ) -> Response:
-        """§20.12: a list as CSV or XLSX (a salesperson exports only their own deals and orders)."""
+        """§20.12: a list as CSV or XLSX (a salesperson exports only their own deals and orders; Admin / IT
+        only the product list, L4: §3 gives it users, settings and the catalogue, not customer data)."""
+        if p.role is Role.ADMIN and entity != "products":
+            raise Forbidden("Admin / IT accounts export the product list only")
         model, columns = _EXPORTS[entity]
         stmt: Select[*tuple[Any, ...]] = select(*(getattr(model, c) for c in columns))
         if entity in ("contacts", "companies"):

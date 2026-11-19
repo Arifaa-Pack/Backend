@@ -4,7 +4,9 @@
 
 from __future__ import annotations
 
+import base64
 import json
+import time
 import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
@@ -13,7 +15,10 @@ from typing import Any
 import httpx
 import pytest
 from automation_fakes import FakeScheduler
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi import FastAPI
+from pydantic import SecretStr
 from sqlalchemy import text
 from test_auto_whatsapp import meta_payload, text_message
 
@@ -241,3 +246,44 @@ async def test_a_mailbox_bounce_report_suppresses_and_fails(hook: Hook) -> None:
     assert await hook.sql("SELECT status FROM outbound_messages") == [("failed",)]
     assert await hook.sql("SELECT channel, reason FROM suppressions") == [("email", "bounce")]
     assert await hook.sql("SELECT payload->>'status' FROM outbox_events") == [("bounced",)]
+
+
+async def test_with_a_public_key_the_telnyx_signature_is_required(auto_db: Any) -> None:
+    """L5 (security review 19 Nov): a valid URL token alone is not enough once the Ed25519 key is configured;
+    leaving the signature header out no longer skips the check."""
+    key = Ed25519PrivateKey.generate()
+    public = base64.b64encode(key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)).decode()
+    settings = SETTINGS.model_copy(
+        update={"telnyx": SETTINGS.telnyx.model_copy(update={"public_key": SecretStr(public)})}
+    )
+    app = FastAPI()
+    install_problem_handlers(app)
+    app.include_router(
+        build_router(
+            WebhookDeps(auto_db, settings, FakeScheduler(), VoiceAlerts(auto_db, settings, FakeCaller()))
+        )
+    )
+    async with auto_db.transaction(LogicalDb.AUTOMATION) as s:
+        (attempt,) = (
+            await s.execute(
+                text(
+                    "INSERT INTO call_attempts (purpose, to_e164, provider) "
+                    "VALUES ('below_range_alert', '+971501111111', 'telnyx') RETURNING id"
+                )
+            )
+        ).one()
+    path = callback_urls(settings).status(attempt).removeprefix(BASE)
+    body = b"CallSid=v3%3A9&CallStatus=completed"
+    form = {"content-type": "application/x-www-form-urlencoded"}
+    stamp = str(int(time.time()))
+    good = base64.b64encode(key.sign(stamp.encode() + b"|" + body)).decode()
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url=BASE) as http:
+        assert (await http.post(path, content=body, headers=form)).status_code == 401  # no signature header
+        forged = {
+            **form,
+            "telnyx-timestamp": stamp,
+            "telnyx-signature-ed25519": base64.b64encode(b"x" * 64).decode(),
+        }
+        assert (await http.post(path, content=body, headers=forged)).status_code == 401
+        signed_ok = {**form, "telnyx-timestamp": stamp, "telnyx-signature-ed25519": good}
+        assert (await http.post(path, content=body, headers=signed_ok)).status_code == 204

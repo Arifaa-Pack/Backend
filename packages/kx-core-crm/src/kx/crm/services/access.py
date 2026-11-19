@@ -27,7 +27,11 @@ def _mine(p: Principal, deal: Deal, covering: uuid.UUID | None) -> bool:
 
 
 def ensure_can_edit(p: Principal, deal: Deal, *, covering: uuid.UUID | None = None) -> None:
-    """Edits by staff (quotes, requirement, stage, change requests). 403 for the owner during a takeover."""
+    """Edits by staff (quotes, requirement, stage, change requests). 403 for the owner during a takeover.
+    L4 (security review 19 Nov): Admin / IT runs users, settings, catalogue and prices (§3), not deals: it may
+    view a deal but never quote, move, price or record anything on one."""
+    if p.role is Role.ADMIN:
+        raise Forbidden("Admin / IT accounts can view deals but not work on them")
     if p.role is Role.SALES:
         if deal.taken_over_by is not None:
             raise Forbidden(TAKEN_OVER)

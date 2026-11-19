@@ -2,11 +2,34 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
-from zoneinfo import ZoneInfo
+from functools import lru_cache
+from typing import Final
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 ISO_WEEKDAYS_ALL = frozenset(range(1, 8))
+_LANGUAGE_TAG: Final = re.compile(r"[a-z]{2,3}(-[a-z0-9]{2,8})*")
+
+
+@lru_cache(maxsize=512)
+def valid_timezone(name: str) -> bool:
+    """L8 (security review 19 Nov): an IANA zone name ZoneInfo can load ("Asia/Dubai"). A stored "Not/AZone"
+    used to break every follow-up of that contact."""
+    if not name or len(name) > 64 or name.startswith(("/", ".")) or ".." in name:
+        return False
+    try:
+        ZoneInfo(name)
+    except ZoneInfoNotFoundError, ValueError, OSError:
+        return False
+    return True
+
+
+def language_tag(value: str) -> str | None:
+    """L8: a BCP 47-shaped language tag in lower case ("en", "ar", "zh-hans"), or None when it is not one."""
+    tag = value.strip().replace("_", "-").lower()
+    return tag if len(tag) <= 16 and _LANGUAGE_TAG.fullmatch(tag) else None
 
 
 @dataclass(frozen=True, slots=True)
