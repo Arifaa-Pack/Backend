@@ -115,3 +115,44 @@ Baseline before any change (`ed9e32e`): ruff clean, 334 files formatted, mypy cl
 - **Found, not fixed:** none.
 - **Questions:** none.
 - **Next:** 0.3 CODEOWNERS, PR template, `cross-package` label workflow.
+
+## Rebase onto the 19 Nov fix round — COMPLETED
+
+- **Done:** Phase 0 rebased onto `fix/live-test-defects` (head `bdf2735`). That round had removed
+  `EventBus.subscribers` as unused, but `kx map` reads it: restored in `arifaa_pack/container.py` with its caller
+  named. `docs/FEATURE_MAP.md` regenerated; `CURRENT_STATE.md` model counts corrected (9 model modules; names per
+  group recounted on the rebased tree). Commit `782f53b`.
+- **Gates:** ruff PASS; mypy (container.py) PASS; `kx map --check docs/FEATURE_MAP.md` PASS. Full suite: see 0.4.
+
+## 0.3 Review routing — COMPLETED
+
+- **Done:** `.github/CODEOWNERS` (one line per package, placeholders `@OWNER_CORE`, `@OWNER_CRM`,
+  `@OWNER_AUTOMATION`, `@OWNER_AGENTS`, `@OWNER_APP`; `contracts*`, `event_payloads*` and `events.py` need every
+  owner); `.github/pull_request_template.md` (packages touched, contract changed Y/N, payload version changed Y/N,
+  migration and database, FEATURE_MAP / OpenAPI refreshed, tests run); `.github/workflows/pr-labels.yml` labels a
+  PR `cross-package` when it touches more than one `packages/kx-*` folder or a contract file. Commit `b750070`.
+- **Deviations:** the label workflow uses no third-party action (only `gh` and the GitHub API on
+  `pull_request_target`, no checkout), so there is nothing to pin and no PR code runs with the write token.
+  `tests/unit/test_no_removed_vendors.py` (exact set of workflow files) admits `pr-labels.yml`.
+- **Gates:** see 0.4 (run once on the Phase 0 head). `test_no_removed_vendors.py` alone: 13 passed.
+
+## 0.4 Decision records — COMPLETED
+
+- **Done:** `docs/adr/` with `README.md` (index), `0000-template.md`, ADR-0001 "Package-based modular monolith
+  with feature slices" (context, decision, consequences, alternatives rejected: single app, microservices,
+  documentation only), ADR-0002 "Split the contracts by conversation and publish the packages" (Phase 3, future,
+  proposed). Linked from `docs/ARCHITECTURE.md` §2 (one paragraph, nothing else rewritten). Commit `e46558e`.
+- **Gates** (on `e46558e`, the Phase 0 head):
+  - `ruff check .` PASS: All checks passed!
+  - `ruff format --check .` PASS: 362 files already formatted
+  - `mypy` PASS: Success: no issues found in 207 source files
+  - `lint-imports` PASS: Contracts: 3 kept, 0 broken.
+  - `kx map --check docs/FEATURE_MAP.md` PASS: "docs/FEATURE_MAP.md is current"
+  - OpenAPI PASS: `scripts/gen_frontend_docs.py` then `git diff docs/frontend` empty
+  - full suite (Linux, own Postgres `kx-verify-pg`) PASS: tests="982" failures="0" errors="0" skipped="4", exit=0
+- **Diffs:** OpenAPI none; `kx map --format json` saved as the Phase 1 baseline.
+- **Found, not fixed:** none new.
+- **Questions:** the real owners for CODEOWNERS.
+- **Next:** Phase 1 on branch `arch/slices`: `docs/arch/CRM_SLICES.md`, then one slice per commit.
+
+**Phase 0: COMPLETED.**
