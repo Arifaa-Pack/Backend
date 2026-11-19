@@ -12434,7 +12434,15 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 64
+                "enum": [
+                  "distributor",
+                  "restaurant_chain",
+                  "caterer",
+                  "airline",
+                  "retailer",
+                  "manufacturer",
+                  "other"
+                ]
               },
               {
                 "type": "null"

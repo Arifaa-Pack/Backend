@@ -1927,7 +1927,7 @@ Create a company record.
 | `name` | string | yes | min length 1; max length 300 |
 | `country_code` | string or null | no |  |
 | `city` | string or null | no |  |
-| `customer_type` | string or null | no |  |
+| `customer_type` | `distributor` \| `restaurant_chain` \| `caterer` \| `airline` \| `retailer` \| `manufacturer` \| `other` or null | no |  |
 | `vat_trn` | string or null | no |  |
 | `website` | string or null | no |  |
 | `notes` | string or null | no |  |
@@ -1955,7 +1955,7 @@ Edit a company record (logged); a salesperson only a company they may see (L3).
 | `name` | string | yes | min length 1; max length 300 |
 | `country_code` | string or null | no |  |
 | `city` | string or null | no |  |
-| `customer_type` | string or null | no |  |
+| `customer_type` | `distributor` \| `restaurant_chain` \| `caterer` \| `airline` \| `retailer` \| `manufacturer` \| `other` or null | no |  |
 | `vat_trn` | string or null | no |  |
 | `website` | string or null | no |  |
 | `notes` | string or null | no |  |
@@ -3320,7 +3320,7 @@ Only the fields to change; "" clears a field (company.yaml's value is printed ag
 | `name` | string | yes | min length 1; max length 300 |
 | `country_code` | string or null | no |  |
 | `city` | string or null | no |  |
-| `customer_type` | string or null | no |  |
+| `customer_type` | `distributor` \| `restaurant_chain` \| `caterer` \| `airline` \| `retailer` \| `manufacturer` \| `other` or null | no |  |
 | `vat_trn` | string or null | no |  |
 | `website` | string or null | no |  |
 | `notes` | string or null | no |  |

@@ -95,6 +95,13 @@ class CompanyRow(_Row):
     created_at: datetime
 
 
+# crm.companies.customer_type CHECK (db/ddl/01_crm.sql): another value used to reach PostgreSQL and answer 500
+# (found by the tester collection in the 19 Nov live re-test); now the API refuses it with 422
+CustomerType = Literal[
+    "distributor", "restaurant_chain", "caterer", "airline", "retailer", "manufacturer", "other"
+]
+
+
 class CompanyIn(BaseModel):
     # kx.crm.api.company has a model of the same name, so the OpenAPI component name carries the module
     # path: pinned to the pre-ADR-0001 path (an alias of this module) to keep the published name.
@@ -103,7 +110,7 @@ class CompanyIn(BaseModel):
     name: str = Field(min_length=1, max_length=300)
     country_code: str | None = Field(default=None, pattern=r"^[A-Z]{2}$")
     city: str | None = Field(default=None, max_length=200)
-    customer_type: str | None = Field(default=None, max_length=64)
+    customer_type: CustomerType | None = None
     vat_trn: str | None = Field(default=None, max_length=64)
     website: str | None = Field(default=None, max_length=500)
     notes: str | None = Field(default=None, max_length=4000)
