@@ -56,7 +56,7 @@ from kx.agents.models import (
 )
 from kx.agents.service import AgentService
 from kx.agents.tracing.service import Tracer
-from kx.agents.voice import VoiceRoute, VoiceRouter, voice_routes
+from kx.agents.voice.service import VoiceRoute, VoiceRouter, voice_routes
 from kx.agents.website import LiveKitConfig, WebsiteDeps
 from kx.automation import (
     ApprovalLadder,

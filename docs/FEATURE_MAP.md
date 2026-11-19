@@ -53,7 +53,7 @@ other mapping files, and this table is updated with each move.
 | `kx.agents.knowledge.service:KnowledgeSearch` | `kx.agents.knowledge.service:KnowledgeBase` | `packages/kx-agent-framework/src/kx/agents/knowledge/service.py` |
 | `kx.agents.models:ModelProvider` | `kx.agents.models:AnthropicApiProvider`<br>`kx.agents.models:GeminiApiProvider` | `packages/kx-agent-framework/src/kx/agents/models.py`<br>`packages/kx-agent-framework/src/kx/agents/models.py` |
 | `kx.agents.registry:PromptStore` | `kx.agents.registry:DefaultPromptStore` | `packages/kx-agent-framework/src/kx/agents/registry.py` |
-| `kx.agents.voice:VoicePlugins` | `arifaa_pack.adapters:PlatformVoicePlugins` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.voice.service:VoicePlugins` | `arifaa_pack.adapters:PlatformVoicePlugins` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.website:HumanCheck` | `arifaa_pack.adapters:TurnstileVerifier` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.website:PublicLimits` | `arifaa_pack.adapters:PublicLimiter` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.automation._shared.channels:EmailTransport` | `kx.automation.email.chain:EmailChain`<br>`kx.automation.email.channel:EmailSender`<br>`kx.automation.email.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/email/chain.py`<br>`packages/kx-core-automation/src/kx/automation/email/channel.py`<br>`packages/kx-core-automation/src/kx/automation/email/stalwart.py` |
