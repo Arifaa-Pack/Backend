@@ -1157,7 +1157,7 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 23.30s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 
-## 2b.28 contracts for the automation and agents slices — TESTING
+## 2b.28 contracts for the automation and agents slices — COMPLETED (full suite in 2b.30)
 
 - **Previous step's full suite:** `shims-2b` @ `2383234`: errors=0, failures=0, skipped=4, tests=992, exit=0 → COMPLETED.
 - **Done (`pyproject.toml`, import-linter; 10 → 12 contracts):**
@@ -1189,7 +1189,7 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 17.27s =============================
   - full suite: not needed for a lint-only change (`pyproject.toml` import-linter section); the final full suite covers it
 
-## 2b.29 documentation: the new paths in the living docs — TESTING
+## 2b.29 documentation: the new paths in the living docs — COMPLETED (full suite in 2b.30)
 
 - **Done:**
   - `docs/arch/AUTOMATION_AGENTS_SLICES.md` rewritten: the rule (every feature its own folder), a table per
@@ -1217,3 +1217,25 @@ so the old import path keeps working; every name of the moved module is checked 
   - OpenAPI diff: the two Markdown heads only (3 lines); both OpenAPI JSON files unchanged
   - unit: ============================ 131 passed in 16.37s =============================
   - full suite: run on this commit (the final code state); result logged in the next entry
+
+## 2b.30 final report — COMPLETED
+
+- **Full suite (2b.28 contracts and 2b.29 docs, the final code state):** `d078e5a`: errors=0, failures=0,
+  skipped=4, tests=992, exit=0 → COMPLETED.
+- **Done:** `docs/arch/REPORT.md` updated for Phase 2b: what moved, 49 tags, gates at the final head, deviation 4
+  rewritten (every feature now has a folder; names that differ from the brief), new found-not-fixed items
+  (`_shared.sending -> outbound.service`; `runtime/` spans layers), the shim question (52 left). Also: the
+  live-test scripts `m8_check.py` and `mail_channel.py` import the new email / settings paths (they are outside the
+  shim scan and the repo lint, by design; checked: every name resolves, both compile), and a `jobs.py` docstring
+  names `kx.automation._shared.ports`.
+- **Gates** (docs, two script import lines, one docstring):
+  - ruff check: All checks passed!
+  - ruff format: 470 files already formatted
+  - mypy: Success: no issues found in 308 source files
+  - lint-imports: Contracts: 12 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 16.63s =============================
+
+**Phase 2b: COMPLETED. ADR-0001 Phases 0–2b: COMPLETED.**

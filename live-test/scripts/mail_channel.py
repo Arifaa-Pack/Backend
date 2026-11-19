@@ -1,4 +1,4 @@
-"""Real email through the platform's own channel classes (kx.automation.channels.stalwart):
+"""Real email through the platform's own channel classes (kx.automation.email.stalwart):
   send   one quote-style email with a PDF attachment, From Hamthan@kairoxaitech.com -> TO (Stalwart -> Hostinger)
   poll   the platform's MailboxPoller over the Stalwart inbox (prints From/Subject of each new message)
 Run inside the app image on the kxlive network (settings from KX_AUTO_* env). Secrets never printed.
@@ -15,9 +15,9 @@ import time
 
 import httpx
 
-from kx.automation.channels.email import Attachment
-from kx.automation.channels.stalwart import JmapClient, MailboxPoller, StalwartSender
-from kx.automation.settings import SesSettings, StalwartSettings
+from kx.automation.email.channel import Attachment
+from kx.automation.email.stalwart import JmapClient, MailboxPoller, StalwartSender
+from kx.automation._shared.settings import SesSettings, StalwartSettings
 
 
 def settings() -> tuple[StalwartSettings, SesSettings]:

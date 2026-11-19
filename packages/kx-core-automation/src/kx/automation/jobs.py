@@ -322,7 +322,7 @@ async def _ingest_email(rt: AutomationRuntime, key: str) -> None:
 
 # ---------------------------------------------------------------- TaskScheduler over the schedule table
 class JobScheduler:
-    """`kx.automation.ports.TaskScheduler` over `kx.core.jobs.JobStore` (API and worker alike)."""
+    """`kx.automation._shared.ports.TaskScheduler` over `kx.core.jobs.JobStore` (API and worker alike)."""
 
     def __init__(self, store: JobStore) -> None:
         self.store = store
