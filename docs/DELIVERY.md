@@ -85,7 +85,7 @@ markup ranges per category, product catalogue/Excel, letterhead (address, TRN).
 ## Where to start reviewing (suggested order, ~1 day)
 1. `CONTRACTS.md` → `packages/kx-core-db/src/kx/core/contracts.py` (the rules every package follows).
 2. `kx/crm/pricing/engine.py` + `tests/spec/` (the money).
-3. `kx/core/price_guard.py` + `kx/agents/guard.py` (what stops the AI leaking prices).
-4. `kx/crm/approvals/service.py`, `kx/crm/quotes/issuing.py`, `kx/crm/quotes/grants.py` + `kx/automation/outbound/__init__.py` (quote release path).
+3. `kx/core/price_guard.py` + `kx/agents/guard/service.py` (what stops the AI leaking prices).
+4. `kx/crm/approvals/service.py`, `kx/crm/quotes/issuing.py`, `kx/crm/quotes/grants.py` + `kx/automation/outbound/service.py` (quote release path).
 5. `apps/arifaa-pack/src/arifaa_pack/container.py` (how it all connects).
 6. `infra/README.md`, then `terraform plan` on staging.

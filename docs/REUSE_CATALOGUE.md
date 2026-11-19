@@ -77,29 +77,32 @@ owning package (and this file), not to your app. Enforced by import-linter (pack
 |---|---|
 | The only way out | `kx.automation.outbound.OutboundService` (grant, kill switch, suppression, rate limit, 2/week cap, buyer hours) |
 | Which number sends (buyer's thread → regional `countries` → default; email = company address) | `kx.automation.repo.channel_account(..., address=, country=)` |
-| WhatsApp Cloud API | `kx.automation.channels.whatsapp.WhatsAppClient` (+ signature verify, webhook parsing, media download) |
-| Email (D44): Stalwart JMAP send + mailbox poll; SES v2 API backup; inbound MIME | `kx.automation.channels.stalwart` (`JmapClient`, `StalwartSender`, `MailboxPoller`), `kx.automation.channels.email.EmailSender` (SES), parsing helpers |
-| Bounce / complaint reports (DSN, ARF) | `kx.automation.channels.feedback.parse_feedback` |
-| Staff alert calls (Telnyx TeXML, D43) | `kx.automation.channels.calls` (`TelnyxCaller`, TeXML builders, signature check), `kx.automation.alerts.VoiceAlerts`, `PauseAlerts` |
+| WhatsApp Cloud API | `kx.automation.whatsapp.channel.WhatsAppClient` (+ signature verify, webhook parsing, media download) |
+| Email (D44): Stalwart JMAP send + mailbox poll; SES v2 API backup; inbound MIME | `kx.automation.email.stalwart` (`JmapClient`, `StalwartSender`, `MailboxPoller`), `kx.automation.email.channel.EmailSender` (SES), parsing helpers |
+| Bounce / complaint reports (DSN, ARF) | `kx.automation.email.feedback.parse_feedback` |
+| Staff alert calls (Telnyx TeXML, D43) | `kx.automation.calls.channel` (`TelnyxCaller`, TeXML builders, signature check), `kx.automation.alerts.VoiceAlerts`, `PauseAlerts` |
 | §16 reminder ladder (approvals and change requests) | `kx.automation.alerts.ApprovalLadder` over `LadderTicket.for_approval` / `.for_change` |
 | Staff notices (§17 "notified", alert hours) | `kx.automation.alerts.notify_staff` |
 | §17 notifications matrix (event → recipients) | `kx.automation.handlers.EventHandlers.registry()`; table test `kx-core-automation/tests/test_notifications_matrix_db.py` |
-| Webhooks router | `kx.automation.inbound.webhooks.build_router(WebhookDeps)` |
+| Webhooks router | `kx.automation.webhooks.router.build_router(WebhookDeps)` |
 | Jobs | `kx.automation.jobs`: `register_jobs`, `periodic_jobs`, `JobScheduler`, `AutomationRuntime` (scraper only with `features.scraping`, D14) |
 | Kill switch / rate limits | `kx.automation.outbound.killswitch.KillSwitch` (= `kx.core.killswitch.KillSwitchLadder`), `kx.automation.outbound.ratelimit.TokenBucketLimiter` |
-| Email chain Stalwart -> SES (D44) | `kx.automation.channels.email_chain.EmailChain` (order from `kx.core.platform`) |
+| Email chain Stalwart -> SES (D44) | `kx.automation.email.chain.EmailChain` (order from `kx.core.platform`) |
 | Click-to-call (§14) | `kx.automation.alerts.CallBridge` |
 | CMS publish webhook (§7) | `kx.automation.cms.build_router` |
-| STOP flow, unsubscribe link | `kx.automation.optout`, `kx.automation.optout.unsubscribe` |
-| Admin: regional numbers, templates | `kx.automation.admin_api.build_router` |
+| STOP flow, unsubscribe link | `kx.automation.optout`, `kx.automation.optout.router` |
+| Admin: regional numbers, templates | `kx.automation.admin.router.build_router` |
 | Price scraping → proposals | `kx.automation.scraping.PriceScraper` |
+| §16 follow-ups (day 2 / 5 / 10, re-order) | `kx.automation.followups.FollowUps` (scheduled by `EventHandlers`) |
+| Feature slices (ADR-0001) | one folder per feature under `kx/automation/`: `outbound/`, `inbound/`, `optout/`, `webhooks/`, `whatsapp/`, `email/`, `calls/`, `alerts/`, `followups/`, `scraping/`, `cms/`, `admin/`; shared code in `_shared/` (outbox, ports, settings, media, channel errors, the send helper); map `docs/arch/AUTOMATION_AGENTS_SLICES.md` |
+| What an app imports | `from kx.automation import ...`: the 33 names of `kx/automation/__init__.py` (`__all__`); import-linter enforces it |
 
 ## kx.agents — AI agent framework
 | Capability | Import |
 |---|---|
-| 12 roles, prompts (`AgentSpec.enabled`; repeat sales off in v1) | `kx.agents.registry`: `AgentRegistry` (`disabled()`), `AgentSpec`, `PromptStore`, `DefaultPromptStore`, `ModelTier` |
-| Models + fallback | `kx.agents.models`: `ModelRouter`, `AnthropicApiProvider` (Claude API direct, D27; no sampling parameters, effort per tier, D51); safe reply + breaker in `AgentService` |
-| Routing (no LLM; agreement wording and post-quote change topics → deal graph; payment topics → deal graph in every stage; handed-over deals silent or the after-hours acknowledgement) | `kx.agents.orchestrator` (`PAYMENT_TOPIC`) |
+| 12 roles, prompts (`AgentSpec.enabled`; repeat sales off in v1) | `kx.agents.roles.registry`: `AgentRegistry` (`disabled()`), `AgentSpec`, `PromptStore`, `DefaultPromptStore`, `ModelTier` |
+| Models + fallback | `kx.agents.llm.service`: `ModelRouter`, `AnthropicApiProvider` (Claude API direct, D27; no sampling parameters, effort per tier, D51); safe reply + breaker in `AgentService` |
+| Routing (no LLM; agreement wording and post-quote change topics → deal graph; payment topics → deal graph in every stage; handed-over deals silent or the after-hours acknowledgement) | `kx.agents.router.service` (`PAYMENT_TOPIC`) |
 | Reply guard | `kx.agents.guard` (prices, cost wording, injection, length) |
 | Graphs | `kx.agents.graphs.conversation` / `quotation` (interrupt/resume) / `deal` |
 | Memory, checkpointer | `kx.agents.memory`: `open_checkpointer`, turn store |
@@ -107,10 +110,12 @@ owning package (and this file), not to your app. Enforced by import-linter (pack
 | Voice (D52) | `kx.agents.voice`: `VoiceRouter`, `voice_routes`, `make_livekit_entrypoint`; worker entry `arifaa_pack.voice_worker` |
 | AI audit trail | `kx.agents.tracing.Tracer` (Phoenix or Langfuse over OTLP, PII-masked, D46) |
 | Website conversation API (§6) | `kx.agents.website.build_router(WebsiteDeps)` |
-| Run cost table | `kx.agents.runs.PRICES`, `call_cost` |
-| Entry point | `kx.agents.service.AgentService`, `kx.agents.handlers.AgentHandlers` |
+| Run cost table | `kx.agents.runtime.runs.PRICES`, `call_cost` |
+| Entry point | `kx.agents.runtime.service.AgentService`, `kx.agents.handlers.AgentHandlers` |
 | Test kit | `kx.agents.testing` (fake model, `FakeCrmGateway`, fake embedder), `kx.agents.evals` (§23 scenarios s01-s10 + trick prompts t01-t07) |
 | Change requests from the AI | tool `kx.agents.tools.raise_change_request`; deal graph `intent=change` + `PAYMENT_TOPIC`; phrase `Phrase.CHANGE_REQUEST`, `team_member` |
+| Feature slices (ADR-0001) | one folder per feature under `kx/agents/`: `runtime/` (AgentService, runs, context, middleware), `router/`, `graphs/`, `tools/`, `guard/`, `llm/`, `roles/` (registry, languages), `knowledge/`, `memory/`, `voice/`, `website/`, `tracing/`, `evals/`; map `docs/arch/AUTOMATION_AGENTS_SLICES.md` |
+| What an app imports | `from kx.agents import ...`: the 25 names of `kx/agents/__init__.py` (`__all__`); import-linter enforces it |
 
 ## Client app (copy per client) — `apps/arifaa-pack`
 `company.yaml` (identity), `config.py` (`KX_APP_*`), `adapters.py` (address book, `HttpEmbedder` = BGE-M3 / Qwen3 on TEI (D47), Payload CMS

@@ -18,9 +18,8 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
 
-from kx.agents.website import WebsiteDeps
-from kx.agents.website import build_router as website_router
-from kx.automation.admin_api import build_router as channels_admin_router
+from kx.agents import WebsiteDeps, website_router
+from kx.automation import admin_router as channels_admin_router
 from kx.core.auth import Role
 from kx.core.errors import install_problem_handlers
 from kx.crm.api import build_router as crm_router

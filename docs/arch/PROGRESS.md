@@ -1188,3 +1188,32 @@ so the old import path keeps working; every name of the moved module is checked 
   - OpenAPI diff: empty
   - unit: ============================ 131 passed in 17.27s =============================
   - full suite: not needed for a lint-only change (`pyproject.toml` import-linter section); the final full suite covers it
+
+## 2b.29 documentation: the new paths in the living docs — TESTING
+
+- **Done:**
+  - `docs/arch/AUTOMATION_AGENTS_SLICES.md` rewritten: the rule (every feature its own folder), a table per
+    package (slice, what it is, files, old path), the layer diagram of the two contracts, the old-path policy,
+    how to review one feature;
+  - `CLAUDE.md` (layout lines), `CONTRACTS.md` §1 (the new rules), `docs/ARCHITECTURE.md` §2 (three public
+    surfaces), `docs/REUSE_CATALOGUE.md` (14 paths, plus rows for follow-ups, the slice folders and the public
+    surfaces), `docs/FEATURE_MAP.md` (SRS table: paths and slice column; generated part unchanged),
+    `docs/DELIVERY.md`, `docs/CONTESTS.md` (also `kx.automation.channels.telnyx`, a path that never existed →
+    `kx.automation.calls`);
+  - `docs/ARIFAA_AUTO_NOTES.md`: §1–§2 text, and the §3 table regenerated (92 rows; "still works?" decided by
+    importing each old path);
+  - `scripts/gen_frontend_docs.py` imports `kx.agents` / `kx.automation` public names; the two frontend heads
+    name the new files. `docs/frontend/CRM_API.md` and `WEBSITE_API.md` regenerated: head text only (3 lines);
+    `openapi-crm.json` and `openapi-website.json` unchanged.
+  - Dated history (`V1_PROGRESS.md`, `OPEN_QUESTIONS.md`, `V1_CHANGE_PLAN.md`, `CURRENT_STATE.md`) keeps the paths
+    of its time.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 470 files already formatted
+  - mypy: Success: no issues found in 308 source files
+  - lint-imports: Contracts: 12 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: the two Markdown heads only (3 lines); both OpenAPI JSON files unchanged
+  - unit: ============================ 131 passed in 16.37s =============================
+  - full suite: run on this commit (the final code state); result logged in the next entry

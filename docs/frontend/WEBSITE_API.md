@@ -1,8 +1,8 @@
 # Website API: frontend hand-off
 
 For the developer building the **public website** (Next.js on Vercel, the 3D "Enter the factory" experience)
-against a mock first. Taken from the code (`packages/kx-agent-framework/src/kx/agents/website.py`,
-`kx/agents/voice.py`) and the SRS §6 (website flow), §8 (qualification), §8.1 (opt-out), D34/D36/D39. The
+against a mock first. Taken from the code (`packages/kx-agent-framework/src/kx/agents/website/router.py`,
+`kx/agents/voice/service.py`) and the SRS §6 (website flow), §8 (qualification), §8.1 (opt-out), D34/D36/D39. The
 endpoint reference in the second half is **generated from the code**.
 
 Companion files: `openapi-website.json` (OpenAPI 3.1 of these endpoints), `CMS.md` (where the page content

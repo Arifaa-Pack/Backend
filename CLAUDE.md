@@ -21,8 +21,12 @@ Kairox platform: a reusable B2B sales system (CRM + automation + AI agents). The
   `kx.crm` (its public surface). Staff login in `kx/crm/auth/service.py`. `kx/crm/services/*` and some
   `kx/crm/api/*` are alias shims for the old paths: never add code there.
 - `packages/kx-core-db` → `kx.core` also holds the platform modes (`kx.core.platform`: paid / free order per field) and retention helpers (`kx.core.retention`).
-- `packages/kx-core-automation` → `kx.automation`: channels (WhatsApp Meta, email Stalwart → SES, calls Telnyx), opt-out (`optout/`), outbound gate (`outbound/`), inbound + webhooks (`inbound/`), jobs.
-- `packages/kx-agent-framework` → `kx.agents`: LangGraph agents, knowledge search, voice, website sessions.
+- `packages/kx-core-automation` → `kx.automation`: one folder per feature (`outbound/` the gate, `inbound/`,
+  `webhooks/`, `optout/`, `whatsapp/`, `email/` Stalwart → SES, `calls/` Telnyx, `alerts/`, `followups/`, `scraping/`,
+  `cms/`, `admin/`; shared code in `_shared/`), `handlers.py`, `jobs.py`; the app imports only `kx.automation`.
+- `packages/kx-agent-framework` → `kx.agents`: one folder per feature (`runtime/` the turn engine, `router/`,
+  `graphs/`, `tools/`, `guard/`, `llm/`, `roles/`, `knowledge/`, `memory/`, `voice/`, `website/`, `tracing/`,
+  `evals/`), `handlers.py`; the app imports only `kx.agents`. Map: `docs/arch/AUTOMATION_AGENTS_SLICES.md`.
 - `apps/arifaa-pack` → `arifaa_pack`: wiring (`container.py`), vendor adapters (`adapters.py`), Celery app (`celery_app.py`), API, CLI `kx`, voice worker, telemetry, Alembic `migrations/`.
 - `services/speech/`: the free speech server (faster-whisper + Piper), its own image (Python 3.12), outside the uv workspace.
 - `db/ddl/0*.sql`: the v1 baseline. **Never edit it.** Schema changes are new Alembic revisions (`migrations/<db>/versions/000N_*.py`).

@@ -22,14 +22,22 @@ Enforced by import-linter (`uv run lint-imports`). Packages talk to each other o
 No cross-database foreign keys: reference other DBs with `*_ref uuid` columns. **Celery is imported only by `arifaa_pack`**: packages never see it.
 
 **Inside a package (ADR-0001, `docs/adr/0001-modular-monolith-with-feature-slices.md`).** One business feature per
-folder (`kx/crm/quotes/`, `kx/crm/deals/`, `kx/automation/outbound/` …; maps in `docs/arch/CRM_SLICES.md` and
-`docs/arch/AUTOMATION_AGENTS_SLICES.md`); code several slices use lives in `kx/crm/_shared/`; the ORM
-(`kx/crm/models/`) is the shared data layer under every slice. Also enforced by import-linter:
-- the app imports a package's public surface (`from kx.crm import …`), never an ORM / query module
-  (`kx.crm.models`, `kx.automation.models`, `kx.automation.repo`, `kx.agents.orm`); two old imports are the baseline;
+folder (`kx/crm/quotes/`, `kx/automation/outbound/`, `kx/agents/guard/` …; maps in `docs/arch/CRM_SLICES.md` and
+`docs/arch/AUTOMATION_AGENTS_SLICES.md`); code several slices use lives in `kx/crm/_shared/` and
+`kx/automation/_shared/`; the ORM (`kx/crm/models/`, `kx/automation/models.py`, `kx/agents/orm.py`) is the shared
+data layer under every slice. Also enforced by import-linter:
+- the app imports a package's public surface (`from kx.crm import …`, `from kx.automation import …`,
+  `from kx.agents import …`), never a slice module or an ORM / query module (`kx.crm.models`,
+  `kx.automation.models`, `kx.automation.repo`, `kx.agents.orm`); two old CRM imports are the baseline;
+- `kx.automation` is layered: `jobs` > `handlers` > entry points (`webhooks`, `admin`, `cms`, `scraping`) > features
+  (`inbound`, `outbound`, `alerts`, `followups`) > `optout` > channels (`whatsapp`, `email`, `calls`) > `_shared` >
+  `repo` > `models` (three `_shared` imports are the baseline);
+- `kx.agents` is layered: `handlers`, `evals` > `website` > `voice` > `runtime.service` > `graphs` > `tools`, `guard`,
+  `router` > `runtime.runs`, `runtime.middleware`, `memory` > `runtime.context` > `knowledge`, `llm`, `tracing` >
+  `roles`; slices on the same level never import each other;
 - inside a slice, routers sit above the service code; only `kx.crm.api.build_router` imports a router;
 - the ORM imports nothing above it; `_shared` imports no slice (two old imports are the baseline);
-- slices are independent; today's service-level calls between slices are a baseline in `pyproject.toml` that may
+- CRM slices are independent; today's service-level calls between slices are a baseline in `pyproject.toml` that may
   only shrink (a new cross-slice call needs a reason in review, and usually belongs in `_shared/` or behind an event);
 - the pricing maths (`kx.crm.pricing.engine`, `.price_list`, `.types`) stays pure: no database, ORM, HTTP or Redis.
 
