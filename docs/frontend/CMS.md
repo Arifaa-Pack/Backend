@@ -4,7 +4,7 @@ For the developer building the **CMS** (Payload, its admin panel for Arifa's con
 pages that read from it. The CMS is a separate app and image; this platform does not contain its code. What
 the CMS must do is fixed by two things in this repo, and both are described here exactly:
 
-1. the **publish webhook** the platform receives: `packages/kx-core-automation/src/kx/automation/cms.py`;
+1. the **publish webhook** the platform receives: `packages/kx-core-automation/src/kx/automation/cms/service.py`;
 2. the **REST reads** the platform makes back into the CMS: `PayloadContentSource` in
    `apps/arifaa-pack/src/arifaa_pack/adapters.py`;
 3. (18 Nov) the **product drafts** the platform writes into the CMS from the product workbook:

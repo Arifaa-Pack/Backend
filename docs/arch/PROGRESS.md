@@ -1239,3 +1239,56 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 16.63s =============================
 
 **Phase 2b: COMPLETED. ADR-0001 Phases 0–2b: COMPLETED.**
+
+## Phase 2c: the old paths removed (19 Nov, on request: "move the tests to new paths and remove the old shims")
+
+Worked in its own worktree on `arch/slices` (the main folder stays on `docs/tester-pack` with its local edits).
+Baseline at `c56c4b4`: every gate below passed, and `kx map --format json` was saved for the comparison.
+
+## 2c.1 tests and scripts import the new paths — COMPLETED (`853f339`)
+
+- **Changed:** 69 files: the tests (root `tests/` and the three packages' `tests/`), `scripts/gen_frontend_docs.py`
+  and two bench scripts, import lines only (rewritten by an AST script, then `ruff --select I --fix` and
+  `ruff format`); `test_featuremap` names `kx.crm.quotes.service` in a pure string check; the bench guide's rule
+  line names `kx.crm._shared.journal` (its two historical findings keep the file they were found in).
+  `FollowUps` is imported from `kx.automation.followups.service`. The shims still exist in this commit.
+- **Gates** (on this commit, in a clean checkout): ruff check: All checks passed! · ruff format: 469 files already
+  formatted · mypy: no issues in 308 source files · lint-imports: 12 kept, 0 broken · kx map json: identical to
+  `c56c4b4` · kx map --check: current · OpenAPI diff: empty · unit: 131 passed · Windows package tests (DB tests
+  skip): crm 76, automation 73, agents 103, spec 236, scenarios 25 passed
+- **Full suite** (`853f339`): errors=0, failures=0, skipped=4, tests=992, exit=0 → COMPLETED.
+
+## 2c.2 every old-path shim removed — COMPLETED (`371f52e`)
+
+- **Removed:** the 52 alias modules (33 CRM, 12 automation, 7 agents) and the then-empty `kx/crm/services/` and
+  `kx/automation/channels/` packages; the re-exports in 14 feature `__init__.py` files (they keep their
+  description); the `FollowUps` re-export in `kx/automation/handlers.py`. Docstrings and comments (23 files)
+  name the new paths; two adapter docstrings re-wrapped to 110 columns. The four `__module__ = "kx.crm.api.<x>"`
+  OpenAPI pins stay (comments reworded): they name a component, not a module.
+- **Checked:** each of the 69 old paths fails to import (`ModuleNotFoundError`, or the folder no longer has the
+  name); `kx.automation` (33) and `kx.agents` (25) resolve every public name.
+- **First full suite failed** (on the first build of these two commits, `664eef4` + `065ff90`): 2 failures in
+  `test_auto_optout_db.py` (`module 'kx.automation.optout' has no attribute 'apply_stop'`). The test imported
+  the folder itself (`from kx.automation import optout`) and used it as the module; the rewriter handled that
+  pattern for alias modules only, and the Windows run skips DB tests. Fix: `from kx.automation.optout import
+  service as optout`, put into the test-move commit (both commits were local and unpushed, so they were rebuilt
+  as `853f339` + `371f52e`; the trees differ from the first build by that one line). A repository-wide scan
+  for any import of a former re-export folder as a module found no other case.
+- **Gates** (on this commit, in a clean checkout): ruff check: All checks passed! · ruff format: 415 files already
+  formatted · mypy: no issues in 254 source files · lint-imports: 12 kept, 0 broken · kx map json: identical to
+  `c56c4b4` · kx map --check: current · OpenAPI diff: empty · unit: 131 passed · Windows package tests (DB tests
+  skip): crm 76, automation 73, agents 103, spec 236, scenarios 25 passed. (Run at the same time as the Linux
+  suite, 7 unit tests errored on both commits; run alone, 131 passed on both.)
+- **Full suite** (`371f52e`): errors=0, failures=0, skipped=4, tests=992, exit=0 → COMPLETED.
+
+## 2c.3 documentation — COMPLETED
+
+- `CLAUDE.md` (layout line), ADR-0001 (the shim consequence: removed 19 Nov), `CRM_SLICES.md` and
+  `AUTOMATION_AGENTS_SLICES.md` (old paths are a record; the "Old import paths" section), `ARIFAA_AUTO_NOTES.md`
+  (§2 steps; §3: every old path "no: removed"), `REPORT.md` (Phase 2c, gates, deviations 1, 2, 6, question 2),
+  `OPEN_QUESTIONS.md` (21 file paths of removed shims and 8 older stale paths now name the real files) and
+  `docs/frontend/CMS.md` (hand-written; the CMS webhook's file). Historical records are left as written:
+  `CURRENT_STATE.md` (the pre-restructure recon), `V1_PROGRESS.md`, `V1_CHANGE_PLAN.md`,
+  `live-test/TEST_REPORT.md` and the earlier entries of this log.
+
+**Phase 2c: COMPLETED. ADR-0001 Phases 0–2c: COMPLETED.**
