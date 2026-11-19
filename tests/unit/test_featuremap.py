@@ -14,6 +14,8 @@ from typing import Any, Protocol
 import pytest
 
 from arifaa_pack import featuremap
+from kx.agents import retention as agents_retention
+from kx.automation import retention as automation_retention
 from kx.core import contracts
 from kx.core import events as ev
 from kx.core.event_payloads import PAYLOADS
@@ -198,6 +200,21 @@ class _NameFromInit:
 )
 def test_structural_conformance(cls: type, ok: bool) -> None:
     assert featuremap.conforms(cls, _Port) is ok
+
+
+def _retention_job() -> None:
+    """Like the app's nightly job: one module's plumbing_rules, the other module's run_retention."""
+    automation_retention.plumbing_rules  # noqa: B018
+    agents_retention.run_retention  # noqa: B018
+
+
+def test_calls_lists_only_what_is_read_on_each_module() -> None:
+    """Both retention modules define plumbing_rules: only the one the code reads may be listed (the
+    `app.retention` false positive of 19 Nov)."""
+    found = featuremap.calls(_retention_job)
+    assert "kx.automation.retention:plumbing_rules" in found
+    assert "kx.agents.retention:run_retention" in found
+    assert "kx.agents.retention:plumbing_rules" not in found
 
 
 def test_package_of() -> None:

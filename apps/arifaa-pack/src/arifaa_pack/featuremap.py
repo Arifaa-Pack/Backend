@@ -23,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import dataclasses
+import dis
 import functools
 import importlib
 import inspect
@@ -231,6 +232,44 @@ def _code_names(code: types.CodeType) -> set[str]:
     return names
 
 
+_LOADS: Final = frozenset({"LOAD_GLOBAL", "LOAD_DEREF", "LOAD_NAME", "LOAD_FAST", "LOAD_FAST_BORROW"})
+
+
+def _attribute_chains(code: types.CodeType) -> set[tuple[str, ...]]:
+    """Every `name.attr[.attr ...]` the bytecode reads (nested code included), e.g. ("quotes", "revise")."""
+    chains: set[tuple[str, ...]] = set()
+    chain: list[str] = []
+    for ins in dis.get_instructions(code):
+        if ins.opname in _LOADS:
+            chain = [str(ins.argval)]
+        elif ins.opname == "LOAD_ATTR" and chain:
+            chain.append(str(ins.argval))
+            chains.add(tuple(chain))
+        else:
+            chain = []
+    for const in code.co_consts:
+        if isinstance(const, types.CodeType):
+            chains |= _attribute_chains(const)
+    return chains
+
+
+def _module_targets(module: types.ModuleType, local: str, chains: set[tuple[str, ...]]) -> list[Any]:
+    """What `local.attr` names in a module: only attributes actually read on that name, so a function name
+    that two modules share is not matched in the module the code never touches."""
+    out: list[Any] = []
+    for chain in chains:
+        if chain[0] != local:
+            continue
+        obj: Any = module
+        for attr in chain[1:]:
+            obj = getattr(obj, attr, None)
+            if not isinstance(obj, types.ModuleType):
+                break
+        if obj is not None and not isinstance(obj, types.ModuleType):
+            out.append(obj)
+    return out
+
+
 def calls(fn: Any, *, depth: int = _CALL_DEPTH) -> list[str]:
     """Platform functions an endpoint or job body references, outside its own module: the names in its
     bytecode resolved against its globals and closure (helpers in its own module are followed)."""
@@ -246,11 +285,12 @@ def calls(fn: Any, *, depth: int = _CALL_DEPTH) -> list[str]:
             return
         seen.add(id(f))
         names = _code_names(code)
+        chains = _attribute_chains(code)
         scope = {**{n: f.__globals__[n] for n in names if n in f.__globals__}, **_closure(f)}
         targets: list[Any] = []
-        for value in scope.values():
+        for local, value in scope.items():
             if isinstance(value, types.ModuleType):
-                targets += [getattr(value, n) for n in names if hasattr(value, n)]
+                targets += _module_targets(value, local, chains)
             else:
                 targets.append(value)
         for candidate in targets:

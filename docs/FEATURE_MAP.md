@@ -171,7 +171,7 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | POST | `/v1/deals/{deal_id}/call` | `kx.crm.deals.actions_router:router.<locals>.call` | `kx.crm.deals.service:get_deal`<br>`kx.crm.handover.service:call_buyer` |
 | POST | `/v1/deals/{deal_id}/handback` | `kx.crm.assignment.router:router.<locals>.hand_back` | `kx.crm.assignment.service:hand_back`<br>`kx.crm.deals.views:deal_detail` |
 | POST | `/v1/deals/{deal_id}/messages` | `kx.crm.deals.actions_router:router.<locals>.staff_message` | `kx.crm.deals.service:get_deal`<br>`kx.crm.handover.service:reply` |
-| POST | `/v1/deals/{deal_id}/offer` | `kx.crm.deals.router:router.<locals>.manager_offer` | `kx.crm.negotiation.service:manager_offer`<br>`kx.crm.negotiation.service:resume_ai` |
+| POST | `/v1/deals/{deal_id}/offer` | `kx.crm.deals.router:router.<locals>.manager_offer` | `kx.crm.negotiation.service:manager_offer` |
 | POST | `/v1/deals/{deal_id}/opt-out` | `kx.crm.deals.actions_router:router.<locals>.opt_out` | `kx.crm._shared.access:check_edit`<br>`kx.crm.contacts.consent:record_opt_out`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.deals.views:deal_detail` |
 | POST | `/v1/deals/{deal_id}/payments` | `kx.crm.deals.actions_router:router.<locals>.payment` | `kx.crm._shared.access:check_edit`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.orders.service:record_payment` |
 | POST | `/v1/deals/{deal_id}/personal-contact-shared` | `kx.crm.deals.actions_router:router.<locals>.personal_contact_shared` | `kx.crm._shared.access:check_edit`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.deals.service:personal_contact_shared`<br>`kx.crm.deals.views:deal_detail` |
@@ -258,7 +258,7 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | Entry | Schedule | Body | Calls |
 | --- | --- | --- | --- |
 | `app.heartbeat` | 0:00:30 | `arifaa_pack.container:_periodic.<locals>.beat_heartbeat` | `arifaa_pack.telemetry:heartbeat` |
-| `app.retention` | <crontab: 11 23 * * * (m/h/dM/MY/d)> | `arifaa_pack.container:_periodic.<locals>.retention_plumbing` | `kx.agents.retention:plumbing_rules`<br>`kx.agents.retention:run_retention`<br>`kx.automation.retention:plumbing_rules`<br>`kx.crm.retention.service:plumbing_rules` |
+| `app.retention` | <crontab: 11 23 * * * (m/h/dM/MY/d)> | `arifaa_pack.container:_periodic.<locals>.retention_plumbing` | `kx.agents.retention:run_retention`<br>`kx.automation.retention:plumbing_rules`<br>`kx.crm.retention.service:plumbing_rules` |
 | `automation.mail_poll` | 0:00:30 | `kx.automation.jobs:periodic_jobs.<locals>.mail_poll` | `kx.automation.email.stalwart:raw_key` |
 | `automation.price_scrapes` | <crontab: 0 2 * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.scrapes` | - |
 | `automation.requeue_outbound` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.requeue` | `kx.automation._shared.outbox:emit` |
