@@ -168,9 +168,9 @@ other mapping files, and this table is updated with each move.
 | PATCH | `/v1/deals/orders/{order_id}` | `kx.crm.api.deal_actions:router.<locals>.order_status` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.orders:deal_of_order`<br>`kx.crm.services.orders:update_order_status` |
 | GET | `/v1/deals/{deal_id}` | `kx.crm.api.deals:router.<locals>.get_deal` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:requirements_of` |
 | POST | `/v1/deals/{deal_id}/ai` | `kx.crm.api.deals:router.<locals>.toggle_ai` | `kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:requirements_of`<br>`kx.crm.services.negotiation:pause_ai`<br>`kx.crm.services.negotiation:resume_ai` |
-| POST | `/v1/deals/{deal_id}/call` | `kx.crm.api.deal_actions:router.<locals>.call` | `kx.crm.services.deals:get_deal`<br>`kx.crm.services.handover:call_buyer` |
+| POST | `/v1/deals/{deal_id}/call` | `kx.crm.api.deal_actions:router.<locals>.call` | `kx.crm.handover.service:call_buyer`<br>`kx.crm.services.deals:get_deal` |
 | POST | `/v1/deals/{deal_id}/handback` | `kx.crm.api.assignment:router.<locals>.hand_back` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.assignment:hand_back` |
-| POST | `/v1/deals/{deal_id}/messages` | `kx.crm.api.deal_actions:router.<locals>.staff_message` | `kx.crm.services.deals:get_deal`<br>`kx.crm.services.handover:reply` |
+| POST | `/v1/deals/{deal_id}/messages` | `kx.crm.api.deal_actions:router.<locals>.staff_message` | `kx.crm.handover.service:reply`<br>`kx.crm.services.deals:get_deal` |
 | POST | `/v1/deals/{deal_id}/offer` | `kx.crm.api.deals:router.<locals>.manager_offer` | `kx.crm.services.negotiation:manager_offer`<br>`kx.crm.services.negotiation:resume_ai` |
 | POST | `/v1/deals/{deal_id}/opt-out` | `kx.crm.api.deal_actions:router.<locals>.opt_out` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.contacts.consent:record_opt_out`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal` |
 | POST | `/v1/deals/{deal_id}/payments` | `kx.crm.api.deal_actions:router.<locals>.payment` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.orders:record_payment` |

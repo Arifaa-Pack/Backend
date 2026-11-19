@@ -327,3 +327,18 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 21.90s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `records` @ `dee7255`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-records`, COMPLETED
+
+## 1.11 slice `handover` — TESTING (COMPLETED when tagged `arch-slice/crm-handover`)
+
+- **Moved:** `services/handover.py` → `handover/service.py`; shim at the old path; import rewritten in `api/deal_actions.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 398 files already formatted
+  - mypy: Success: no issues found in 242 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 21.77s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `auth` @ `402f610`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-auth`, COMPLETED
