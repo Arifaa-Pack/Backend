@@ -544,3 +544,21 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   else is identical after the renames. This commit's map is the baseline for Phase 2.
 - **Found, not fixed:** `arifaa_pack/featuremap.py:234` `calls()` can report a function that is not called when
   another module in scope has an attribute of the same name (the case above).
+- **Full suite (1.23):** `023968d`: tests=982, failures=0, errors=0, skipped=4, exit=0 → COMPLETED.
+
+**Phase 1: COMPLETED** (22 slice tags `arch-slice/crm-*`, public surface). `kx/crm/services/*` and `kx/crm/api/*`
+(except `build_router`) are alias shims only; no `src/` module imports them.
+
+---
+
+# Phase 2 — `kx.automation`, `kx.agents`, then the import contracts
+
+## 2.0 mapping — COMPLETED
+
+- **Done:** `docs/arch/AUTOMATION_AGENTS_SLICES.md`. Three automation slices (`outbound`, `inbound`, `optout`)
+  where one feature spans several top-level modules; the feature's main module becomes the slice package's
+  `__init__.py` (same module object, no shim). `kx.agents`: no moves (the brief's slices already exist one-to-one
+  as modules or folders).
+- **Deviations:** the brief suggests ten folders per package; the mapping explains why one-file features stay
+  files (no reader gain, an extra shim each). `followups/` is not created: the follow-ups are part of the one
+  handler table in `kx/automation/handlers.py`, and splitting that table is more than a move.
