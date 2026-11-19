@@ -229,7 +229,7 @@ other mapping files, and this table is updated with each move.
 | PUT | `/v1/users/{user_id}/availability` | `kx.crm.admin.router:router.<locals>.availability` | `kx.crm.assignment.service:set_availability` |
 | POST | `/v1/users/{user_id}/reset-mfa` | `kx.crm.auth.users_router:router.<locals>.reset_mfa` | `kx.crm.auth.service:reset_mfa` |
 | POST | `/v1/users/{user_id}/unlock` | `kx.crm.auth.users_router:router.<locals>.unlock` | `kx.crm.auth.service:unlock` |
-| POST | `/webhooks/cms` | `kx.automation.cms:build_router.<locals>.cms_published` | `kx.automation.outbox:emit`<br>`kx.automation.repo:first_receipt` |
+| POST | `/webhooks/cms` | `kx.automation.cms.service:build_router.<locals>.cms_published` | `kx.automation.outbox:emit`<br>`kx.automation.repo:first_receipt` |
 | POST | `/webhooks/telnyx/gather/{attempt_id}` | `kx.automation.inbound.webhooks:_telnyx_routes.<locals>.telnyx_gather` | `kx.automation.channels.calls:gather_reply_texml`<br>`kx.automation.channels.calls:verify_signature` |
 | POST | `/webhooks/telnyx/status/{attempt_id}` | `kx.automation.inbound.webhooks:_telnyx_routes.<locals>.telnyx_status` | `kx.automation.channels.calls:verify_signature` |
 | GET | `/webhooks/whatsapp` | `kx.automation.inbound.webhooks:_whatsapp_routes.<locals>.whatsapp_verify` | `kx.automation.channels.whatsapp:verify_challenge` |

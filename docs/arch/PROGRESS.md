@@ -742,3 +742,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 21.77s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** n/a (first slice of 2b; the previous head `917648d` passed: 992 tests)
+
+## 2b.2 slice `cms` — TESTING (COMPLETED when tagged `arch-slice/automation-cms`)
+
+- **Moved:** `cms.py` → `cms/service.py`; `cms/__init__.py` re-exports it (old path checked: 34 of 34 names); import rewritten in `arifaa_pack/api.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 431 files already formatted
+  - mypy: Success: no issues found in 269 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 23.61s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `scraping` @ `34e6b67`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-scraping`, COMPLETED
