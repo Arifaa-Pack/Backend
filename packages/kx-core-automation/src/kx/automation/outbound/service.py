@@ -32,7 +32,10 @@ from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.automation.channels import ChannelError, EmailTransport
+from kx.automation._shared.channels import ChannelError, EmailTransport
+from kx.automation._shared.outbox import emit
+from kx.automation._shared.ports import Clock, MediaStore, TaskScheduler, utc_now
+from kx.automation._shared.settings import AutomationSettings
 from kx.automation.email.channel import Attachment
 from kx.automation.models import (
     ChannelAccount,
@@ -44,10 +47,7 @@ from kx.automation.models import (
 )
 from kx.automation.outbound.contact_hours import WEEK, next_followup_slot
 from kx.automation.outbound.ratelimit import Bucket, Decision
-from kx.automation.outbox import emit
-from kx.automation.ports import Clock, MediaStore, TaskScheduler, utc_now
 from kx.automation.repo import ThreadRef, advisory_lock, channel_account, is_suppressed, upsert_thread
-from kx.automation.settings import AutomationSettings
 from kx.automation.whatsapp.channel import DocumentRef
 from kx.core.contracts import PRICED_KINDS, GrantConsumer, OutboundKind, OutboundRequest
 from kx.core.db import Databases

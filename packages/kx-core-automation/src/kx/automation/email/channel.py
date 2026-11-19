@@ -21,8 +21,8 @@ from typing import Any, Final, Protocol
 
 from selectolax.lexbor import LexborHTMLParser
 
-from kx.automation.channels import ChannelError
-from kx.automation.settings import SesSettings
+from kx.automation._shared.channels import ChannelError
+from kx.automation._shared.settings import SesSettings
 from kx.core.identity import normalise_email
 
 PROVIDER: Final = "ses"

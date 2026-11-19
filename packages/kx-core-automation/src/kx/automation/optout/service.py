@@ -16,8 +16,8 @@ from typing import Final
 from sqlalchemy import text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from kx.automation._shared.outbox import emit
 from kx.automation.models import OptOutLog
-from kx.automation.outbox import emit
 from kx.automation.repo import suppress, suppress_contact
 from kx.core.event_payloads import ConsentScope, OptedOut, StopSource
 from kx.core.identity import new_id

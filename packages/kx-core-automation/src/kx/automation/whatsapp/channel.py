@@ -10,8 +10,8 @@ from typing import Any, Final, Literal
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from kx.automation.channels import ChannelError, HttpRetry
-from kx.automation.settings import WhatsAppSettings
+from kx.automation._shared.channels import ChannelError, HttpRetry
+from kx.automation._shared.settings import WhatsAppSettings
 from kx.core.identity import constant_time_equals, hmac_sha256_hex, try_normalise_phone
 from kx.core.logging import get_logger
 

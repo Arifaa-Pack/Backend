@@ -17,11 +17,11 @@ from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from kx.automation._shared.outbox import emit
 from kx.automation.email.channel import InboundEmail
 from kx.automation.email.feedback import MailFeedback, candidate_ids
 from kx.automation.models import ChannelAccount, InboundMessage, OutboundMessage, OutboundStatus, Thread
 from kx.automation.optout import service as optout
-from kx.automation.outbox import emit
 from kx.automation.repo import (
     ThreadRef,
     account_by_address,

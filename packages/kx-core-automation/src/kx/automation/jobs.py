@@ -25,6 +25,9 @@ from typing import Any, Final, Protocol
 
 from sqlalchemy import func, select
 
+from kx.automation._shared.outbox import emit
+from kx.automation._shared.ports import MediaStore, SweepCallback, TaskScheduler
+from kx.automation._shared.settings import AutomationSettings
 from kx.automation.alerts.service import ApprovalLadder, LadderTicket, PauseAlerts
 from kx.automation.email.channel import parse_inbound
 from kx.automation.email.feedback import parse_feedback
@@ -34,10 +37,7 @@ from kx.automation.handlers import EventHandlers, stop_after_no_answer
 from kx.automation.inbound import service as inbound
 from kx.automation.models import SCHEMA, ChannelAccount, OutboundMessage
 from kx.automation.outbound.service import STUCK_ERROR, OutboundService, TransientDeliveryError
-from kx.automation.outbox import emit
-from kx.automation.ports import MediaStore, SweepCallback, TaskScheduler
 from kx.automation.scraping.service import PriceScraper
-from kx.automation.settings import AutomationSettings
 from kx.core.db import Databases
 from kx.core.event_payloads import DealNextActionSet, MessageStatus, NegotiationPaused, StopUnclear
 from kx.core.events import Event, Publisher, relay_once

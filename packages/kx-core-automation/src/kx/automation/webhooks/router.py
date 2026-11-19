@@ -16,11 +16,11 @@ from urllib.parse import parse_qsl
 import orjson
 from fastapi import APIRouter, Request, Response
 
+from kx.automation._shared.ports import MediaStore, TaskScheduler
+from kx.automation._shared.settings import AutomationSettings
 from kx.automation.alerts.service import VoiceAlerts, callback_urls
 from kx.automation.calls import channel as calls
 from kx.automation.inbound import service as inbound
-from kx.automation.ports import MediaStore, TaskScheduler
-from kx.automation.settings import AutomationSettings
 from kx.automation.whatsapp import channel as whatsapp
 from kx.core.db import Databases
 from kx.core.errors import Unauthorized

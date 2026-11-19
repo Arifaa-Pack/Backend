@@ -22,8 +22,8 @@ from urllib.parse import parse_qsl, quote
 
 from fastapi import APIRouter, Request, Response
 
+from kx.automation._shared.settings import AutomationSettings
 from kx.automation.optout import service as optout
-from kx.automation.settings import AutomationSettings
 from kx.core.db import Databases
 from kx.core.identity import constant_time_equals, hmac_sha256_hex, recipient_hash
 from kx.core.settings import LogicalDb

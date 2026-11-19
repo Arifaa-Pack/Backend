@@ -26,7 +26,7 @@ from typing import Final, Literal
 from fastapi import APIRouter, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from kx.automation.outbox import emit
+from kx.automation._shared.outbox import emit
 from kx.automation.repo import first_receipt
 from kx.core.db import Databases
 from kx.core.errors import RuleViolation, Unauthorized

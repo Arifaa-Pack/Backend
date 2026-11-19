@@ -1,68 +1,12 @@
-"""Protocols this package depends on. The app wires real implementations; tests inject fakes.
+"""Old path of `kx.automation._shared.ports` (moved by ADR-0001).
 
-Kept separate from implementations so services never import the job queue (jobs import services).
+This module is an alias of the new one (the same module object, so every name, private helper and monkeypatch
+still works); it is removed once nothing in this repository or the Arifaa Auto backend imports the old path.
 """
 
-from __future__ import annotations
+import sys
 
-import uuid
-from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from kx.automation._shared import ports as _moved
+from kx.automation._shared.ports import *  # noqa: F403
 
-from kx.core.event_payloads import DealNextActionSet, NegotiationPaused, StopUnclear
-
-if TYPE_CHECKING:
-    from kx.automation.alerts.service import LadderTicket
-
-Clock = Callable[[], datetime]
-
-
-def utc_now() -> datetime:
-    return datetime.now(UTC)
-
-
-@runtime_checkable
-class ApprovalStatusReader(Protocol):
-    """Implemented by the app over kx.crm: is this approval or change request still waiting for a person?
-
-    The ladder re-reads this before every step so a decided one never rings anyone's phone.
-    """
-
-    async def is_pending(self, approval_ref: uuid.UUID) -> bool: ...
-
-
-@runtime_checkable
-class MediaStore(Protocol):
-    """Object storage for quote PDFs, inbound media and raw inbound email (S3 in production)."""
-
-    async def get(self, key: str) -> bytes: ...
-    async def put(self, key: str, data: bytes, content_type: str) -> None: ...
-
-
-@runtime_checkable
-class TaskScheduler(Protocol):
-    """Deferral of background work. Implemented over the PostgreSQL schedule table
-    (`kx.automation.jobs.JobScheduler`, swept by Celery Beat)."""
-
-    async def enqueue_delivery(
-        self,
-        message_id: uuid.UUID,
-        *,
-        lock: str | None,
-        at: datetime | None,
-        template_params: tuple[str, ...] = (),
-    ) -> None: ...
-    async def schedule_ladder_step(self, ticket: LadderTicket, step: int, at: datetime) -> None: ...
-    async def pull_ladder_forward(self, ref: uuid.UUID) -> None: ...
-    async def schedule_followup(self, action: DealNextActionSet, at: datetime) -> None: ...
-    async def cancel_followups(self, deal_ref: uuid.UUID) -> int: ...
-    async def schedule_optout_check(self, unclear: StopUnclear, at: datetime) -> None: ...
-    async def cancel_optout_check(self, deal_ref: uuid.UUID) -> int: ...
-    async def schedule_pause_alert(self, paused: NegotiationPaused, at: datetime) -> None: ...
-    async def enqueue_media_ingest(self, inbound_id: uuid.UUID) -> None: ...
-    async def enqueue_email_ingest(self, key: str) -> None: ...
-    async def schedule_quote_delivery_check(self, message_id: uuid.UUID, at: datetime) -> None: ...
-
-
-SweepCallback = Callable[[datetime], Awaitable[None]]
+sys.modules[__name__] = _moved

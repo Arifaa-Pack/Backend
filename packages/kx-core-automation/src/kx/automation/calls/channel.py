@@ -29,9 +29,9 @@ import httpx
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-from kx.automation.channels import ChannelError, HttpRetry
+from kx.automation._shared.channels import ChannelError, HttpRetry
+from kx.automation._shared.settings import TelnyxSettings
 from kx.automation.models import CallStatus
-from kx.automation.settings import TelnyxSettings
 from kx.core import signed
 
 PROVIDER: Final = "telnyx"

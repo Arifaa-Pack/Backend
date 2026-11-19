@@ -6,8 +6,8 @@ from __future__ import annotations
 from sqlalchemy import select
 
 from kx.automation._shared.sending import _send_or_skip
+from kx.automation._shared.settings import AutomationSettings
 from kx.automation.models import ChannelAccount, Thread
-from kx.automation.settings import AutomationSettings
 from kx.core.contracts import MessageSender, OutboundKind, OutboundRequest
 from kx.core.db import Databases
 from kx.core.event_payloads import DealNextActionSet

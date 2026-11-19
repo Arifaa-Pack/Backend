@@ -907,3 +907,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed (after the path update of tests/unit/test_featuremap.py) =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `optout` @ `8cad49c`: tests=992, failures=0, errors=0, skipped=4, exit=0 → tagged `arch-slice/automation-optout-2b`, COMPLETED
+
+## 2b.13 slice `_shared` — TESTING (COMPLETED when tagged `arch-slice/automation-_shared`)
+
+- **Moved:** `outbox.py`, `ports.py`, `settings.py`, `media.py` → `_shared/`; the helpers in `channels/__init__.py` (ChannelError, the email transport Protocol, HTTP retry) → `_shared/channels.py` (`channels/__init__.py` re-exports them; its adapters' old paths stay alias shims); `_shared/sending.py` came with `followups`. All five old paths checked (every name reachable); 35 imports rewritten. Docstrings of `channels/__init__.py` and `_shared/channels.py` say where things are now.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 457 files already formatted
+  - mypy: Success: no issues found in 295 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 19.80s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `outbound` @ `b6a0d44`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-outbound-2b`, COMPLETED

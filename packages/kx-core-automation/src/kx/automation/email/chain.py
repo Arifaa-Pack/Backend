@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
-from kx.automation.channels import ChannelError, EmailTransport
+from kx.automation._shared.channels import ChannelError, EmailTransport
 from kx.core.fallback import AllVendorsFailed, FallbackChain
 
 EmailVendor = EmailTransport  # review D1: the one email Protocol lives in kx.automation.channels

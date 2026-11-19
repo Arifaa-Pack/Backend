@@ -17,11 +17,11 @@ from selectolax.lexbor import LexborHTMLParser
 from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from kx.automation.channels import ChannelError, HttpRetry
+from kx.automation._shared.channels import ChannelError, HttpRetry
+from kx.automation._shared.outbox import emit
+from kx.automation._shared.ports import Clock, utc_now
+from kx.automation._shared.settings import PriceSourceConfig
 from kx.automation.models import PriceObservation, ScrapeRun, ScrapeStatus
-from kx.automation.outbox import emit
-from kx.automation.ports import Clock, utc_now
-from kx.automation.settings import PriceSourceConfig
 from kx.core.db import Databases
 from kx.core.event_payloads import PriceProposed
 from kx.core.logging import get_logger
