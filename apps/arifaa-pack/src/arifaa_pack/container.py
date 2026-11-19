@@ -61,7 +61,7 @@ from kx.agents.website import LiveKitConfig, WebsiteDeps
 from kx.automation import jobs as auto_jobs
 from kx.automation import retention as automation_retention
 from kx.automation.alerts import ApprovalLadder, CallBridge, PauseAlerts, VoiceAlerts
-from kx.automation.channels.calls import TelnyxCaller
+from kx.automation.calls.channel import TelnyxCaller
 from kx.automation.channels.email import EmailSender
 from kx.automation.channels.email_chain import EmailChain, EmailVendor
 from kx.automation.channels.stalwart import JmapClient, MailboxPoller, StalwartSender

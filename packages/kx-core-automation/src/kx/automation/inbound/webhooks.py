@@ -18,7 +18,8 @@ from fastapi import APIRouter, Request, Response
 
 from kx.automation import inbound
 from kx.automation.alerts import VoiceAlerts, callback_urls
-from kx.automation.channels import calls, whatsapp
+from kx.automation.calls import channel as calls
+from kx.automation.channels import whatsapp
 from kx.automation.ports import MediaStore, TaskScheduler
 from kx.automation.settings import AutomationSettings
 from kx.core.db import Databases

@@ -56,7 +56,7 @@ other mapping files, and this table is updated with each move.
 | `kx.agents.voice:VoicePlugins` | `arifaa_pack.adapters:PlatformVoicePlugins` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.website:HumanCheck` | `arifaa_pack.adapters:TurnstileVerifier` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.website:PublicLimits` | `arifaa_pack.adapters:PublicLimiter` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
-| `kx.automation.alerts:Caller` | `kx.automation.channels.calls:TelnyxCaller` | `packages/kx-core-automation/src/kx/automation/channels/calls.py` |
+| `kx.automation.alerts:Caller` | `kx.automation.calls.channel:TelnyxCaller` | `packages/kx-core-automation/src/kx/automation/calls/channel.py` |
 | `kx.automation.alerts:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
 | `kx.automation.channels.email:SesV2Client` | - | - |
 | `kx.automation.channels:EmailTransport` | `kx.automation.channels.email:EmailSender`<br>`kx.automation.channels.email_chain:EmailChain`<br>`kx.automation.channels.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/channels/email.py`<br>`packages/kx-core-automation/src/kx/automation/channels/email_chain.py`<br>`packages/kx-core-automation/src/kx/automation/channels/stalwart.py` |
@@ -230,8 +230,8 @@ other mapping files, and this table is updated with each move.
 | POST | `/v1/users/{user_id}/reset-mfa` | `kx.crm.auth.users_router:router.<locals>.reset_mfa` | `kx.crm.auth.service:reset_mfa` |
 | POST | `/v1/users/{user_id}/unlock` | `kx.crm.auth.users_router:router.<locals>.unlock` | `kx.crm.auth.service:unlock` |
 | POST | `/webhooks/cms` | `kx.automation.cms.service:build_router.<locals>.cms_published` | `kx.automation.outbox:emit`<br>`kx.automation.repo:first_receipt` |
-| POST | `/webhooks/telnyx/gather/{attempt_id}` | `kx.automation.inbound.webhooks:_telnyx_routes.<locals>.telnyx_gather` | `kx.automation.channels.calls:gather_reply_texml`<br>`kx.automation.channels.calls:verify_signature` |
-| POST | `/webhooks/telnyx/status/{attempt_id}` | `kx.automation.inbound.webhooks:_telnyx_routes.<locals>.telnyx_status` | `kx.automation.channels.calls:verify_signature` |
+| POST | `/webhooks/telnyx/gather/{attempt_id}` | `kx.automation.inbound.webhooks:_telnyx_routes.<locals>.telnyx_gather` | `kx.automation.calls.channel:gather_reply_texml`<br>`kx.automation.calls.channel:verify_signature` |
+| POST | `/webhooks/telnyx/status/{attempt_id}` | `kx.automation.inbound.webhooks:_telnyx_routes.<locals>.telnyx_status` | `kx.automation.calls.channel:verify_signature` |
 | GET | `/webhooks/whatsapp` | `kx.automation.inbound.webhooks:_whatsapp_routes.<locals>.whatsapp_verify` | `kx.automation.channels.whatsapp:verify_challenge` |
 | POST | `/webhooks/whatsapp` | `kx.automation.inbound.webhooks:_whatsapp_routes.<locals>.whatsapp_events` | `kx.automation.channels.whatsapp:parse_webhook`<br>`kx.automation.channels.whatsapp:verify_signature`<br>`kx.automation.inbound:record_whatsapp` |
 

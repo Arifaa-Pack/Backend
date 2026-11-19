@@ -14,8 +14,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.automation.channels import ChannelError
-from kx.automation.channels.calls import (
+from kx.automation.calls.channel import (
     CALL_STATUS,
     PROVIDER,
     TERMINAL_STATUSES,
@@ -29,6 +28,7 @@ from kx.automation.channels.calls import (
     escalation_script,
     negotiation_paused_script,
 )
+from kx.automation.channels import ChannelError
 from kx.automation.models import CallAttempt, CallPurpose
 from kx.automation.ports import ApprovalStatusReader, Clock, TaskScheduler, utc_now
 from kx.automation.repo import advisory_lock, is_suppressed
