@@ -64,3 +64,10 @@ def test_the_reply_must_be_in_the_visitors_script() -> None:
     assert wrong_language("The 8325 is our classic container.", "ar")
     assert not wrong_language("الحاوية 8325 هي الأكثر طلبا.", "ar")
     assert not wrong_language("The 8325 is our classic container.", "en")  # Latin languages are not checked
+
+
+def test_the_buyers_own_words_may_be_repeated() -> None:
+    """Live test 20 Nov: the guard cut "...for 20,000 pieces a month..." although the buyer had said it."""
+    facts = facts_of([HumanMessage("We need about 20,000 pieces a month for our restaurants in Dubai.")])
+    assert unsupported("Noted: 20,000 pieces a month for Dubai. May I have your name?", facts) == []
+    assert unsupported("Noted: 20,000 pieces a month for Dubai.", "") == []  # demand, not our capacity

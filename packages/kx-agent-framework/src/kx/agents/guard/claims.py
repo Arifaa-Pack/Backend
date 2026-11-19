@@ -19,7 +19,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from typing import Any, Final
 
 from langchain.agents.middleware import AgentMiddleware, AgentState, ModelRequest, ModelResponse
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 
 from kx.agents.guard.service import with_note
 from kx.agents.runtime.context import AgentContext, GuardEventRecord
@@ -30,10 +30,11 @@ CERTIFICATES: Final = re.compile(
     r"|(?:شهادة|شهادات)\s+(?:الأيزو|ايزو|أيزو|حلال)",
     re.IGNORECASE,
 )
+# a production figure: a production word, then a number in the same sentence. "20,000 pieces a month" alone
+# is the buyer's demand, not our capacity (live test 20 Nov: the guard cut a reply repeating the buyer's need)
 CAPACITY: Final = re.compile(
-    r"(?:capacity|capacities|produce|production|output|طاقة|إنتاج)[^.!?؟\n]{0,80}?(\d[\d,.\s]*\d|\d)"
-    r"|(\d[\d,.]*)\s*(?:million\s+)?(?:pieces|pcs|containers|units|tons?|tonnes?)\s+(?:a|per|each)\s+"
-    r"(?:day|week|month|year|hour|shift)",
+    r"(?:capacity|capacities|produc(?:e|es|ed|ing|tion)|output|manufactur\w*|handle up to|طاقة|إنتاج)"
+    r"[^.!?؟\n]{0,80}?(\d[\d,.\s]*\d|\d)",
     re.IGNORECASE,
 )
 _SENTENCE: Final = re.compile(r"(?<=[.!?؟。])\s+|\n+")
@@ -49,8 +50,9 @@ CONFIRM: Final = {
 
 
 def facts_of(messages: Sequence[BaseMessage]) -> str:
-    """What the tools returned in this conversation (the only facts the model may cite)."""
-    return "\n".join(m.text for m in messages if isinstance(m, ToolMessage)).lower()
+    """What the tools returned in this conversation (the only facts the model may cite), and what the visitor
+    said (the model may repeat the visitor's own words)."""
+    return "\n".join(m.text for m in messages if isinstance(m, (ToolMessage, HumanMessage))).lower()
 
 
 def unsupported(text: str, facts: str) -> list[str]:
