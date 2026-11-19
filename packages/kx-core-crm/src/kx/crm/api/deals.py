@@ -29,6 +29,7 @@ from kx.crm.api.schemas import (
     StageMoveIn,
     TimelineOut,
 )
+from kx.crm.assignment import service as assignment
 from kx.crm.models import (
     Approval,
     ChangeRequest,
@@ -40,7 +41,7 @@ from kx.crm.models import (
     TimelineEvent,
     User,
 )
-from kx.crm.services import access, approvals, assignment, change_requests, negotiation, quotes
+from kx.crm.services import access, approvals, change_requests, negotiation, quotes
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.journal import Actor
 

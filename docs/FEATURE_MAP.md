@@ -169,7 +169,7 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/deals/{deal_id}` | `kx.crm.api.deals:router.<locals>.get_deal` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:requirements_of` |
 | POST | `/v1/deals/{deal_id}/ai` | `kx.crm.api.deals:router.<locals>.toggle_ai` | `kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:requirements_of`<br>`kx.crm.services.negotiation:pause_ai`<br>`kx.crm.services.negotiation:resume_ai` |
 | POST | `/v1/deals/{deal_id}/call` | `kx.crm.api.deal_actions:router.<locals>.call` | `kx.crm.handover.service:call_buyer`<br>`kx.crm.services.deals:get_deal` |
-| POST | `/v1/deals/{deal_id}/handback` | `kx.crm.api.assignment:router.<locals>.hand_back` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.assignment:hand_back` |
+| POST | `/v1/deals/{deal_id}/handback` | `kx.crm.assignment.router:router.<locals>.hand_back` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.assignment.service:hand_back` |
 | POST | `/v1/deals/{deal_id}/messages` | `kx.crm.api.deal_actions:router.<locals>.staff_message` | `kx.crm.handover.service:reply`<br>`kx.crm.services.deals:get_deal` |
 | POST | `/v1/deals/{deal_id}/offer` | `kx.crm.api.deals:router.<locals>.manager_offer` | `kx.crm.services.negotiation:manager_offer`<br>`kx.crm.services.negotiation:resume_ai` |
 | POST | `/v1/deals/{deal_id}/opt-out` | `kx.crm.api.deal_actions:router.<locals>.opt_out` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.contacts.consent:record_opt_out`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal` |
@@ -177,12 +177,12 @@ other mapping files, and this table is updated with each move.
 | POST | `/v1/deals/{deal_id}/personal-contact-shared` | `kx.crm.api.deal_actions:router.<locals>.personal_contact_shared` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:personal_contact_shared` |
 | GET | `/v1/deals/{deal_id}/quotes` | `kx.crm.api.deals:router.<locals>.deal_quotes` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |
 | POST | `/v1/deals/{deal_id}/quotes` | `kx.crm.api.deals:router.<locals>.request_quote` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:request_quote` |
-| POST | `/v1/deals/{deal_id}/quotes/manual` | `kx.crm.api.assignment:router.<locals>.manual_quote` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:manual_quote` |
+| POST | `/v1/deals/{deal_id}/quotes/manual` | `kx.crm.assignment.router:router.<locals>.manual_quote` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:manual_quote` |
 | POST | `/v1/deals/{deal_id}/quotes/revise` | `kx.crm.api.deals:router.<locals>.revise_quote` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:revise_quote` |
-| POST | `/v1/deals/{deal_id}/reassign` | `kx.crm.api.assignment:router.<locals>.reassign` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.assignment:reassign` |
+| POST | `/v1/deals/{deal_id}/reassign` | `kx.crm.assignment.router:router.<locals>.reassign` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.assignment.service:reassign` |
 | POST | `/v1/deals/{deal_id}/reopen` | `kx.crm.api.deal_actions:router.<locals>.reopen` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:reopen` |
-| POST | `/v1/deals/{deal_id}/stage` | `kx.crm.api.deals:router.<locals>.move` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.assignment:assign`<br>`kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:move_stage`<br>`kx.crm.services.deals:requirements_of` |
-| POST | `/v1/deals/{deal_id}/takeover` | `kx.crm.api.assignment:router.<locals>.take_over` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.assignment:take_over` |
+| POST | `/v1/deals/{deal_id}/stage` | `kx.crm.api.deals:router.<locals>.move` | `kx.crm.assignment.service:assign`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:move_stage`<br>`kx.crm.services.deals:requirements_of` |
+| POST | `/v1/deals/{deal_id}/takeover` | `kx.crm.assignment.router:router.<locals>.take_over` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.assignment.service:take_over` |
 | GET | `/v1/deals/{deal_id}/timeline` | `kx.crm.api.deals:router.<locals>.timeline` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of`<br>`kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |
 | POST | `/v1/deals/{deal_id}/won` | `kx.crm.api.deal_actions:router.<locals>.won` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.orders:mark_won` |
 | GET | `/v1/exports/{entity}` | `kx.crm.reports.router:router.<locals>.export` | `kx.crm.api.deals:visible_to` |
@@ -226,7 +226,7 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/users` | `kx.crm.auth.users_router:router.<locals>.list_users` | - |
 | POST | `/v1/users` | `kx.crm.auth.users_router:router.<locals>.create` | `kx.crm.auth.service:create_user` |
 | PATCH | `/v1/users/{user_id}` | `kx.crm.auth.users_router:router.<locals>.patch` | `kx.crm.services.journal:record` |
-| PUT | `/v1/users/{user_id}/availability` | `kx.crm.api.admin:router.<locals>.availability` | `kx.crm.services.assignment:set_availability` |
+| PUT | `/v1/users/{user_id}/availability` | `kx.crm.api.admin:router.<locals>.availability` | `kx.crm.assignment.service:set_availability` |
 | POST | `/v1/users/{user_id}/reset-mfa` | `kx.crm.auth.users_router:router.<locals>.reset_mfa` | `kx.crm.auth.service:reset_mfa` |
 | POST | `/v1/users/{user_id}/unlock` | `kx.crm.auth.users_router:router.<locals>.unlock` | `kx.crm.auth.service:unlock` |
 | POST | `/webhooks/cms` | `kx.automation.cms:build_router.<locals>.cms_published` | `kx.automation.outbox:emit`<br>`kx.automation.repo:first_receipt` |
