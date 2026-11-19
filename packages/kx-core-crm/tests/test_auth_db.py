@@ -434,6 +434,24 @@ async def test_wrong_passwords_lock_out_the_attacker_ip_not_the_staff_member(env
         ).scalar_one()
     assert locked["scope"] == "ip" and locked["ip"] == "203.0.113.9"
 
+    # an admin unlock also lifts the per-IP lockout at once (found in the 19 Nov live re-test: it used to wait
+    # the full lockout_minutes), and only for this account
+    other_email, other_password, _ = await new_user(env, "sales")
+    for _ in range(5):
+        await env.client.post(
+            "/v1/auth/login", json={"email": other_email, "password": "nope"}, headers=_from("203.0.113.9")
+        )
+    async with env.databases.transaction(LogicalDb.CRM) as s:
+        await svc.unlock(s, env.deps, user_id, Actor.system("test"))
+    again = await env.client.post("/v1/auth/login", json=right, headers=_from("203.0.113.9"))
+    assert again.status_code == 200, again.text
+    still = await env.client.post(
+        "/v1/auth/login",
+        json={"email": other_email, "password": other_password},
+        headers=_from("203.0.113.9"),
+    )
+    assert still.status_code == 429  # the other account's lockout from that IP is untouched
+
     # an unknown address is locked out the same way (no hint which addresses exist)
     ghost = {"email": "ghost@test.ae", "password": "wrong-password"}
     codes = [

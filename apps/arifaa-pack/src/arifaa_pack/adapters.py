@@ -474,6 +474,15 @@ class RedisAuthThrottle:
         except Exception:
             log.warning("auth_throttle.redis_unavailable", op="clear")
 
+    async def clear_prefix(self, prefix: str) -> None:
+        await self._local.clear_prefix(prefix)
+        try:
+            keys = [k async for k in self._redis.scan_iter(match=f"{self._prefix}:{prefix}*", count=500)]
+            if keys:
+                await self._redis.delete(*keys)
+        except Exception:
+            log.warning("auth_throttle.redis_unavailable", op="clear_prefix")
+
 
 class OpsNotifier:
     """D41 / D30 alert hook for `FallbackChain` and the voice fallback adapters: a vendor switch is logged and

@@ -655,6 +655,8 @@ async def reset_mfa(session: AsyncSession, deps: CrmDeps, user_id: uuid.UUID, ac
 async def unlock(session: AsyncSession, deps: CrmDeps, user_id: uuid.UUID, actor: Actor) -> None:
     user, cred = await _user_and_cred(session, user_id)
     cred.locked_until, cred.failed_attempts = None, 0
+    # M3: also the per-IP lockouts (a person locked out at the office signs in again at once, not in 15 min)
+    await deps.throttle.clear_prefix(f"fail:{account_key(str(user.email))}:")
     await session.flush()
     await record(session, actor, "auth.unlocked", "user", user.id)
 

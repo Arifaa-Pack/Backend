@@ -31,6 +31,11 @@ class AuthThrottle(Protocol):
 
     async def clear(self, key: str) -> None: ...
 
+    async def clear_prefix(self, prefix: str) -> None:
+        """Drop every counter whose key starts with `prefix` (an admin unlock clears the account's per-IP
+        lockouts, whichever IPs they came from)."""
+        ...
+
 
 def ip_key(ip: str | None) -> str:
     return ip or "unknown"
@@ -74,3 +79,7 @@ class MemoryThrottle:
 
     async def clear(self, key: str) -> None:
         self._counters.pop(key, None)
+
+    async def clear_prefix(self, prefix: str) -> None:
+        for key in [k for k in self._counters if k.startswith(prefix)]:
+            del self._counters[key]

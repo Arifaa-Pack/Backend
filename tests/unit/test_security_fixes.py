@@ -107,6 +107,9 @@ async def test_staff_sign_in_limits_survive_a_redis_outage() -> None:
     assert await throttle.count("fail:x") == 2
     await throttle.clear("fail:x")
     assert await throttle.count("fail:x") == 0
+    await throttle.bump("fail:acct:203.0.113.9", 60)
+    await throttle.clear_prefix("fail:acct:")  # admin unlock (19 Nov re-test): still works without Redis
+    assert await throttle.count("fail:acct:203.0.113.9") == 0
 
 
 async def test_memory_throttle_counters_expire_and_buckets_refill() -> None:
@@ -119,6 +122,15 @@ async def test_memory_throttle_counters_expire_and_buckets_refill() -> None:
     assert await throttle.bump("c", 900) == 1
     now[0] += 901
     assert await throttle.count("c") == 0 and await throttle.bump("c", 900) == 1
+    # an admin unlock clears one account's lockouts from every IP, and nobody else's
+    for key in ("fail:a:1.1.1.1", "fail:a:2.2.2.2", "fail:ab:1.1.1.1"):
+        await throttle.bump(key, 900)
+    await throttle.clear_prefix("fail:a:")
+    assert [await throttle.count(k) for k in ("fail:a:1.1.1.1", "fail:a:2.2.2.2", "fail:ab:1.1.1.1")] == [
+        0,
+        0,
+        1,
+    ]
 
 
 def test_public_buckets_add_a_global_turn_limit_and_sessions_per_ip_per_day() -> None:
