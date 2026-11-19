@@ -27,9 +27,9 @@ from sqlalchemy import func, select
 
 from kx.automation import inbound
 from kx.automation.alerts import ApprovalLadder, LadderTicket, PauseAlerts
-from kx.automation.channels.email import parse_inbound
-from kx.automation.channels.feedback import parse_feedback
-from kx.automation.channels.stalwart import MailboxPoller, raw_key
+from kx.automation.email.channel import parse_inbound
+from kx.automation.email.feedback import parse_feedback
+from kx.automation.email.stalwart import MailboxPoller, raw_key
 from kx.automation.handlers import EventHandlers, FollowUps, stop_after_no_answer
 from kx.automation.models import SCHEMA, ChannelAccount, OutboundMessage
 from kx.automation.outbound import STUCK_ERROR, OutboundService, TransientDeliveryError

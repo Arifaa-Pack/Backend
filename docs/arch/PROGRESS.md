@@ -802,3 +802,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 21.49s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `calls` @ `b29e430`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-calls`, COMPLETED
+
+## 2b.6 slice `email` — TESTING (COMPLETED when tagged `arch-slice/automation-email`)
+
+- **Moved:** `channels/email.py` → `email/channel.py`, `channels/stalwart.py` → `email/stalwart.py`, `channels/email_chain.py` → `email/chain.py`, `channels/feedback.py` → `email/feedback.py`; alias shims at the four old paths (all names reachable); 11 imports rewritten. The standard library `email` imports inside the folder still resolve to the standard library (absolute imports).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 442 files already formatted
+  - mypy: Success: no issues found in 280 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 18.72s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `whatsapp` @ `d76293e`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-whatsapp`, COMPLETED

@@ -58,8 +58,8 @@ other mapping files, and this table is updated with each move.
 | `kx.agents.website:PublicLimits` | `arifaa_pack.adapters:PublicLimiter` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.automation.alerts:Caller` | `kx.automation.calls.channel:TelnyxCaller` | `packages/kx-core-automation/src/kx/automation/calls/channel.py` |
 | `kx.automation.alerts:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
-| `kx.automation.channels.email:SesV2Client` | - | - |
-| `kx.automation.channels:EmailTransport` | `kx.automation.channels.email:EmailSender`<br>`kx.automation.channels.email_chain:EmailChain`<br>`kx.automation.channels.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/channels/email.py`<br>`packages/kx-core-automation/src/kx/automation/channels/email_chain.py`<br>`packages/kx-core-automation/src/kx/automation/channels/stalwart.py` |
+| `kx.automation.channels:EmailTransport` | `kx.automation.email.chain:EmailChain`<br>`kx.automation.email.channel:EmailSender`<br>`kx.automation.email.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/email/chain.py`<br>`packages/kx-core-automation/src/kx/automation/email/channel.py`<br>`packages/kx-core-automation/src/kx/automation/email/stalwart.py` |
+| `kx.automation.email.channel:SesV2Client` | - | - |
 | `kx.automation.jobs:MediaDownloader` | `kx.automation.whatsapp.channel:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/whatsapp/channel.py` |
 | `kx.automation.media:S3Client` | - | - |
 | `kx.automation.outbound:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
@@ -245,7 +245,7 @@ other mapping files, and this table is updated with each move.
 | `automation.alert_negotiation_paused` | `kx.automation.jobs:register_jobs.<locals>.pause_alert` | - |
 | `automation.deliver_outbound` | `kx.automation.jobs:register_jobs.<locals>.deliver` | - |
 | `automation.handle_event` | `kx.automation.jobs:register_jobs.<locals>.event` | - |
-| `automation.ingest_inbound_email` | `kx.automation.jobs:register_jobs.<locals>.email` | `kx.automation.channels.email:parse_inbound`<br>`kx.automation.channels.feedback:parse_feedback`<br>`kx.automation.inbound:record_email`<br>`kx.automation.inbound:record_mail_event` |
+| `automation.ingest_inbound_email` | `kx.automation.jobs:register_jobs.<locals>.email` | `kx.automation.email.channel:parse_inbound`<br>`kx.automation.email.feedback:parse_feedback`<br>`kx.automation.inbound:record_email`<br>`kx.automation.inbound:record_mail_event` |
 | `automation.ingest_whatsapp_media` | `kx.automation.jobs:register_jobs.<locals>.media` | `kx.automation.inbound:attach_media`<br>`kx.automation.inbound:media_id_of` |
 | `automation.optout_no_answer` | `kx.automation.jobs:register_jobs.<locals>.optout_check` | `kx.automation.handlers:stop_after_no_answer` |
 | `automation.quote_delivery_check` | `kx.automation.jobs:register_jobs.<locals>.quote_check` | - |
@@ -259,7 +259,7 @@ other mapping files, and this table is updated with each move.
 | --- | --- | --- | --- |
 | `app.heartbeat` | 0:00:30 | `arifaa_pack.container:_periodic.<locals>.beat_heartbeat` | `arifaa_pack.telemetry:heartbeat` |
 | `app.retention` | <crontab: 11 23 * * * (m/h/dM/MY/d)> | `arifaa_pack.container:_periodic.<locals>.retention_plumbing` | `kx.agents.retention:plumbing_rules`<br>`kx.agents.retention:run_retention`<br>`kx.automation.retention:plumbing_rules`<br>`kx.crm.retention.service:plumbing_rules` |
-| `automation.mail_poll` | 0:00:30 | `kx.automation.jobs:periodic_jobs.<locals>.mail_poll` | `kx.automation.channels.stalwart:raw_key` |
+| `automation.mail_poll` | 0:00:30 | `kx.automation.jobs:periodic_jobs.<locals>.mail_poll` | `kx.automation.email.stalwart:raw_key` |
 | `automation.price_scrapes` | <crontab: 0 2 * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.scrapes` | - |
 | `automation.requeue_outbound` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.requeue` | `kx.automation.outbox:emit` |
 | `crm.approval_sweep` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.sweep` | `kx.crm.approvals.service:sweep_overdue`<br>`kx.crm.change_requests.service:sweep_escalations` |

@@ -33,7 +33,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.automation.channels import ChannelError, EmailTransport
-from kx.automation.channels.email import Attachment
+from kx.automation.email.channel import Attachment
 from kx.automation.models import (
     ChannelAccount,
     InboundMessage,

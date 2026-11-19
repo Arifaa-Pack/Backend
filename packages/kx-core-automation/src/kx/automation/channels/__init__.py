@@ -15,7 +15,7 @@ from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait
 from tenacity.wait import wait_base
 
 if TYPE_CHECKING:  # channels.email imports ChannelError from here: no runtime cycle
-    from kx.automation.channels.email import Attachment
+    from kx.automation.email.channel import Attachment
 
 
 class ChannelError(Exception):

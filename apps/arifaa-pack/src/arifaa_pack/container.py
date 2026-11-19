@@ -62,9 +62,9 @@ from kx.automation import jobs as auto_jobs
 from kx.automation import retention as automation_retention
 from kx.automation.alerts import ApprovalLadder, CallBridge, PauseAlerts, VoiceAlerts
 from kx.automation.calls.channel import TelnyxCaller
-from kx.automation.channels.email import EmailSender
-from kx.automation.channels.email_chain import EmailChain, EmailVendor
-from kx.automation.channels.stalwart import JmapClient, MailboxPoller, StalwartSender
+from kx.automation.email.chain import EmailChain, EmailVendor
+from kx.automation.email.channel import EmailSender
+from kx.automation.email.stalwart import JmapClient, MailboxPoller, StalwartSender
 from kx.automation.handlers import EventHandlers, FollowUps
 from kx.automation.inbound.webhooks import WebhookDeps
 from kx.automation.jobs import AutomationRuntime, JobScheduler

@@ -1,48 +1,12 @@
-"""D44 email field: Stalwart (JMAP, relaying through SES) -> the SES v2 API, behind one `send()`.
+"""Old path of `kx.automation.email.chain` (moved by ADR-0001).
 
-`OutboundService` and the staff-code mailer call this like a single sender. The order is the field's vendor
-order (`kx.core.platform`, D41); a vendor whose breaker is open is skipped; each switch writes the
-`VendorSwitch` metric and alerts ops. When every vendor fails, the last error is raised as a `ChannelError`
-so the
-delivery job keeps its retry / give-up rules (and the CRM's own fallbacks take over: WhatsApp, the task).
+This module is an alias of the new one (the same module object, so every name, private helper and monkeypatch
+still works); it is removed once nothing in this repository or the Arifaa Auto backend imports the old path.
 """
 
-from __future__ import annotations
+import sys
 
-from collections.abc import Awaitable, Callable, Mapping, Sequence
-from typing import Any
+from kx.automation.email import chain as _moved
+from kx.automation.email.chain import *  # noqa: F403
 
-from kx.automation.channels import ChannelError, EmailTransport
-from kx.core.fallback import AllVendorsFailed, FallbackChain
-
-EmailVendor = EmailTransport  # review D1: the one email Protocol lives in kx.automation.channels
-
-
-class EmailChain:
-    def __init__(
-        self,
-        vendors: Mapping[str, EmailVendor],
-        chain: FallbackChain[str],
-        order: Callable[[], Awaitable[Sequence[str]]],
-    ) -> None:
-        self._vendors = dict(vendors)
-        self._chain = chain
-        self._order = order
-
-    async def send(self, **kwargs: Any) -> str:
-        order = [v for v in await self._order() if v in self._vendors]
-        retryable = False
-
-        async def call(name: str) -> str:
-            nonlocal retryable
-            try:
-                return await self._vendors[name].send(**kwargs)
-            except ChannelError as exc:
-                retryable = retryable or exc.retryable
-                raise
-
-        try:
-            _, message_id = await self._chain.run(order, call)
-        except AllVendorsFailed as exc:
-            raise ChannelError("email", str(exc.errors)[:300], retryable=retryable) from exc
-        return message_id
+sys.modules[__name__] = _moved
