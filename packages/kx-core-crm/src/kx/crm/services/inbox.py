@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Final, Literal
 
 from sqlalchemy import and_, or_, select
@@ -24,7 +24,9 @@ ItemKind = Literal[
     "pricing_needed",
     "lost_proposal",
     "buyer_message",
+    "unverified_email",  # M8: an email that failed SPF/DKIM/DMARC, for staff to check
 ]
+UNVERIFIED_DAYS: Final = 7
 _TASKS: Final[dict[str, ItemKind]] = {
     "below_range_review": "below_minimum",
     "pricing_needed": "pricing_needed",
@@ -143,6 +145,26 @@ async def inbox_for(session: AsyncSession, p: Principal, now: datetime, limit: i
         assert ev.deal_id is not None
         items.append(
             InboxItem("buyer_message", str(ev.id), ev.deal_id, number, ev.summary[:200], None, ev.at, False)
+        )
+
+    # M8: emails whose sender could not be verified (last 7 days), whatever the AI status of the deal
+    u_stmt = (
+        select(TimelineEvent, Deal.number)
+        .join(Deal, Deal.id == TimelineEvent.deal_id)
+        .where(
+            TimelineEvent.kind == "message_in_unverified",
+            TimelineEvent.at >= now - timedelta(days=UNVERIFIED_DAYS),
+        )
+        .order_by(TimelineEvent.at.desc())
+    )
+    if who is not None:
+        u_stmt = u_stmt.where(Deal.owner_user_id.in_(who))
+    for ev, number in (await session.execute(u_stmt.limit(limit))).tuples():
+        assert ev.deal_id is not None
+        items.append(
+            InboxItem(
+                "unverified_email", str(ev.id), ev.deal_id, number, ev.summary[:200], None, ev.at, False
+            )
         )
 
     items.sort(key=lambda i: (i.due_at is None, i.due_at or i.created_at))

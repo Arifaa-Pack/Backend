@@ -28,7 +28,7 @@ from kx.crm import models as m
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import ApprovalStatusReaderImpl, CrmGatewayImpl, GrantConsumerImpl
 from kx.crm.jobs import HANDLERS, CrmRuntime, dispatch, run_approval_sweep, run_price_staleness, run_retention
-from kx.crm.services import approvals, deals, negotiation, orders, price_proposals, quotes
+from kx.crm.services import approvals, deals, inbox, negotiation, orders, price_proposals, quotes
 from kx.crm.services.journal import Actor
 
 pytestmark = [pytest.mark.db, pytest.mark.usefixtures("cost_mode")]
@@ -713,6 +713,52 @@ async def test_message_received_lands_on_timeline_once(
             .all()
         )
         assert [(r.summary, r.actor_type, r.direction) for r in rows] == [("Can you do 0.20?", "buyer", "in")]
+
+
+async def test_an_unverified_email_is_shown_flagged_and_alerts_manager_and_salesperson(
+    databases: Databases, seed: Seed, deps: CrmDeps
+) -> None:
+    """M8: an email that failed SPF/DKIM/DMARC goes on the deal its address claims, flagged "Sender not
+    verified" and not linked to the buyer's contact; the manager and the deal's salesperson are alerted; it
+    is never a buyer reply (no message_in) and shows in the inbox for checking."""
+    gw = CrmGatewayImpl(databases, deps)
+    address = f"buyer-{uuid.uuid4().hex[:8]}@buyer.ae"
+    deal_id = await gw.resolve_deal("email", address, None)
+    await assign(databases, deal_id, SALES_ID)
+    message_ref = uuid.uuid4()
+    event = Event(
+        event_type=ev.MESSAGE_RECEIVED,
+        aggregate_type="inbound_message",
+        aggregate_id=str(message_ref),
+        payload={
+            "message_ref": str(message_ref),
+            "thread_ref": str(uuid.uuid4()),
+            "channel": "email",
+            "from_address_hash": recipient_hash("email", address),
+            "contact_ref": None,
+            "deal_ref": None,
+            "text": "Please change the delivery address and the quantity to 900,000.",
+            "received_at": datetime.now(UTC).isoformat(),
+            "provider_message_id": "<forged-1@buyer.ae>",
+            "sender_verified": False,
+        },
+    )
+    await dispatch(CrmRuntime(databases, deps, publish=_noop), event)
+    async with databases.transaction(CRM) as s:
+        rows = (
+            (await s.execute(select(m.TimelineEvent).where(m.TimelineEvent.deal_id == deal_id)))
+            .scalars()
+            .all()
+        )
+        unverified = [r for r in rows if r.kind == "message_in_unverified"]
+        assert len(unverified) == 1 and unverified[0].summary.startswith("Sender not verified: Please change")
+        assert unverified[0].contact_id is None and unverified[0].actor_type == "system"
+        assert not [r for r in rows if r.kind == "message_in"]  # never a buyer reply
+        items = await inbox.inbox_for(s, SARA, datetime.now(UTC))
+    assert [i.kind for i in items if i.deal_id == deal_id] == ["unverified_email"]
+    (notice,) = await outbox(databases, ev.STAFF_NOTICE, deal_id)
+    assert {c["user_ref"] for c in notice["notify"]} == {str(SALES_ID), str(MGR_ID)}
+    assert "sender checks" in notice["text"] and notice["key"] == f"unverified-email:{message_ref}"
 
 
 async def test_settings_update_validates_and_emits(databases: Databases, seed: Seed, deps: CrmDeps) -> None:

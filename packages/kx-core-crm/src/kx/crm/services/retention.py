@@ -49,6 +49,16 @@ async def anonymise_contact(session: AsyncSession, contact: Contact, reason: str
         .where(TimelineEvent.contact_id == contact.id, TimelineEvent.kind.in_(MESSAGE_KINDS))
         .values(summary="[removed under retention policy]")
     )
+    # M8: unverified emails sit on the buyer's deal without the contact (never linked by address alone)
+    await session.execute(
+        update(TimelineEvent)
+        .where(
+            TimelineEvent.kind == "message_in_unverified",
+            TimelineEvent.deal_id.in_(select(Deal.id).where(Deal.primary_contact_id == contact.id)),
+        )
+        .values(summary="[removed under retention policy]")
+        .execution_options(synchronize_session=False)
+    )
     # D8: the AI's summary of the conversation is a copy of what the buyer said (the transcripts are deleted)
     await session.execute(
         update(Deal)

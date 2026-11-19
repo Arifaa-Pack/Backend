@@ -132,6 +132,9 @@ class AgentHandlers:
 
     async def _message(self, event: Event) -> None:
         m = parse_payload(event, MessageReceived)
+        if not m.sender_verified:  # M8: a forged sender gets no AI answer (staff review it)
+            log.info("agents.unverified_sender_no_reply", message_ref=str(m.message_ref))
+            return
         addr = await self.addresses.for_thread(m.thread_ref)
         deal_ref = m.deal_ref
         if deal_ref is None and addr is not None:
@@ -166,7 +169,7 @@ class AgentHandlers:
         if event.event_type != ev.MESSAGE_RECEIVED:
             return
         m = parse_payload(event, MessageReceived)
-        if m.opted_out or not m.text.strip():
+        if m.opted_out or not m.sender_verified or not m.text.strip():
             return
         addr = await self.addresses.for_thread(m.thread_ref)
         deal_ref = m.deal_ref

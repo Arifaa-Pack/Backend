@@ -196,6 +196,9 @@ class MessageReceived(EventPayload):
     stop_in_sentence: bool = False
     stop_language: str | None = None  # language of the matched stop word (confirmation language)
     profile_name: str | None = None  # §8.2: the WhatsApp profile name shown when the buyer replies
+    # M8: False = an email whose SPF/DKIM/DMARC did not pass. Stored and shown to staff flagged "sender not
+    # verified"; the AI does not answer it, it never stops messages by rule and is not linked to a contact.
+    sender_verified: bool = True
 
 
 ConsentScope = Literal["all", "whatsapp", "email", "phone"]

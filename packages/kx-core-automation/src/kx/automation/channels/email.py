@@ -153,9 +153,38 @@ class InboundEmail:
     in_reply_to: str | None
     received_at: datetime
     attachments: tuple[Attachment, ...]
+    sender_verified: bool = True  # M8: False = DMARC (or SPF and DKIM) did not pass; see sender_verified()
 
 
-def parse_inbound(raw: bytes, *, fallback_id: str) -> InboundEmail:
+_AR_COMMENT: Final = re.compile(r"\([^()]*\)")
+_AR_RESULT: Final = re.compile(r"^\s*([a-z0-9_-]+)(?:/[0-9]+)?\s*=\s*([a-z]+)")
+
+
+def _authserv_id(header: str) -> str:
+    return (_AR_COMMENT.sub(" ", header).split(";", 1)[0].split() or [""])[0].lower()
+
+
+def sender_verified(msg: EmailMessage, authserv_id: str = "") -> bool:
+    """M8 (security review 19 Nov): may we trust the From address? Read from the `Authentication-Results`
+    header our own mail server (Stalwart) adds on receipt (RFC 8601). With `authserv_id` (Stalwart's host
+    name) only a header with that id counts, so a header the sender wrote into the message is ignored;
+    without it only the topmost header counts (the receiving server prepends its own). Trusted when DMARC
+    is `pass`; with no DMARC result, when SPF or DKIM passes. No header at all = not verified."""
+    headers = [str(h) for h in msg.get_all("Authentication-Results", [])]
+    if authserv_id:
+        headers = [h for h in headers if _authserv_id(h) == authserv_id.lower()]
+    if not headers:
+        return False
+    results: dict[str, set[str]] = {}
+    for part in _AR_COMMENT.sub(" ", headers[0]).split(";")[1:]:
+        if (m := _AR_RESULT.match(part.lower())) is not None:
+            results.setdefault(m.group(1), set()).add(m.group(2))
+    if "dmarc" in results:
+        return "pass" in results["dmarc"]
+    return "pass" in results.get("spf", set()) or "pass" in results.get("dkim", set())
+
+
+def parse_inbound(raw: bytes, *, fallback_id: str, authserv_id: str = "") -> InboundEmail:
     msg = message_from_bytes(raw, policy=policy.default)
     name, address = parseaddr(str(msg.get("From", "")))
     received = msg.get("Date")
@@ -169,6 +198,7 @@ def parse_inbound(raw: bytes, *, fallback_id: str) -> InboundEmail:
         in_reply_to=str(v).strip() if (v := msg.get("In-Reply-To")) else None,
         received_at=parsedate_to_datetime(str(received)).astimezone(UTC) if received else datetime.now(UTC),
         attachments=tuple(_attachments(msg)),
+        sender_verified=sender_verified(msg, authserv_id),
     )
 
 

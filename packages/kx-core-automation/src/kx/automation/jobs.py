@@ -308,7 +308,7 @@ async def _ingest_email(rt: AutomationRuntime, key: str) -> None:
         async with rt.databases.transaction(LogicalDb.AUTOMATION) as s:
             await inbound.record_mail_event(s, feedback)
         return
-    mail = parse_inbound(raw, fallback_id=key)
+    mail = parse_inbound(raw, fallback_id=key, authserv_id=rt.settings.stalwart.authserv_id)  # M8
     folder = f"email/{sha256_hex(mail.message_id.encode())[:24]}"  # deterministic: retries overwrite
     keys: list[str] = []
     for i, attachment in enumerate(mail.attachments):

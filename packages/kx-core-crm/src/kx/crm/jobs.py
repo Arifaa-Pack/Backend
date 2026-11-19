@@ -33,6 +33,7 @@ from kx.core.event_payloads import (
     PriceProposed,
     ProductPublished,
     QuoteNotDelivered,
+    StaffNotice,
     parse_payload,
 )
 from kx.core.events import Event, Publisher, inbox_once, relay_once
@@ -56,6 +57,7 @@ from kx.crm.services import (
     quotes,
     retention,
     scheduled_reports,
+    staff,
     summary,
 )
 from kx.crm.services import deals as deal_svc
@@ -67,6 +69,7 @@ _SIGNAL: Final[dict[str, phone.Signal]] = {"delivered": "delivered", "read": "re
 EventHandler = Callable[[AsyncSession, CrmDeps, Event], Awaitable[None]]
 SUMMARY_CHARS: Final = 500
 AI_SUMMARY_CHARS: Final = 1200
+UNVERIFIED_KIND: Final = "message_in_unverified"  # M8 timeline kind: shown flagged, never a buyer reply
 
 
 @dataclass(frozen=True, slots=True)
@@ -174,6 +177,9 @@ UNMATCHED_RETRY_WINDOW: Final = timedelta(seconds=60)
 async def on_message_received(session: AsyncSession, deps: CrmDeps, event: Event) -> None:
     """Inbound buyer message -> deal timeline (text truncated; full chat stays in automation/agents)."""
     m = parse_payload(event, MessageReceived)
+    if not m.sender_verified:
+        await _unverified_message(session, m)
+        return
     deal = await _deal_for_message(session, m)
     if deal is None:
         # D-3 (live test 18 Nov): the first message of a new buyer arrives while the agents are still creating
@@ -339,6 +345,55 @@ async def _latest_deal(session: AsyncSession, contact_id: uuid.UUID) -> Deal | N
         .limit(1)
     )
     return (await session.execute(stmt)).scalar_one_or_none()
+
+
+async def _unverified_message(session: AsyncSession, m: MessageReceived) -> None:
+    """M8: an email whose SPF/DKIM/DMARC did not pass. It goes on the timeline of the deal its address
+    claims, flagged and not attributed to the contact (no contact update, no buyer-reply signal), and the
+    manager and that deal's salesperson are alerted. Automation already skipped the stop rule; the agents
+    do not answer it."""
+    claimed = await _deal_for_message(session, m)  # by the address only: to show it, never to act on it
+    manager = await staff.manager_user(session)
+    owner = await staff.owner_of(session, claimed) if claimed is not None else None
+    notify = tuple({u.id: staff.staff_contact(u) for u in (owner, manager) if u is not None}.values())
+    where = f"Deal {claimed.number}" if claimed is not None else "Sales inbox"
+    entity = ("deal", claimed.id) if claimed is not None else ("inbound_message", m.message_ref)
+    await record(
+        session,
+        Actor.system("inbound"),
+        "message.received_unverified",
+        entity[0],
+        entity[1],
+        after={"sender_verified": False, "message_ref": str(m.message_ref)},
+        timeline=(
+            Timeline(
+                UNVERIFIED_KIND,
+                f"Sender not verified: {m.text}"[:SUMMARY_CHARS],
+                claimed.id,
+                None,  # not linked to the buyer's contact by the address alone
+                channel=m.channel,
+                direction="in",
+                ref_type="inbound_message",
+                ref_id=str(m.message_ref),
+                actor_type="system",
+                at=m.received_at,
+            )
+            if claimed is not None
+            else None
+        ),
+        emit=Emit(
+            ev.STAFF_NOTICE,
+            entity[0],
+            entity[1],
+            StaffNotice(
+                deal_ref=claimed.id if claimed is not None else None,
+                notify=notify,
+                text=f"{where}: an email failed the sender checks (SPF/DKIM/DMARC) and may be forged. The AI "
+                "did not answer it and nothing was changed automatically; please check it.",
+                key=f"unverified-email:{m.message_ref}",
+            ),
+        ),
+    )
 
 
 async def _deal_for_message(session: AsyncSession, m: MessageReceived) -> Deal | None:

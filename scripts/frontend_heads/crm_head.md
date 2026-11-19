@@ -132,6 +132,11 @@ Public key for verifying tokens elsewhere: `GET /.well-known/jwks.json`.
   `limit` (1-100) to get the next page. Smaller lists are plain arrays.
 * There is no push channel to the CRM in v1: refresh the inbox and the open deal by polling (for example every
   30 seconds while visible). Staff also get WhatsApp / email alerts (§16).
+* **Unverified emails** (security review M8, 19 Nov): an inbound email whose sender failed SPF / DKIM / DMARC
+  is shown on the deal its address claims as timeline kind `message_in_unverified` (summary starts
+  "Sender not verified:", no contact attached) and in `GET /v1/inbox` as kind `unverified_email` for 7 days.
+  Show it with a clear "sender not verified" warning. The AI did not answer it and nothing changed
+  automatically (no opt-out, no contact update); the manager and the deal's salesperson got an alert.
 
 ---
 

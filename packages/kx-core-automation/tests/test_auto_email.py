@@ -371,3 +371,41 @@ async def test_stalwart_v1_submission_cap_is_pruned_and_the_same_email_resubmitt
         "EmailSubmission/set:['destroy']",
         "EmailSubmission/set:['create']",
     ]
+
+
+def _with_auth(*results: str, body: bytes = RAW_REPLY) -> bytes:
+    """RAW_REPLY with Authentication-Results headers on top (the first one is the receiving server's)."""
+    head = b"".join(f"Authentication-Results: {r}\n".encode() for r in results)
+    return head + body
+
+
+@pytest.mark.parametrize(
+    ("results", "authserv_id", "verified"),
+    [
+        (
+            ("mail.arifapack.com; dkim=pass header.d=buyer.ae; spf=pass; dmarc=pass header.from=buyer.ae",),
+            "",
+            True,
+        ),
+        (
+            ("mail.arifapack.com; spf=pass smtp.mailfrom=buyer.ae; dkim=fail; dmarc=fail (p=reject)",),
+            "",
+            False,
+        ),
+        (("mail.arifapack.com; spf=pass smtp.mailfrom=buyer.ae",), "", True),  # no DMARC result: SPF passed
+        (("mail.arifapack.com; dkim=pass (good signature) header.d=buyer.ae; spf=softfail",), "", True),
+        (("mail.arifapack.com; spf=fail; dkim=none",), "", False),  # no DMARC, SPF and DKIM both fail
+        (("mail.arifapack.com; none",), "", False),
+        ((), "", False),  # no header at all
+        # a sender wrote a "pass" header into the message; ours (with our authserv-id) says fail
+        (("evil.example; dmarc=pass", "mail.arifapack.com; dmarc=fail"), "mail.arifapack.com", False),
+        (("mail.arifapack.com 1; dmarc=pass", "evil.example; dmarc=fail"), "mail.arifapack.com", True),
+        (("evil.example; dmarc=pass",), "mail.arifapack.com", False),  # only a forged header
+    ],
+)
+def test_sender_verified_from_authentication_results(
+    results: tuple[str, ...], authserv_id: str, verified: bool
+) -> None:
+    """M8: DMARC pass, or (no DMARC result) SPF or DKIM pass; only our server's header counts."""
+    mail = parse_inbound(_with_auth(*results), fallback_id="k", authserv_id=authserv_id)
+    assert mail.sender_verified is verified

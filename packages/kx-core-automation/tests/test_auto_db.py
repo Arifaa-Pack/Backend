@@ -533,6 +533,58 @@ async def test_email_ingest_stores_attachments_and_announces(auto_db: Any) -> No
     assert event.payload["channel"] == "email" and event.payload["text"].startswith("Re: Your quote Q-1045")
 
 
+_STOP_MAIL = (
+    b"From: Ahmed Khan <ahmed@buyer.ae>\nTo: sales@arifapack.com\nSubject: stop\n"
+    b"Message-ID: <{mid}@buyer.ae>\nDate: Tue, 03 Nov 2026 10:15:00 +0400\n"
+    b"Content-Type: text/plain\n\nSTOP"
+)
+
+
+@pytest.mark.parametrize(
+    ("auth", "verified"),
+    [
+        (b"Authentication-Results: mail.arifapack.com; spf=pass; dkim=pass; dmarc=pass\n", True),
+        (b"Authentication-Results: mail.arifapack.com; spf=fail; dkim=none; dmarc=fail\n", False),
+        (b"", False),
+    ],
+)
+async def test_an_unverified_email_never_stops_messages_and_is_not_linked(
+    auto_db: Any, auth: bytes, verified: bool
+) -> None:
+    """M8: "STOP" from a forged From address must not opt the real buyer out. The mail is still stored and
+    announced, flagged, without the buyer's contact or deal (never linked by the address alone)."""
+    mid = uuid.uuid4().hex
+    raw = auth + _STOP_MAIL.replace(b"{mid}", mid.encode())
+    published: list[Event] = []
+    rt = runtime(auto_db, published, FakeMedia(), FakeMedia({"inbound/stop": raw}))
+    await sql(
+        auto_db,
+        "INSERT INTO threads (channel_account_id, external_key, contact_ref, deal_ref) "
+        "SELECT id, 'ahmed@buyer.ae', :c, :d FROM channel_accounts WHERE channel = 'email'",
+        c=uuid.uuid4(),
+        d=uuid.uuid4(),
+    )
+    await jobs._ingest_email(rt, "inbound/stop")
+    stops = await sql(
+        auto_db,
+        "SELECT count(*) FROM suppressions WHERE address_hash = :h",
+        h=recipient_hash("email", "ahmed@buyer.ae"),
+    )
+    assert (stops[0][0] > 0) is verified
+    stored = await sql(
+        auto_db,
+        "SELECT raw->>'sender_verified' FROM inbound_messages WHERE provider_message_id = :m",
+        m=f"<{mid}@buyer.ae>",
+    )
+    assert stored == [(str(verified).lower(),)]
+    await jobs.relay_all(rt)
+    (received,) = [e for e in published if e.event_type == ev.MESSAGE_RECEIVED]
+    assert received.payload["sender_verified"] is verified
+    assert (received.payload["deal_ref"] is not None) is verified
+    assert (received.payload["contact_ref"] is not None) is verified
+    assert received.payload["opted_out"] is verified
+
+
 # ---------------------------------------------------------------- WP7: final quote (§14.5, §17)
 async def test_final_quote_is_sent_then_the_salesperson_alerted_and_the_manager_notified(
     auto_db: Any, clock: Clock

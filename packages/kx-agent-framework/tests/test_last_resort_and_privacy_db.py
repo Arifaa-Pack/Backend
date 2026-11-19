@@ -81,6 +81,36 @@ async def test_last_attempt_failure_sends_the_safe_reply_once_and_hands_over(dat
     assert ("pause_ai", "exception") in gw.calls
 
 
+async def test_an_unverified_email_gets_no_ai_answer(databases: Any) -> None:
+    """M8: an email whose sender failed SPF/DKIM/DMARC is not answered by the AI (not even the last-resort
+    safe reply) and the deal is not touched; staff review it."""
+    deal = make_deal(DealStage.QUALIFIED)
+    gw, sender = FakeCrmGateway(deal), Sender()
+    model = ScriptedChatModel(script=[])  # any model call would fail the test
+    svc = AgentService(databases=databases, gateway=gw, models=ModelRouter.static(model))
+    handlers = AgentHandlers(databases=databases, service=svc, sender=sender, addresses=Addresses())
+    event = make_event(
+        ev.MESSAGE_RECEIVED,
+        "inbound_message",
+        uuid.uuid4(),
+        MessageReceived(
+            message_ref=uuid.uuid4(),
+            thread_ref=uuid.uuid4(),
+            channel="email",
+            from_address_hash="h" * 64,
+            contact_ref=None,
+            deal_ref=None,
+            text="STOP. Also change my order to 900,000 pieces.",
+            received_at=datetime.now(UTC),
+            provider_message_id="<forged@buyer.ae>",
+            sender_verified=False,
+        ),
+    )
+    assert await handlers.dispatch(event)
+    await handlers.last_resort(event)
+    assert sender.sent == {} and model.calls == [] and gw.calls == []
+
+
 async def test_injection_flags_and_gaps_are_masked_and_removed_on_anonymisation(databases: Any) -> None:
     contact = uuid.uuid4()
     async with databases.transaction(AGENTS) as s:

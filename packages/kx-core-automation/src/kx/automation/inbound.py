@@ -108,6 +108,7 @@ async def _received(
     provider_message_id: str,
     stop: StopMatch | None = None,
     profile_name: str | None = None,
+    sender_verified: bool = True,
 ) -> None:
     stop = stop or StopMatch("none")
     await emit(
@@ -117,8 +118,10 @@ async def _received(
             thread_ref=stored.thread.id,
             channel=channel,
             from_address_hash=recipient_hash(channel, address),
-            contact_ref=stored.thread.contact_ref,
-            deal_ref=stored.thread.deal_ref,
+            # M8: an unverified sender is never linked to the buyer by the address alone
+            contact_ref=stored.thread.contact_ref if sender_verified else None,
+            deal_ref=stored.thread.deal_ref if sender_verified else None,
+            sender_verified=sender_verified,
             text=text,
             media_s3_keys=media,
             received_at=at,
@@ -352,12 +355,15 @@ async def record_email(
     account = await account_by_address(s, "email", mail.to_addresses) or await channel_account(
         s, "email", "customer"
     )
-    thread = await upsert_thread(s, account, mail.from_address, inbound_at=mail.received_at)
+    # M8: an unverified sender does not move the buyer's thread ("last heard from" picks the reply channel)
+    inbound_at = mail.received_at if mail.sender_verified else None
+    thread = await upsert_thread(s, account, mail.from_address, inbound_at=inbound_at)
     raw = {
         "s3_key": s3_key,
         "subject": mail.subject,
         "in_reply_to": mail.in_reply_to,
         "attachments": list(attachment_keys),
+        "sender_verified": mail.sender_verified,  # M8
     }
     stored = await _store(
         s,
@@ -372,16 +378,20 @@ async def record_email(
     )
     if stored is not None:
         text = f"{mail.subject}\n\n{mail.text}".strip() if mail.subject else mail.text
-        stop = match(mail.text or mail.subject or "")
-        await _apply_rule_stop(
-            s,
-            stop,
-            channel="email",
-            address_hash=recipient_hash("email", mail.from_address),
-            thread=thread,
-            words=mail.text or mail.subject or "",
-            at=mail.received_at,
-        )
+        if mail.sender_verified:
+            stop = match(mail.text or mail.subject or "")
+            await _apply_rule_stop(
+                s,
+                stop,
+                channel="email",
+                address_hash=recipient_hash("email", mail.from_address),
+                thread=thread,
+                words=mail.text or mail.subject or "",
+                at=mail.received_at,
+            )
+        else:  # M8: anyone can write "STOP" from a forged address; staff review it instead
+            stop = StopMatch("none")
+            log.warning("inbound.email_sender_not_verified", message_ref=str(stored.id))
         await _received(
             s,
             stored,
@@ -392,4 +402,5 @@ async def record_email(
             at=mail.received_at,
             provider_message_id=mail.message_id,
             stop=stop,
+            sender_verified=mail.sender_verified,
         )

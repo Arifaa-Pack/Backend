@@ -50,6 +50,10 @@ class StalwartSettings(_Group):
     password: SecretStr = SecretStr("")
     timeout_seconds: float = 15.0
     poll_batch: int = 25
+    # M8: the authserv-id Stalwart writes in its Authentication-Results header (its host name, e.g.
+    # mail.arifapack.com). Set it so a header the sender forged into the message is never read; empty =
+    # only the topmost header counts.
+    authserv_id: str = ""
 
     @property
     def enabled(self) -> bool:
