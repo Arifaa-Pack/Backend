@@ -27,7 +27,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core import events as ev
 from kx.core.auth import Principal
 from kx.core.contracts import ChangeField, ChangeType
-from kx.core.errors import Conflict, NotFound, RuleViolation
+from kx.core.db import get_or_404
+from kx.core.errors import Conflict, RuleViolation
 from kx.core.event_payloads import ChangeRequestClosed, ChangeRequested
 from kx.core.identity import new_id
 from kx.crm.deps import CrmDeps
@@ -195,9 +196,7 @@ async def reroute(session: AsyncSession, deps: CrmDeps, deal: Deal, actor: Actor
 
 
 async def _card(session: AsyncSession, cr_id: uuid.UUID, *, lock: bool = True) -> tuple[ChangeRequest, Deal]:
-    cr = await session.get(ChangeRequest, cr_id, with_for_update=lock)
-    if cr is None:
-        raise NotFound(f"change request {cr_id} not found")
+    cr = await get_or_404(session, ChangeRequest, cr_id, f"change request {cr_id} not found", lock=lock)
     return cr, await deal_svc.get_deal(session, cr.deal_id)
 
 

@@ -18,6 +18,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
+from kx.core.errors import NotFound
 from kx.core.settings import CoreSettings, LogicalDb
 
 NAMING = {
@@ -104,3 +105,14 @@ class Databases:
     async def dispose(self) -> None:
         for engine in self._engines.values():
             await engine.dispose()
+
+
+async def get_or_404[M](
+    session: AsyncSession, model: type[M], key: Any, message: str, *, lock: bool = False
+) -> M:
+    """The row by primary key, or NotFound(message) (review §3.2: ~25 places wrote these three lines; the
+    message is passed whole, so every problem+json answer stays word for word the same)."""
+    row = await session.get(model, key, with_for_update=lock)
+    if row is None:
+        raise NotFound(message)
+    return row

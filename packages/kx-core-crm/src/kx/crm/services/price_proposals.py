@@ -15,7 +15,8 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core import events as ev
-from kx.core.errors import Conflict, NotFound
+from kx.core.db import get_or_404
+from kx.core.errors import Conflict
 from kx.core.event_payloads import PriceProposed, PriceStale
 from kx.core.identity import new_id
 from kx.crm.models import Material, MaterialRate
@@ -73,9 +74,7 @@ async def propose_rate(session: AsyncSession, p: PriceProposed, actor: Actor) ->
 
 
 async def _pending(session: AsyncSession, rate_id: uuid.UUID) -> MaterialRate:
-    rate = await session.get(MaterialRate, rate_id, with_for_update=True)
-    if rate is None:
-        raise NotFound(f"price proposal {rate_id} not found")
+    rate = await get_or_404(session, MaterialRate, rate_id, f"price proposal {rate_id} not found", lock=True)
     if rate.status != "proposed":
         raise Conflict(f"price proposal is already {rate.status}")
     return rate

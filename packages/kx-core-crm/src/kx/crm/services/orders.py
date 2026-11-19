@@ -22,7 +22,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core import events as ev
 from kx.core.contracts import DealStage
-from kx.core.errors import Conflict, NotFound, RuleViolation
+from kx.core.db import get_or_404
+from kx.core.errors import Conflict, RuleViolation
 from kx.core.event_payloads import DealWon, OrderStatusChanged
 from kx.core.identity import new_id
 from kx.crm.deps import CrmDeps
@@ -154,9 +155,7 @@ async def mark_won(
 async def deal_of_order(session: AsyncSession, order_id: uuid.UUID) -> Deal:
     """The deal an order belongs to, so the API can apply the §3 edit rule (own deal, covering colleague,
     manager / MD) before an order update."""
-    order = await session.get(Order, order_id)
-    if order is None:
-        raise NotFound(f"order {order_id} not found")
+    order = await get_or_404(session, Order, order_id, f"order {order_id} not found")
     return await deal_svc.get_deal(session, order.deal_id)
 
 
@@ -170,9 +169,7 @@ async def update_order_status(
     on_date: date | None = None,
     tracking_ref: str | None = None,
 ) -> Order:
-    order = await session.get(Order, order_id, with_for_update=True)
-    if order is None:
-        raise NotFound(f"order {order_id} not found")
+    order = await get_or_404(session, Order, order_id, f"order {order_id} not found", lock=True)
     if status not in ORDER_FLOW.get(order.status, frozenset()):
         raise RuleViolation(f"order cannot move from {order.status} to {status}")
     day = on_date or deps.now().date()
@@ -262,9 +259,9 @@ async def move_stock(
     note: str | None = None,
 ) -> StockItem:
     """One stock movement. reserve/release move reserved_quantity; the rest move on-hand quantity."""
-    item = await session.get(StockItem, stock_item_id, with_for_update=True)
-    if item is None:
-        raise NotFound(f"stock item {stock_item_id} not found")
+    item = await get_or_404(
+        session, StockItem, stock_item_id, f"stock item {stock_item_id} not found", lock=True
+    )
     match kind:
         case "reserve" | "release":
             change = delta if kind == "reserve" else -delta

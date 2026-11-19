@@ -26,6 +26,7 @@ from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from kx.core.db import get_or_404
 from kx.core.errors import Conflict, NotFound, RuleViolation
 from kx.crm.models import Product, ProductPriceTier, QuoteLineTier
 from kx.crm.services.journal import Actor, record
@@ -178,9 +179,7 @@ async def update_tier(
     session: AsyncSession, tier_id: uuid.UUID, changes: dict[str, Any], actor: Actor
 ) -> ProductPriceTier:
     """Edit in place with the old and new value in the audit log (§3). Open quotes keep their snapshot."""
-    tier = await session.get(ProductPriceTier, tier_id, with_for_update=True)
-    if tier is None:
-        raise NotFound(f"price tier {tier_id} not found")
+    tier = await get_or_404(session, ProductPriceTier, tier_id, f"price tier {tier_id} not found", lock=True)
     before = _snapshot(tier)
     for key in ("min_qty", "max_qty", "list_price", "min_price"):
         if key in changes:
@@ -196,9 +195,7 @@ async def update_tier(
 
 
 async def delete_tier(session: AsyncSession, tier_id: uuid.UUID, actor: Actor) -> None:
-    tier = await session.get(ProductPriceTier, tier_id, with_for_update=True)
-    if tier is None:
-        raise NotFound(f"price tier {tier_id} not found")
+    tier = await get_or_404(session, ProductPriceTier, tier_id, f"price tier {tier_id} not found", lock=True)
     if await session.scalar(select(exists().where(QuoteLineTier.price_tier_id == tier.id))):
         raise Conflict("this tier priced quotes already: add a new price-list version instead")
     before = _snapshot(tier)

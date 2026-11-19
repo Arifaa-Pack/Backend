@@ -22,6 +22,7 @@ from sqlalchemy import Select, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role
+from kx.core.db import get_or_404
 from kx.core.errors import Forbidden, NotFound
 from kx.core.timewindow import language_tag, valid_timezone
 from kx.crm.api.context import ApiContext, HumanManager, Manager, Staff
@@ -286,9 +287,7 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
     @r.get("/products/{product_id}", response_model=ProductRow)
     async def product(product_id: uuid.UUID, s: Session, _: Staff) -> ProductRow:
         """One product with its specification (from the CMS) and CRM-owned fields."""
-        found = await s.get(Product, product_id)
-        if found is None:
-            raise NotFound("product not found")
+        found = await get_or_404(s, Product, product_id, "product not found")
         return ProductRow.model_validate(found)
 
     @r.patch("/products/{product_id}", response_model=ProductRow)
@@ -296,9 +295,7 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
         product_id: uuid.UUID, body: ProductEditIn, s: Session, p: HumanManager
     ) -> ProductRow:
         """Manager (MFA): MOQ for quoting, default delivery time, quotable/active (D22: CRM-owned fields)."""
-        found = await s.get(Product, product_id, with_for_update=True)
-        if found is None:
-            raise NotFound("product not found")
+        found = await get_or_404(s, Product, product_id, "product not found", lock=True)
         changes = body.model_dump(exclude_unset=True)
         before = {k: getattr(found, k) for k in changes}
         for k, v in changes.items():

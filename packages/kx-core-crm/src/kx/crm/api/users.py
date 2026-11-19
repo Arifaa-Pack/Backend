@@ -13,7 +13,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
-from kx.core.errors import Forbidden, NotFound
+from kx.core.db import get_or_404
+from kx.core.errors import Forbidden
 from kx.crm.api.auth import StaffUserOut
 from kx.crm.api.context import ApiContext
 from kx.crm.models import StaffCredential, User
@@ -109,9 +110,7 @@ def router(ctx: ApiContext) -> APIRouter:
     async def patch(user_id: uuid.UUID, body: UserPatchIn, s: Session, p: Admin) -> UserAdminOut:
         """Admin (MFA): role, active flag, phone, languages / countries / categories for assignment (§9),
         alert channels."""
-        user = await s.get(User, user_id, with_for_update=True)
-        if user is None:
-            raise NotFound("user not found")
+        user = await get_or_404(s, User, user_id, "user not found", lock=True)
         changes = body.model_dump(exclude_unset=True)
         new_role = changes.get("role", user.role)
         if new_role != user.role:
@@ -131,9 +130,7 @@ def router(ctx: ApiContext) -> APIRouter:
     @r.post("/{user_id}/reset-mfa", response_model=UserAdminOut)
     async def reset_mfa(user_id: uuid.UUID, s: Session, p: Admin) -> UserAdminOut:
         """A lost authenticator: sessions end; the person signs in with an email code and enrols again."""
-        target = await s.get(User, user_id)
-        if target is None:
-            raise NotFound("user not found")
+        target = await get_or_404(s, User, user_id, "user not found")
         if target.role == "md":
             _md_only(p, "reset an MD's authenticator")
         await auth_svc.reset_mfa(s, deps, user_id, Actor.user(p))

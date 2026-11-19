@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Role
-from kx.core.errors import NotFound
+from kx.core.db import get_or_404
 from kx.crm.api.context import ApiContext, Staff
 from kx.crm.api.deals import visible_to
 from kx.crm.api.schemas import ChangeRequestOut, DeclineIn, QuoteEditsIn, QuoteVersionOut, ResolveIn
@@ -49,9 +49,7 @@ def router(ctx: ApiContext) -> APIRouter:
     @r.get("/{cr_id}", response_model=ChangeRequestOut)
     async def card(cr_id: uuid.UUID, s: Session, p: Staff) -> ChangeRequestOut:
         """§13 change request card: what the buyer asked (their words), current vs requested values, SLA."""
-        cr = await s.get(ChangeRequest, cr_id)
-        if cr is None:
-            raise NotFound(f"change request {cr_id} not found")
+        cr = await get_or_404(s, ChangeRequest, cr_id, f"change request {cr_id} not found")
         await access.check_view(s, p, await deal_svc.get_deal(s, cr.deal_id))
         return ChangeRequestOut.model_validate(cr)
 
@@ -63,9 +61,7 @@ def router(ctx: ApiContext) -> APIRouter:
     @r.post("/{cr_id}/revise", response_model=QuoteVersionOut, status_code=201)
     async def revise(cr_id: uuid.UUID, body: QuoteEditsIn, s: Session, p: Staff) -> QuoteVersionOut:
         """ "Revise quote": a new version with the edits; approving it resolves the card (§13.3-4)."""
-        cr = await s.get(ChangeRequest, cr_id)
-        if cr is None:
-            raise NotFound(f"change request {cr_id} not found")
+        cr = await get_or_404(s, ChangeRequest, cr_id, f"change request {cr_id} not found")
         await access.check_edit(s, p, await deal_svc.get_deal(s, cr.deal_id))
         edits = body.to_edits(note=body.note or f"Change request ({cr.type})")
         version = await quotes.revise_quote(s, deps, cr.deal_id, edits, Actor.user(p))

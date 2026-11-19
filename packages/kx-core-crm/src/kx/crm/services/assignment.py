@@ -30,7 +30,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core import events as ev
 from kx.core.auth import Principal, Role
-from kx.core.errors import Forbidden, NotFound, RuleViolation
+from kx.core.db import get_or_404
+from kx.core.errors import Forbidden, RuleViolation
 from kx.core.event_payloads import DealAssigned, StaffContact
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Contact, Deal, DealRequirement, Product, User
@@ -258,9 +259,7 @@ async def _announce(
 
 
 async def _lock_deal(session: AsyncSession, deal_id: uuid.UUID) -> Deal:
-    deal = await session.get(Deal, deal_id, with_for_update=True)
-    if deal is None:
-        raise NotFound(f"deal {deal_id} not found")
+    deal = await get_or_404(session, Deal, deal_id, f"deal {deal_id} not found", lock=True)
     return deal
 
 
@@ -304,9 +303,7 @@ async def take_over(session: AsyncSession, deps: CrmDeps, deal_id: uuid.UUID, p:
     deal = await _lock_deal(session, deal_id)
     if deal.taken_over_by is not None:
         return deal
-    md = await session.get(User, p.user_id)
-    if md is None:
-        raise NotFound("MD user not found")
+    md = await get_or_404(session, User, p.user_id, "MD user not found")
     deal.taken_over_by, deal.taken_over_at = md.id, deps.now()
     if deal.ai_enabled:  # the MD negotiates personally (§23 scenario 8)
         deal.ai_enabled, deal.ai_paused_reason, deal.ai_paused_at = False, "md_takeover", deps.now()
@@ -367,9 +364,7 @@ async def set_availability(
     deals (approvals and change requests move to the backup, or the manager if there is none)."""
     if not (p.has(Role.MANAGER, Role.ADMIN) or p.user_id == user_id):
         raise Forbidden("only the manager, an admin or the user can change availability")
-    user = await session.get(User, user_id, with_for_update=True)
-    if user is None:
-        raise NotFound(f"user {user_id} not found")
+    user = await get_or_404(session, User, user_id, f"user {user_id} not found", lock=True)
     if backup_user_id is not None and backup_user_id == user_id:
         raise RuleViolation("a user cannot be their own backup")
     before = {"is_away": user.is_away, "backup_user_id": user.backup_user_id}

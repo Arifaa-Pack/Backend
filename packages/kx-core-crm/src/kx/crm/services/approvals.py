@@ -24,7 +24,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core import events as ev
 from kx.core.auth import Principal, Role
-from kx.core.errors import Conflict, NotFound, RuleViolation
+from kx.core.db import get_or_404
+from kx.core.errors import Conflict, RuleViolation
 from kx.core.event_payloads import ApprovalOverdue, QuoteCorrectionRequested, QuoteRejected, QuoteSubmitted
 from kx.core.identity import new_id
 from kx.core.money import display
@@ -159,9 +160,9 @@ async def decide(
     decision: Decision,
     note: str | None = None,
 ) -> Approval:
-    approval = await session.get(Approval, approval_id, with_for_update=True)
-    if approval is None:
-        raise NotFound(f"approval {approval_id} not found")
+    approval = await get_or_404(
+        session, Approval, approval_id, f"approval {approval_id} not found", lock=True
+    )
     version, quote, deal = await _context(session, approval.quote_version_id)
     access.ensure_can_approve(principal, deal, approval, covering=await staff.covering_user(session, deal))
     if approval.status not in OPEN:

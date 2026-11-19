@@ -19,7 +19,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core import events as ev
-from kx.core.errors import NotFound, RuleViolation
+from kx.core.db import get_or_404
+from kx.core.errors import RuleViolation
 from kx.core.event_payloads import SettingsChanged
 from kx.core.timewindow import Window
 from kx.crm.models import FeatureFlag, Setting, SettingHistory
@@ -206,9 +207,7 @@ class SettingsService:
 
     async def update(self, session: AsyncSession, key: str, value: Any, actor: Actor) -> BusinessSettings:
         """Change one setting after validating the whole table with it; history + audit + event."""
-        row = await session.get(Setting, key, with_for_update=True)
-        if row is None:
-            raise NotFound(f"unknown setting {key!r}")
+        row = await get_or_404(session, Setting, key, f"unknown setting {key!r}", lock=True)
         self.invalidate()
         raw = await self.raw(session)
         parsed = parse_settings({**raw, key: value})
@@ -232,9 +231,7 @@ class SettingsService:
 
     async def set_flag(self, session: AsyncSession, key: str, enabled: bool, actor: Actor) -> None:
         """Kill switches (ai_enabled, ai_outbound_calls_uae ...)."""
-        row = await session.get(FeatureFlag, key, with_for_update=True)
-        if row is None:
-            raise NotFound(f"unknown feature flag {key!r}")
+        row = await get_or_404(session, FeatureFlag, key, f"unknown feature flag {key!r}", lock=True)
         before = row.enabled
         row.enabled, row.updated_by = enabled, actor.user_id
         await record(

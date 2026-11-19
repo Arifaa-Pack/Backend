@@ -19,8 +19,7 @@ from sqlalchemy import select
 
 from kx.automation.models import ChannelAccount, MessageTemplate
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
-from kx.core.db import Databases
-from kx.core.errors import NotFound
+from kx.core.db import Databases, get_or_404
 from kx.core.logging import get_logger
 from kx.core.settings import LogicalDb
 
@@ -128,9 +127,7 @@ def build_router(databases: Databases) -> APIRouter:  # noqa: PLR0915 - one rout
     async def edit_account(account_id: uuid.UUID, body: ChannelAccountPatch, p: Admin) -> ChannelAccountOut:
         """Regional routing for WhatsApp numbers: which countries a number serves, the default number."""
         async with databases.transaction(LogicalDb.AUTOMATION) as s:
-            account = await s.get(ChannelAccount, account_id, with_for_update=True)
-            if account is None:
-                raise NotFound("channel account not found")
+            account = await get_or_404(s, ChannelAccount, account_id, "channel account not found", lock=True)
             changes = body.model_dump(exclude_unset=True)
             for k, v in changes.items():
                 setattr(account, k, v)
@@ -219,9 +216,7 @@ def build_router(databases: Databases) -> APIRouter:  # noqa: PLR0915 - one rout
         """Record Meta's decision on a WhatsApp template version. Approving it makes it the one that is sent;
         the version sent before becomes `superseded` (kept as history)."""
         async with databases.transaction(LogicalDb.AUTOMATION) as s:
-            row = await s.get(MessageTemplate, template_id, with_for_update=True)
-            if row is None:
-                raise NotFound("template not found")
+            row = await get_or_404(s, MessageTemplate, template_id, "template not found", lock=True)
             if body.provider_status == LIVE and row.provider_status != LIVE:
                 await _supersede(s, row.channel, row.name, row.language)
             row.provider_status = body.provider_status
