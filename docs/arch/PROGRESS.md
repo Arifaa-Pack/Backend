@@ -267,3 +267,18 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 21.98s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `reports` @ `bf06f6d`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-reports`, COMPLETED
+
+## 1.7 slice `pricing` — TESTING (COMPLETED when tagged `arch-slice/crm-pricing`)
+
+- **Moved:** `services/pricing.py` → `pricing/service.py`, `services/price_lists.py` → `pricing/price_list_service.py`, `services/fx.py` → `pricing/fx.py`, `services/price_proposals.py` → `pricing/proposals.py`; shims at the four old paths; imports rewritten in 10 modules; `pricing/__init__.py` docstring now describes the pure maths and the I/O around it. `engine.py`, `price_list.py`, `types.py` untouched.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 385 files already formatted
+  - mypy: Success: no issues found in 229 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 20.32s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `catalogue` @ `43ebedc`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-catalogue`, COMPLETED

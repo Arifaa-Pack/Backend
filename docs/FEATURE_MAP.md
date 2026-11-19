@@ -72,7 +72,7 @@ other mapping files, and this table is updated with each move.
 | `kx.core.jobs:Kicker` | `arifaa_pack.jobqueue:CeleryKicker` | `apps/arifaa-pack/src/arifaa_pack/jobqueue.py` |
 | `kx.crm.pdf:PdfEngine` | `kx.crm.pdf:ChromiumEngine`<br>`kx.crm.pdf:WeasyPrintEngine` | `packages/kx-core-crm/src/kx/crm/pdf.py`<br>`packages/kx-core-crm/src/kx/crm/pdf.py` |
 | `kx.crm.pdf:PdfUploader` | `kx.crm.pdf:S3PdfUploader` | `packages/kx-core-crm/src/kx/crm/pdf.py` |
-| `kx.crm.services.fx:FxSource` | `arifaa_pack.adapters:OpenRatesFx` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.crm.pricing.fx:FxSource` | `arifaa_pack.adapters:OpenRatesFx` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.crm.throttle:AuthThrottle` | `arifaa_pack.adapters:RedisAuthThrottle`<br>`kx.crm.throttle:MemoryThrottle` | `apps/arifaa-pack/src/arifaa_pack/adapters.py`<br>`packages/kx-core-crm/src/kx/crm/throttle.py` |
 
 ## Events: who reacts
@@ -160,7 +160,7 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/contacts` | `kx.crm.api.records:router.<locals>.contacts` | `kx.crm.api.deals:visible_to`<br>`kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
 | GET | `/v1/contacts/{contact_id}` | `kx.crm.api.records:router.<locals>.contact` | `kx.crm.api.deals:visible_to` |
 | PATCH | `/v1/contacts/{contact_id}` | `kx.crm.api.records:router.<locals>.edit_contact` | `kx.crm.api.deals:visible_to`<br>`kx.crm.services.journal:record` |
-| GET | `/v1/dashboard/summary` | `kx.crm.api.admin:router.<locals>.summary` | `kx.crm.services.price_proposals:material_freshness` |
+| GET | `/v1/dashboard/summary` | `kx.crm.api.admin:router.<locals>.summary` | `kx.crm.pricing.proposals:material_freshness` |
 | GET | `/v1/dashboards/manager` | `kx.crm.reports.router:router.<locals>.manager` | `kx.crm.reports.dashboards:manager_board` |
 | GET | `/v1/dashboards/md` | `kx.crm.reports.router:router.<locals>.md` | `kx.crm.reports.dashboards:counts` |
 | GET | `/v1/dashboards/salesperson` | `kx.crm.reports.router:router.<locals>.salesperson` | `kx.crm.reports.dashboards:salesperson_board` |
@@ -190,22 +190,22 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/fx-rates` | `kx.crm.api.records:router.<locals>.fx_rates` | - |
 | POST | `/v1/fx-rates` | `kx.crm.api.records:router.<locals>.fx_override` | `kx.crm.services.journal:record` |
 | GET | `/v1/inbox` | `kx.crm.api.screens:router.<locals>.my_inbox` | `kx.crm.services.inbox:inbox_for` |
-| GET | `/v1/materials/freshness` | `kx.crm.api.admin:router.<locals>.freshness` | `kx.crm.services.price_proposals:material_freshness` |
+| GET | `/v1/materials/freshness` | `kx.crm.api.admin:router.<locals>.freshness` | `kx.crm.pricing.proposals:material_freshness` |
 | GET | `/v1/orders` | `kx.crm.api.records:router.<locals>.orders` | `kx.crm.api.deals:visible_to`<br>`kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
-| GET | `/v1/price-list/export` | `kx.crm.api.screens:router.<locals>.export_price_list` | `kx.crm.services.price_lists:export_xlsx` |
+| GET | `/v1/price-list/export` | `kx.crm.api.screens:router.<locals>.export_price_list` | `kx.crm.pricing.price_list_service:export_xlsx` |
 | GET | `/v1/price-list/history` | `kx.crm.api.screens:router.<locals>.price_list_history` | - |
-| POST | `/v1/price-list/import` | `kx.crm.api.screens:router.<locals>.import_price_list` | `kx.crm.services.price_lists:import_xlsx` |
+| POST | `/v1/price-list/import` | `kx.crm.api.screens:router.<locals>.import_price_list` | `kx.crm.pricing.price_list_service:import_xlsx` |
 | GET | `/v1/price-proposals` | `kx.crm.api.admin:router.<locals>.proposals` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
-| POST | `/v1/price-proposals/{rate_id}/approve` | `kx.crm.api.admin:router.<locals>.approve` | `kx.crm.services.price_proposals:approve_rate` |
-| POST | `/v1/price-proposals/{rate_id}/reject` | `kx.crm.api.admin:router.<locals>.reject` | `kx.crm.services.price_proposals:reject_rate` |
-| DELETE | `/v1/price-tiers/{tier_id}` | `kx.crm.api.screens:router.<locals>.remove_tier` | `kx.crm.services.price_lists:delete_tier` |
-| PATCH | `/v1/price-tiers/{tier_id}` | `kx.crm.api.screens:router.<locals>.edit_tier` | `kx.crm.services.price_lists:update_tier` |
+| POST | `/v1/price-proposals/{rate_id}/approve` | `kx.crm.api.admin:router.<locals>.approve` | `kx.crm.pricing.proposals:approve_rate` |
+| POST | `/v1/price-proposals/{rate_id}/reject` | `kx.crm.api.admin:router.<locals>.reject` | `kx.crm.pricing.proposals:reject_rate` |
+| DELETE | `/v1/price-tiers/{tier_id}` | `kx.crm.api.screens:router.<locals>.remove_tier` | `kx.crm.pricing.price_list_service:delete_tier` |
+| PATCH | `/v1/price-tiers/{tier_id}` | `kx.crm.api.screens:router.<locals>.edit_tier` | `kx.crm.pricing.price_list_service:update_tier` |
 | GET | `/v1/products` | `kx.crm.api.records:router.<locals>.products` | - |
 | GET | `/v1/products/{product_id}` | `kx.crm.api.records:router.<locals>.product` | - |
 | PATCH | `/v1/products/{product_id}` | `kx.crm.api.records:router.<locals>.edit_product` | `kx.crm.services.journal:record` |
 | GET | `/v1/products/{product_id}/history` | `kx.crm.api.screens:router.<locals>.product_history` | - |
-| GET | `/v1/products/{product_id}/price-tiers` | `kx.crm.api.screens:router.<locals>.tiers` | `kx.crm.services.price_lists:tiers_for` |
-| POST | `/v1/products/{product_id}/price-tiers` | `kx.crm.api.screens:router.<locals>.add_tier` | `kx.crm.services.price_lists:add_tier` |
+| GET | `/v1/products/{product_id}/price-tiers` | `kx.crm.api.screens:router.<locals>.tiers` | `kx.crm.pricing.price_list_service:tiers_for` |
+| POST | `/v1/products/{product_id}/price-tiers` | `kx.crm.api.screens:router.<locals>.add_tier` | `kx.crm.pricing.price_list_service:add_tier` |
 | POST | `/v1/public/sessions` | `kx.agents.website:build_router.<locals>.start` | `kx.agents.language:normalise_language` |
 | POST | `/v1/public/sessions/{session_id}/identify` | `kx.agents.website:build_router.<locals>.identify` | - |
 | POST | `/v1/public/sessions/{session_id}/messages` | `kx.agents.website:build_router.<locals>.message` | - |
@@ -263,9 +263,9 @@ other mapping files, and this table is updated with each move.
 | `automation.price_scrapes` | <crontab: 0 2 * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.scrapes` | - |
 | `automation.requeue_outbound` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.requeue` | `kx.automation.outbox:emit` |
 | `crm.approval_sweep` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.sweep` | `kx.crm.services.approvals:sweep_overdue`<br>`kx.crm.services.change_requests:sweep_escalations` |
-| `crm.fx_rates` | <crontab: 5 2 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.fx_rates` | `kx.crm.services.fx:update_rates`<br>`kx.crm.services.fx:wanted` |
+| `crm.fx_rates` | <crontab: 5 2 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.fx_rates` | `kx.crm.pricing.fx:update_rates`<br>`kx.crm.pricing.fx:wanted` |
 | `crm.lost_proposals` | <crontab: 7 4 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.lost` | `kx.crm.services.lost_proposals:propose_lost` |
-| `crm.price_staleness` | <crontab: 23 5 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.staleness` | `kx.crm.services.price_proposals:emit_stale`<br>`kx.crm.services.quotes:expire_quotes` |
+| `crm.price_staleness` | <crontab: 23 5 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.staleness` | `kx.crm.pricing.proposals:emit_stale`<br>`kx.crm.services.quotes:expire_quotes` |
 | `crm.retention` | <crontab: 41 23 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.retention_` | `kx.crm.retention.service:run_retention` |
 | `crm.scheduled_reports` | <crontab: */15 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.reports` | `kx.crm.reports.scheduled:send_due` |
 | `jobs.dispatch_due` | 0:00:30 | `arifaa_pack.container:_periodic.<locals>.dispatch_due` | - |

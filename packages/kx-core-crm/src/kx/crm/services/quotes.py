@@ -37,13 +37,7 @@ from kx.crm.models import (
 )
 from kx.crm.pricing.engine import price_line, quote_totals
 from kx.crm.pricing.price_list import TierPrice, convert_tier, min_price_for, resolve_tier
-from kx.crm.pricing.types import PricedLine
-from kx.crm.rules import QUOTABLE_STAGES
-from kx.crm.services import approvals, grants, staff
-from kx.crm.services import deals as deal_svc
-from kx.crm.services.issuing import lines_of, local_today
-from kx.crm.services.journal import Actor, Timeline, record
-from kx.crm.services.pricing import (
+from kx.crm.pricing.service import (
     ListPricingInputs,
     PricingInputs,
     build_delivery_estimate,
@@ -56,6 +50,12 @@ from kx.crm.services.pricing import (
     pricing_inputs,
     vat_pct,
 )
+from kx.crm.pricing.types import PricedLine
+from kx.crm.rules import QUOTABLE_STAGES
+from kx.crm.services import approvals, grants, staff
+from kx.crm.services import deals as deal_svc
+from kx.crm.services.issuing import lines_of, local_today
+from kx.crm.services.journal import Actor, Timeline, record
 from kx.crm.services.settings import BusinessSettings
 
 VersionKind = Literal["initial", "revision", "counter", "final"]

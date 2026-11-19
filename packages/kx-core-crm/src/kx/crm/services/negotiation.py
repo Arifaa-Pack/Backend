@@ -34,13 +34,13 @@ from kx.crm.models import Deal, MarginRuleRow, NegotiationRound, QuoteLine, Quot
 from kx.crm.pricing.engine import evaluate_counter as engine_counter
 from kx.crm.pricing.engine import evaluate_ladder_counter, ladder_between, unit_cost_per_1000
 from kx.crm.pricing.price_list import PriceTier, TierPrice, convert_tier
+from kx.crm.pricing.service import tiers_of_version
 from kx.crm.pricing.types import CostInputs, LadderState, MarginBand, NegotiationState
 from kx.crm.rules import PauseReason, round_verdict
 from kx.crm.services import deals as deal_svc
 from kx.crm.services import quotes, staff
 from kx.crm.services.issuing import local_today
 from kx.crm.services.journal import Actor, Emit, Timeline, record
-from kx.crm.services.pricing import tiers_of_version
 from kx.crm.services.quotes import ISSUED, costs_of, create_final_version, latest_version, tiers_of
 from kx.crm.services.settings import BusinessSettings
 

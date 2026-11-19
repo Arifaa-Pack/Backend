@@ -44,6 +44,8 @@ from kx.crm.catalogue import service as catalogue
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Contact, Deal, FxRate
 from kx.crm.models.base import SCHEMA
+from kx.crm.pricing import fx
+from kx.crm.pricing import proposals as price_proposals
 from kx.crm.reports import scheduled as scheduled_reports
 from kx.crm.retention import service as retention
 from kx.crm.rules import OPEN_STAGES
@@ -51,11 +53,9 @@ from kx.crm.services import (
     approvals,
     change_requests,
     consent,
-    fx,
     issuing,
     lost_proposals,
     phone,
-    price_proposals,
     quotes,
     staff,
     summary,

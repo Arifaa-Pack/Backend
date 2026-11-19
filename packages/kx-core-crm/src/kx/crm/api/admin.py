@@ -27,8 +27,9 @@ from kx.crm.api.schemas import (
     UserOut,
 )
 from kx.crm.models import Approval, Deal, MaterialRate, Quote, QuoteVersion, Setting, Task
+from kx.crm.pricing import proposals as price_proposals
 from kx.crm.rules import OPEN_STAGES
-from kx.crm.services import approvals, assignment, price_proposals
+from kx.crm.services import approvals, assignment
 from kx.crm.services.journal import Actor
 
 # §20.11: settings are for the manager, the MD and admin (MD passes wherever MANAGER is listed)

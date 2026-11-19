@@ -12,7 +12,7 @@ from kx.core.killswitch import KillSwitchLadder
 from kx.core.passwords import SeedBox
 from kx.core.settings import AuthSettings
 from kx.crm.pdf import Letterhead, PdfUploader, QuoteRenderer
-from kx.crm.services.fx import FxSource
+from kx.crm.pricing.fx import FxSource
 from kx.crm.services.settings import SettingsService
 from kx.crm.throttle import AuthThrottle, MemoryThrottle
 

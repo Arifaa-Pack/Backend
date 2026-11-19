@@ -55,6 +55,14 @@ from kx.crm.models import (
     QuoteLine,
     QuoteVersion,
 )
+from kx.crm.pricing.service import (
+    PricingNeeded,
+    QuantityOutsideTiers,
+    best_lane,
+    build_delivery_estimate,
+    current_costing,
+    lead_time_text,
+)
 from kx.crm.rules import pause_reason
 from kx.crm.services import (
     approvals,
@@ -69,14 +77,6 @@ from kx.crm.services import (
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.issuing import lines_of
 from kx.crm.services.journal import Actor
-from kx.crm.services.pricing import (
-    PricingNeeded,
-    QuantityOutsideTiers,
-    best_lane,
-    build_delivery_estimate,
-    current_costing,
-    lead_time_text,
-)
 
 
 # ---------------------------------------------------------------- buyer-safe views (pure)
