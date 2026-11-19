@@ -30,6 +30,7 @@ from kx.core.settings import LogicalDb
 
 CACHE_SECONDS: Final = 10.0
 AUTH_PREFIX: Final = "/v1/auth/"
+LOGOUT_PATH: Final = AUTH_PREFIX + "logout"  # checked without the cache, and the cached state is dropped
 ENDED: Final = "your session has ended; sign in again"
 CHANGE_FIRST: Final = "change your one-time password first"
 
@@ -69,8 +70,8 @@ class SessionGuard:
         self._ttl = CACHE_SECONDS if cache_seconds is None else cache_seconds  # read now: tests set it to 0
         self._cache: dict[uuid.UUID, tuple[float, _State]] = {}
 
-    async def state(self, session_id: uuid.UUID, user_id: uuid.UUID) -> _State:
-        hit = self._cache.get(session_id)
+    async def state(self, session_id: uuid.UUID, user_id: uuid.UUID, *, cached: bool = True) -> _State:
+        hit = self._cache.get(session_id) if cached else None
         if hit is not None and hit[0] > time.monotonic():
             return hit[1]
         async with self._db.transaction(LogicalDb.CRM) as s:
@@ -82,6 +83,9 @@ class SessionGuard:
             if row is None
             else _State(bool(row.alive and row.is_active), str(row.role), bool(row.must_change))
         )
+        if not cached:  # signing out: the next request of this session reads the database again
+            self._cache.pop(session_id, None)
+            return state
         if len(self._cache) > 10_000:  # bounded: a burst of sign-ins never grows it without limit
             self._cache.clear()
         self._cache[session_id] = (time.monotonic() + self._ttl, state)
@@ -94,7 +98,7 @@ class SessionGuard:
             p = bearer_principal(request.headers.get("authorization"), verifier)
             if p is None or p.session_id is None or p.user_id is None:
                 return
-            state = await self.state(p.session_id, p.user_id)
+            state = await self.state(p.session_id, p.user_id, cached=request.url.path != LOGOUT_PATH)
             if not state.alive or state.role != p.role.value:
                 raise Unauthorized(ENDED)
             if state.must_change and not request.url.path.startswith(AUTH_PREFIX):

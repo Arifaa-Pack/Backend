@@ -22,7 +22,7 @@ from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Request, Respon
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.core.auth import Principal, current_principal
+from kx.core.auth import JwtVerifier, Principal, bearer_principal, current_principal, token_verifier
 from kx.core.clientip import client_ip
 from kx.core.errors import Forbidden, TooManyRequests, Unauthorized, Unavailable
 from kx.core.settings import LogicalDb
@@ -231,11 +231,19 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
         return token_out(result, response)
 
     @r.post("/logout", status_code=204)
-    async def logout(response: Response, kx_refresh: Annotated[str | None, Cookie()] = None) -> None:
-        """End this browser's session: the refresh token is revoked and its cookie cleared."""
-        if kx_refresh:
+    async def logout(
+        request: Request,
+        response: Response,
+        verifier: Annotated[JwtVerifier, Depends(token_verifier)],
+        kx_refresh: Annotated[str | None, Cookie()] = None,
+    ) -> None:
+        """End this session: the refresh token (cookie) and the session the access token names are revoked
+        and the cookie cleared."""
+        p = bearer_principal(request.headers.get("authorization"), verifier)
+        sid, uid = (p.session_id, p.user_id) if p is not None else (None, None)
+        if kx_refresh or sid is not None:
             async with tx() as s:
-                await svc.logout(s, deps, kx_refresh)
+                await svc.logout(s, deps, kx_refresh, session_id=sid, user_id=uid)
         response.delete_cookie(COOKIE, path=COOKIE_PATH, domain=deps.auth.cookie_domain)
 
     @r.get("/me", response_model=StaffUserOut)

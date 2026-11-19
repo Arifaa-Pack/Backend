@@ -668,7 +668,7 @@ A new access token. The refresh token rotates; a reused old one ends all the use
 
 #### `POST /v1/auth/logout`
 
-End this browser's session: the refresh token is revoked and its cookie cleared.
+End this session: the refresh token (cookie) and the session the access token names are revoked and the cookie cleared.
 
 **Who:** public
 

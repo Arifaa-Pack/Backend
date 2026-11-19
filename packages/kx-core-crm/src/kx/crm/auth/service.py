@@ -54,6 +54,9 @@ log = get_logger(__name__)
 Factor = Literal["totp", "email"]
 GENERIC: Final = "email or password is not correct"
 BUSY: Final = "too many requests; try again later"  # M3 rate limit (never says whether the account exists)
+# M3: an IP where the account finished a sign-in lately is "known" for this long and skips the per-account
+# bucket, so attempts on the account from elsewhere cannot keep the staff member out (lockout DoS)
+KNOWN_IP_SECONDS: Final = 30 * 24 * 3600
 LOCKED: Final = "too many failed attempts; try again later"
 _DUMMY_HASH: Final = hash_password("dummy-password-for-timing")  # same work whether or not the user exists
 
@@ -114,6 +117,10 @@ def _fail_key(email: str, ip: str | None) -> str:
     return f"fail:{account_key(email)}:{ip_key(ip)}"
 
 
+def _known_key(email: str, ip: str | None) -> str:
+    return f"known:{account_key(email)}:{ip_key(ip)}"
+
+
 async def _locked(
     deps: CrmDeps, cred: StaffCredential | None, email: str, ip: str | None, now: datetime
 ) -> bool:
@@ -129,11 +136,10 @@ async def login(
 ) -> Challenge | Refused:
     now = deps.now()
     a = deps.auth
-    if await _over_limit(
-        deps,
-        ("login_ip", ip_key(ip), a.rate_login_ip),
-        ("login_account", account_key(email), a.rate_login_account),
-    ):
+    buckets = [("login_ip", ip_key(ip), a.rate_login_ip)]
+    if ip is None or await deps.throttle.count(_known_key(email, ip)) == 0:
+        buckets.append(("login_account", account_key(email), a.rate_login_account))
+    if await _over_limit(deps, *buckets):
         return Refused(429, BUSY)
     user = await _user_by_email(session, email)
     cred = await session.get(StaffCredential, user.id, with_for_update=True) if user else None
@@ -270,6 +276,8 @@ async def verify_second_step(
     challenge.consumed_at = now
     amr = ("pwd", "otp") if factor == "totp" else ("pwd", "email")
     await deps.throttle.clear(_fail_key(str(user.email), ip))  # signed in from here: this IP starts afresh
+    if ip is not None:
+        await deps.throttle.bump(_known_key(str(user.email), ip), KNOWN_IP_SECONDS)
     return await _issue(session, deps, user, cred, amr, ip=ip, user_agent=user_agent)
 
 
@@ -407,12 +415,31 @@ async def _revoke_all(
     await session.execute(stmt.values(revoked_at=now))
 
 
-async def logout(session: AsyncSession, deps: CrmDeps, token: str) -> None:
-    await session.execute(
-        update(AuthSession)
-        .where(AuthSession.token_hash == token_hash(token), AuthSession.revoked_at.is_(None))
-        .values(revoked_at=deps.now())
-    )
+async def logout(
+    session: AsyncSession,
+    deps: CrmDeps,
+    token: str | None,
+    *,
+    session_id: uuid.UUID | None = None,
+    user_id: uuid.UUID | None = None,
+) -> None:
+    """End a session: the one the browser's refresh token belongs to and / or the one the access token names
+    (`sid`, followed to the newest link of its refresh chain). L1 (19 Nov live re-test): a client without the
+    refresh cookie used to sign out without ending anything, and its access token kept working."""
+    now = deps.now()
+    if token:
+        await session.execute(
+            update(AuthSession)
+            .where(AuthSession.token_hash == token_hash(token), AuthSession.revoked_at.is_(None))
+            .values(revoked_at=now)
+        )
+    if session_id is not None and user_id is not None:
+        head = await _chain_head(session, session_id)
+        await session.execute(
+            update(AuthSession)
+            .where(AuthSession.id == head, AuthSession.user_id == user_id, AuthSession.revoked_at.is_(None))
+            .values(revoked_at=now)
+        )
 
 
 # ---------------------------------------------------------------- TOTP enrolment, passwords

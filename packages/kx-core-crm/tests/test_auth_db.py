@@ -461,6 +461,59 @@ async def test_wrong_passwords_lock_out_the_attacker_ip_not_the_staff_member(env
     assert codes == [401] * 5 + [429]
 
 
+async def _sign_in_from(
+    client: httpx.AsyncClient, env: Env, email: str, password: str, ip: str
+) -> dict[str, Any]:
+    challenge = (
+        await client.post("/v1/auth/login", json={"email": email, "password": password}, headers=_from(ip))
+    ).json()
+    sent = await client.post("/v1/auth/mfa/email/send", json=challenge, headers=_from(ip))
+    assert sent.status_code == 204, sent.text
+    body = {"challenge_token": challenge["challenge_token"], "code": env.mailer.last_code()}
+    r = await client.post("/v1/auth/mfa/email/verify", json=body, headers=_from(ip))
+    assert r.status_code == 200, r.text
+    tokens: dict[str, Any] = r.json()
+    return tokens
+
+
+async def test_signing_out_ends_the_access_token_at_once_even_with_the_session_cache(
+    env: Env, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """L1 (found in the 19 Nov live re-test), two gaps: the guard caches a session's state for CACHE_SECONDS, so
+    the access token still worked for up to 10 s after logout; and a client without the refresh cookie signed out
+    without ending anything (its token worked for its whole 15 minutes). Now the logout request reads the
+    database and drops the cached state, and also ends the session the access token names."""
+    monkeypatch.setattr(session_guard, "CACHE_SECONDS", 60.0)
+    async with _client_with(env, AuthSettings(cookie_secure=False)) as client:
+        for cookie in (True, False):  # a browser (refresh cookie) and a client that keeps no cookies
+            email, password, _ = await new_user(env, "sales")
+            tokens = await _sign_in_from(client, env, email, password, "198.51.100.9")
+            if not cookie:
+                client.cookies.clear()
+            auth = {"Authorization": f"Bearer {tokens['access_token']}"}
+            assert (await client.get("/v1/auth/me", headers=auth)).status_code == 200  # cached as alive
+            assert (await client.post("/v1/auth/logout", headers=auth)).status_code == 204
+            assert (await client.get("/v1/auth/me", headers=auth)).status_code == 401, cookie
+
+
+async def test_a_known_ip_is_not_held_back_by_attempts_from_elsewhere(env: Env) -> None:
+    """M3 (found in the 19 Nov live re-test): once an attacker had spent the per-account bucket from other IPs,
+    the staff member was refused too (lockout DoS). An IP where the account signed in lately skips that bucket;
+    the per-IP bucket and the account + IP lock still apply to it. A new IP waits while the account is attacked."""
+    auth = AuthSettings(cookie_secure=False, rate_login_account=RateLimit(burst=3, per_minute=0.01))
+    async with _client_with(env, auth) as client:
+        email, password, _ = await new_user(env, "sales")
+        await _sign_in_from(client, env, email, password, "198.51.100.8")  # the office
+        for n in range(4):  # an attacker spends the account's bucket from other addresses
+            body = {"email": email, "password": "nope-nope"}
+            await client.post("/v1/auth/login", json=body, headers=_from(f"203.0.113.{20 + n}"))
+        right = {"email": email, "password": password}
+        stranger = await client.post("/v1/auth/login", json=right, headers=_from("192.0.2.50"))
+        assert stranger.status_code == 429
+        office = await client.post("/v1/auth/login", json=right, headers=_from("198.51.100.8"))
+        assert office.status_code == 200, office.text
+
+
 async def test_account_wide_lock_is_a_backstop_across_many_ips(env: Env) -> None:
     """M3: failures from many IPs together still lock the account (`account_lock_failures`)."""
     auth = AuthSettings(cookie_secure=False, account_lock_failures=6)

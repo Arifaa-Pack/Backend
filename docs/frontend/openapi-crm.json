@@ -239,7 +239,7 @@
           "auth"
         ],
         "summary": "Logout",
-        "description": "End this browser's session: the refresh token is revoked and its cookie cleared.",
+        "description": "End this session: the refresh token (cookie) and the session the access token names are revoked\nand the cookie cleared.",
         "operationId": "logout_v1_auth_logout_post",
         "parameters": [
           {
