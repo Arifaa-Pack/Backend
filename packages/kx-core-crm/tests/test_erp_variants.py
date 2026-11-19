@@ -220,3 +220,48 @@ async def test_opt_ins_are_recorded_with_their_wording(databases: Any) -> None:
         rows = (await s.execute(select(Consent).where(Consent.contact_id == contact.id))).scalars().all()
     granted = [(r.channel, r.status, r.wording, r.captured_via) for r in rows if r.status == "granted"]
     assert granted == [("whatsapp", "granted", "Yes, WhatsApp is fine", "web_chat")]
+
+
+@pytest.mark.db
+async def test_the_ai_may_name_the_website_product_or_the_buyers_reference(databases: Any) -> None:
+    """Live test 20 Nov: "8325" was refused as an unknown CRM code, so the AI told the buyer it did not exist."""
+    from kx.core.contracts import RequirementPatch
+    from kx.crm.deals import service as deal_svc
+
+    await _clean(databases)
+    async with databases.transaction(LogicalDb.CRM) as s:
+        await erp_import.import_erp(s, SAMPLE, actor=Actor.system("test"), now=datetime.now(UTC))
+        for p in (
+            ProductPublished(
+                code="AC-8325",
+                cms_id="ac-8325",
+                name="Aluminium Container & Lid",
+                ref="8325",
+                category_code="containers",
+            ),
+            ProductPublished(
+                code="TRAY-3180",
+                cms_id="tray-3180",
+                name="Aluminium Tray",
+                ref="3180",
+                category_code="cups-trays",
+            ),
+        ):
+            await catalogue.mirror_product(s, p, datetime.now(UTC))
+    async with databases.transaction(LogicalDb.CRM) as s:
+        deal = await deal_svc.resolve_deal(s, "web_chat", None, uuid.uuid4(), Actor.system("test"))
+        one = await deal_svc.patch_requirement(
+            s, deal, RequirementPatch(product_sku="3180"), Actor.system("t")
+        )
+        assert one.product_id is not None  # one ERP item: it is the product
+        two = await deal_svc.patch_requirement(
+            s, deal, RequirementPatch(product_sku="ac-8325"), Actor.system("t")
+        )
+        assert (
+            two.product_text == "Aluminium Container & Lid (8325)"
+            and two.spec["website_product"] == "ac-8325"
+        )
+        odd = await deal_svc.patch_requirement(
+            s, deal, RequirementPatch(product_sku="9999", product_text=None), Actor.system("t")
+        )
+        assert odd.product_text == "Aluminium Container & Lid (8325)"  # an unknown code never overwrites

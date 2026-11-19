@@ -33,6 +33,7 @@ from kx.crm.models import (
     QuoteSendGrant,
     QuoteVersion,
     StageHistory,
+    WebsiteProduct,
 )
 from kx.crm.rules import OPEN_STAGES, QualificationFacts, check_transition, missing_fields
 
@@ -251,13 +252,21 @@ async def patch_requirement(
     before = _req_snapshot(req)
     data = patch.model_dump(exclude_unset=True, exclude_none=True)
     if (sku := data.pop("product_sku", None)) is not None:
-        product = (
-            await session.execute(select(Product).where(Product.sku == sku, Product.is_active))
-        ).scalar_one_or_none()
-        if product is None:
-            raise RuleViolation(f"unknown product sku {sku!r}")
-        req.product_id = product.id
-        req.unit = product.unit
+        product, website = await _product_for(session, sku)
+        if product is not None:
+            req.product_id = product.id
+            req.unit = product.unit
+        # D61 (live test 20 Nov): the AI knows the website product (ac-8325) or the buyer's reference
+        # (8325), not the generated ERP code; with several packings the salesperson (or product_variants)
+        # picks one. Refusing it made the AI tell the buyer "8325 is not in our system" while it was on
+        # their screen. An unknown code only fills an empty description, never replaces one.
+        elif website is not None:
+            data.setdefault(
+                "product_text", f"{website.name} ({website.ref})" if website.ref else website.name
+            )
+            req.spec = {**req.spec, "website_product": website.cms_id}
+        elif not req.product_text:
+            data.setdefault("product_text", sku)
     if (spec := data.pop("spec", None)) is not None:
         req.spec = {**req.spec, **spec}
     if (country := data.pop("delivery_country", None)) is not None:
@@ -282,6 +291,43 @@ async def patch_requirement(
         ),
     )
     return req
+
+
+async def _product_for(session: AsyncSession, code: str) -> tuple[Product | None, WebsiteProduct | None]:
+    """The CRM product for what the AI or the buyer called it: the CRM code itself, else the one sellable ERP
+    item of the website product named by its id or its reference (D61). (None, website product) when that
+    product has several packings or none yet."""
+    exact = select(Product).where(Product.sku == code, Product.is_active)
+    if (product := (await session.execute(exact)).scalar_one_or_none()) is not None:
+        return product, None
+    key = code.strip().lower()
+    web = (
+        (
+            await session.execute(
+                select(WebsiteProduct)
+                .where(or_(func.lower(WebsiteProduct.cms_id) == key, func.lower(WebsiteProduct.ref) == key))
+                .order_by(WebsiteProduct.range.desc(), WebsiteProduct.cms_id)  # trade before the retail pack
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if web is None:
+        return None, None
+    variants = (
+        (
+            await session.execute(
+                select(Product).where(
+                    func.lower(Product.cms_product_id) == web.cms_id.lower(),
+                    Product.sellable,
+                    Product.is_active,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return (variants[0], web) if len(variants) == 1 else (None, web)
 
 
 def _req_snapshot(r: DealRequirement) -> dict[str, object]:
