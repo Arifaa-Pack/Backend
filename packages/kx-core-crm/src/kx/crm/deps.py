@@ -12,9 +12,9 @@ from kx.core.killswitch import KillSwitchLadder
 from kx.core.passwords import SeedBox
 from kx.core.settings import AuthSettings
 from kx.crm._shared.settings import SettingsService
-from kx.crm.auth.throttle import AuthThrottle, MemoryThrottle
-from kx.crm.pricing.fx import FxSource
-from kx.crm.quotes.pdf import Letterhead, PdfUploader, QuoteRenderer
+from kx.crm.auth.api import AuthThrottle, MemoryThrottle
+from kx.crm.pricing.api import FxSource
+from kx.crm.quotes.api import Letterhead, PdfUploader, QuoteRenderer
 
 
 def utcnow() -> datetime:

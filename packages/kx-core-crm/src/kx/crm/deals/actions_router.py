@@ -32,11 +32,11 @@ from kx.crm._shared.schemas import (
     StaffMessageOut,
     WonIn,
 )
-from kx.crm.contacts import consent
+from kx.crm.contacts import api as consent
 from kx.crm.deals import service as deal_svc
-from kx.crm.deals.router import deal_detail
-from kx.crm.handover import service as handover
-from kx.crm.orders import service as orders
+from kx.crm.deals.views import deal_detail
+from kx.crm.handover import api as handover
+from kx.crm.orders import api as orders
 
 OrderStaff = Annotated[Principal, Depends(require_role(Role.SALES, *MANAGERS))]  # not Admin / IT (§3)
 

@@ -14,9 +14,9 @@ from kx.crm._shared.api_context import ApiContext, Manager, MdOnly, Staff
 from kx.crm._shared.journal import Actor
 from kx.crm._shared.schemas import DealDetail, ManualQuoteIn, QuoteVersionOut, ReassignIn
 from kx.crm.assignment import service as assignment
-from kx.crm.deals import service as deal_svc
-from kx.crm.deals.router import deal_detail
-from kx.crm.quotes import service as quotes
+from kx.crm.deals import api as deal_svc
+from kx.crm.deals.api import deal_detail
+from kx.crm.quotes import api as quotes
 
 
 def router(ctx: ApiContext) -> APIRouter:

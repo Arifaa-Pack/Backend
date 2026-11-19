@@ -36,8 +36,8 @@ from kx.core.event_payloads import DealAssigned, StaffContact
 from kx.crm._shared import staff
 from kx.crm._shared.journal import Actor, Emit, Timeline, record
 from kx.crm._shared.settings import AssignmentRule
-from kx.crm.approvals import service as approvals
-from kx.crm.change_requests import service as change_requests
+from kx.crm.approvals import api as approvals
+from kx.crm.change_requests import api as change_requests
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Contact, Deal, DealRequirement, Product, User
 

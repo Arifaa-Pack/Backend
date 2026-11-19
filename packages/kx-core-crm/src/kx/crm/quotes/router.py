@@ -17,8 +17,8 @@ from kx.crm._shared import access
 from kx.crm._shared.api_context import ApiContext, Manager, MdOnly, Staff
 from kx.crm._shared.pagination import Page, keyset, page_of
 from kx.crm._shared.schemas import ApprovalOut, DecisionIn, LineCostOut, QuoteLineOut, QuoteVersionOut
-from kx.crm.approvals import service as approvals
-from kx.crm.deals import service as deal_svc
+from kx.crm.approvals import api as approvals
+from kx.crm.deals import api as deal_svc
 from kx.crm.models import Approval, Quote, QuoteVersion
 from kx.crm.quotes import service as quotes
 from kx.crm.quotes.issuing import lines_of

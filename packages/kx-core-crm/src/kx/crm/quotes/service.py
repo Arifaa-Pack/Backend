@@ -26,8 +26,8 @@ from kx.crm._shared import staff
 from kx.crm._shared.journal import Actor, Timeline, record
 from kx.crm._shared.quote_edits import LineEdit, QuoteEdits
 from kx.crm._shared.settings import BusinessSettings
-from kx.crm.approvals import service as approvals
-from kx.crm.deals import service as deal_svc
+from kx.crm.approvals import api as approvals
+from kx.crm.deals import api as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import (
     Approval,
@@ -41,22 +41,26 @@ from kx.crm.models import (
     QuoteVersion,
     Task,
 )
-from kx.crm.pricing.engine import price_line, quote_totals
-from kx.crm.pricing.price_list import TierPrice, convert_tier, min_price_for, resolve_tier
-from kx.crm.pricing.service import (
+from kx.crm.pricing.api import (
     ListPricingInputs,
+    PricedLine,
     PricingInputs,
+    TierPrice,
     build_delivery_estimate,
     category_min_pct,
+    convert_tier,
     current_tiers,
     fx_to_aed,
     fx_with_date,
     lead_time_text,
     list_pricing_inputs,
+    min_price_for,
+    price_line,
     pricing_inputs,
+    quote_totals,
+    resolve_tier,
     vat_pct,
 )
-from kx.crm.pricing.types import PricedLine
 from kx.crm.quotes import grants
 from kx.crm.quotes.issuing import lines_of, local_today
 from kx.crm.rules import QUOTABLE_STAGES

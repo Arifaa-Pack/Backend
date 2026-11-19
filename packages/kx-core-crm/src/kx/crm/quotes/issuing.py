@@ -23,9 +23,9 @@ from kx.core.identity import priced_content_sha256, sha256_hex
 from kx.crm._shared import staff
 from kx.crm._shared.journal import Actor, Emit, Timeline, record
 from kx.crm._shared.settings import BusinessSettings
-from kx.crm.company import service as company_svc
-from kx.crm.contacts import phone
-from kx.crm.deals import service as deal_svc
+from kx.crm.company import api as company_svc
+from kx.crm.contacts import api as phone
+from kx.crm.deals import api as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import (
     Approval,

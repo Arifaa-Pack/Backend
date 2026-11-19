@@ -17,11 +17,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
 from kx.crm._shared.api_context import ApiContext, Staff
 from kx.crm._shared.journal import Actor
-from kx.crm.inbox import service as inbox
+from kx.crm.inbox import api as inbox
 from kx.crm.models import AuditEvent, StockItem
-from kx.crm.orders import service as orders
-from kx.crm.pricing import price_list_service as price_lists
-from kx.crm.reports.dashboards import PRICE_LIST_ACTIONS
+from kx.crm.orders import api as orders
+from kx.crm.pricing import api as price_lists
+from kx.crm.reports.api import PRICE_LIST_ACTIONS
 
 # §3 "Edit price list: manager and admin" (a person with MFA: prices are money)
 PriceEditor = Annotated[Principal, Depends(require_human_mfa(Role.MANAGER, Role.ADMIN))]

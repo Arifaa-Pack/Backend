@@ -198,11 +198,11 @@ containers = [
 ]
 layers = [
     "(router) : (actions_router) : (users_router)",
-    "(service) : (issuing) : (grants) : (pdf) : (workbook) : (dashboards) : (scheduled) : (summary) : (lost_proposals) : (session_guard) : (throttle) : (consent) : (phone) : (fx) : (proposals) : (price_list_service) : (allowed)",
+    "(service) : (issuing) : (grants) : (pdf) : (workbook) : (dashboards) : (scheduled) : (summary) : (lost_proposals) : (session_guard) : (throttle) : (consent) : (phone) : (fx) : (proposals) : (price_list_service) : (allowed) : (views)",
 ]
 
 [[tool.importlinter.contracts]]
-name = "CRM rule 5: feature slices are independent; today's service-level calls are the baseline"
+name = "CRM rule 5: feature slices are independent; another slice is reached only through its api.py"
 type = "independence"
 modules = [
     "kx.crm.admin",
@@ -227,80 +227,9 @@ modules = [
     "kx.crm.screens",
     "kx.crm.texts",
 ]
-ignore_imports = [
-    "kx.crm.admin.router -> kx.crm.approvals.service",
-    "kx.crm.admin.router -> kx.crm.assignment.service",
-    "kx.crm.admin.router -> kx.crm.pricing.proposals",
-    "kx.crm.approvals.service -> kx.crm.change_requests.service",
-    "kx.crm.approvals.service -> kx.crm.deals.service",
-    "kx.crm.approvals.service -> kx.crm.quotes.grants",
-    "kx.crm.approvals.service -> kx.crm.quotes.issuing",
-    "kx.crm.assignment.router -> kx.crm.deals.router",
-    "kx.crm.assignment.router -> kx.crm.deals.service",
-    "kx.crm.assignment.router -> kx.crm.quotes.service",
-    "kx.crm.assignment.service -> kx.crm.approvals.service",
-    "kx.crm.assignment.service -> kx.crm.change_requests.service",
-    "kx.crm.catalogue.workbook -> kx.crm.pricing.price_list_service",
-    "kx.crm.catalogue.workbook -> kx.crm.pricing.service",
-    "kx.crm.change_requests.router -> kx.crm.deals.router",
-    "kx.crm.change_requests.router -> kx.crm.deals.service",
-    "kx.crm.change_requests.router -> kx.crm.quotes.service",
-    "kx.crm.change_requests.service -> kx.crm.deals.service",
-    "kx.crm.change_requests.service -> kx.crm.quotes.issuing",
-    "kx.crm.change_requests.service -> kx.crm.quotes.service",
-    "kx.crm.company.service -> kx.crm.quotes.pdf",
-    "kx.crm.deals.actions_router -> kx.crm.contacts.consent",
-    "kx.crm.deals.actions_router -> kx.crm.handover.service",
-    "kx.crm.deals.actions_router -> kx.crm.orders.service",
-    "kx.crm.deals.router -> kx.crm.approvals.service",
-    "kx.crm.deals.router -> kx.crm.assignment.service",
-    "kx.crm.deals.router -> kx.crm.change_requests.service",
-    "kx.crm.deals.router -> kx.crm.negotiation.service",
-    "kx.crm.deals.router -> kx.crm.quotes.service",
-    "kx.crm.deals.summary -> kx.crm.company.service",
-    "kx.crm.deals.summary -> kx.crm.contacts.phone",
-    "kx.crm.deals.summary -> kx.crm.quotes.issuing",
-    "kx.crm.deals.summary -> kx.crm.quotes.pdf",
-    "kx.crm.handover.service -> kx.crm.company.service",
-    "kx.crm.handover.service -> kx.crm.deals.service",
-    "kx.crm.handover.service -> kx.crm.quotes.grants",
-    "kx.crm.handover.service -> kx.crm.quotes.issuing",
-    "kx.crm.inbox.service -> kx.crm.approvals.service",
-    "kx.crm.inbox.service -> kx.crm.change_requests.service",
-    "kx.crm.negotiation.service -> kx.crm.deals.service",
-    "kx.crm.negotiation.service -> kx.crm.pricing.engine",
-    "kx.crm.negotiation.service -> kx.crm.pricing.price_list",
-    "kx.crm.negotiation.service -> kx.crm.pricing.service",
-    "kx.crm.negotiation.service -> kx.crm.pricing.types",
-    "kx.crm.negotiation.service -> kx.crm.quotes.issuing",
-    "kx.crm.negotiation.service -> kx.crm.quotes.service",
-    "kx.crm.orders.service -> kx.crm.deals.service",
-    "kx.crm.orders.service -> kx.crm.quotes.grants",
-    "kx.crm.orders.service -> kx.crm.quotes.service",
-    "kx.crm.quotes.grants -> kx.crm.deals.service",
-    "kx.crm.quotes.issuing -> kx.crm.company.service",
-    "kx.crm.quotes.issuing -> kx.crm.contacts.phone",
-    "kx.crm.quotes.issuing -> kx.crm.deals.service",
-    "kx.crm.quotes.router -> kx.crm.approvals.service",
-    "kx.crm.quotes.router -> kx.crm.deals.service",
-    "kx.crm.quotes.service -> kx.crm.approvals.service",
-    "kx.crm.quotes.service -> kx.crm.deals.service",
-    "kx.crm.quotes.service -> kx.crm.pricing.engine",
-    "kx.crm.quotes.service -> kx.crm.pricing.price_list",
-    "kx.crm.quotes.service -> kx.crm.pricing.service",
-    "kx.crm.quotes.service -> kx.crm.pricing.types",
-    "kx.crm.records.router -> kx.crm.deals.router",
-    "kx.crm.reports.router -> kx.crm.deals.router",
-    "kx.crm.retention.service -> kx.crm.deals.service",
-    "kx.crm.screens.router -> kx.crm.inbox.service",
-    "kx.crm.screens.router -> kx.crm.orders.service",
-    "kx.crm.screens.router -> kx.crm.pricing.price_list_service",
-    "kx.crm.screens.router -> kx.crm.reports.dashboards",
-    "kx.crm.deps -> kx.crm.auth.throttle",
-    "kx.crm.deps -> kx.crm.pricing.fx",
-    "kx.crm.deps -> kx.crm.quotes.pdf",
-    "kx.crm.handover.service -> kx.crm.quotes.allowed",
-]  # baseline 2026-11-19: may only shrink
+# A slice (or deps) reaches another slice only through that slice's api.py, its declared interface; the
+# 74-line baseline of 19 Nov is gone. A chain through deps is a chain through api.py too.
+ignore_imports = ["kx.crm.** -> kx.crm.*.api"]
 
 # Phase 2b (docs/arch/AUTOMATION_AGENTS_SLICES.md): a slice imports only the layers below it; slices on one line
 # ("|") are independent of each other. Today's code needs no exception except the three _shared lines below.

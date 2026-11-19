@@ -33,11 +33,10 @@ from kx.core.event_payloads import ChangeRequestClosed, ChangeRequested
 from kx.core.identity import new_id
 from kx.crm._shared import access, staff
 from kx.crm._shared.journal import Actor, Emit, Timeline, record
-from kx.crm.deals import service as deal_svc
+from kx.crm.deals import api as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import ChangeRequest, Deal, Quote, QuoteLine, QuoteVersion
-from kx.crm.quotes.issuing import lines_of
-from kx.crm.quotes.service import latest_version
+from kx.crm.quotes.api import latest_version, lines_of
 
 OPEN: Final = ("open", "in_progress")
 _ISSUED: Final = ("approved", "sent")

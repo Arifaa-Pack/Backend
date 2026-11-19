@@ -24,7 +24,7 @@ from kx.core.event_payloads import StaffNotice
 from kx.crm._shared import staff
 from kx.crm._shared.company_profile import BankDetails, CompanyProfile
 from kx.crm._shared.journal import Actor, Emit, record
-from kx.crm.quotes.pdf import Letterhead
+from kx.crm.quotes.api import Letterhead
 
 if TYPE_CHECKING:
     from kx.crm.deps import CrmDeps

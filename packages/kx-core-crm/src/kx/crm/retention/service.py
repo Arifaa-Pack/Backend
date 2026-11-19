@@ -21,7 +21,7 @@ from kx.core.identity import recipient_hash
 from kx.core.retention import PruneRule
 from kx.core.settings import RetentionSettings
 from kx.crm._shared.journal import Actor, Emit, record
-from kx.crm.deals import service as deal_svc
+from kx.crm.deals import api as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Company, Contact, Deal, TimelineEvent
 from kx.crm.rules import OPEN_STAGES

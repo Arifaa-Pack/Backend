@@ -26,13 +26,12 @@ from kx.core.errors import RuleViolation, Unavailable
 from kx.core.price_guard import check_prices
 from kx.crm._shared import access
 from kx.crm._shared.journal import Actor, Timeline, record
-from kx.crm.company import service as company_svc
-from kx.crm.deals import service as deal_svc
+from kx.crm.company import api as company_svc
+from kx.crm.deals import api as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Deal, User
-from kx.crm.quotes import issuing
-from kx.crm.quotes.allowed import allowed_prices_for
-from kx.crm.quotes.grants import SendChannel, recipient, recipient_on
+from kx.crm.quotes import api as issuing
+from kx.crm.quotes.api import SendChannel, allowed_prices_for, recipient, recipient_on
 
 SIGNATURE: Final = "— {name}, {company}"
 TIMELINE_CHARS: Final = 500
