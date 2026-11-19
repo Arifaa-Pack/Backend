@@ -103,6 +103,19 @@ def test_every_event_with_a_handler_is_mapped(fmap: dict[str, Any]) -> None:
     assert agents == {"kx.agents.handlers:AgentHandlers._message"}
 
 
+def test_every_event_has_a_handler_or_a_recorded_reason(fmap: dict[str, Any]) -> None:
+    """Six events had no subscriber and nobody had said why (recon, 19 Nov). Now each one either has a
+    handler or is in kx.core.events.NO_SUBSCRIBER with its reason, and the list cannot go stale."""
+    for e in fmap["events"]:
+        if e["handlers"]:
+            assert e["event"] not in ev.NO_SUBSCRIBER, (
+                f"{e['event']} has a handler now: drop it from NO_SUBSCRIBER"
+            )
+        else:
+            assert e["event"] in ev.NO_SUBSCRIBER, f"{e['event']} has no handler: subscribe one or record why"
+    assert set(ev.NO_SUBSCRIBER) <= {e["event"] for e in fmap["events"]}
+
+
 def test_routes_jobs_and_beat_are_mapped(fmap: dict[str, Any]) -> None:
     routes = {(r["method"], r["path"]): r for r in fmap["routes"]}
     revise = routes[("POST", "/v1/deals/{deal_id}/quotes/revise")]

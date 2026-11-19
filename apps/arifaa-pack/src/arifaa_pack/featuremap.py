@@ -562,6 +562,7 @@ def _events(c: Any) -> list[dict[str, Any]]:
                 "constant": names[name],
                 "payload": ref(payload) if payload is not None else None,
                 "handlers": handlers,
+                "no_subscriber": ev.NO_SUBSCRIBER.get(name),
             }
         )
     return out
@@ -697,6 +698,8 @@ def to_markdown(fmap: FeatureMap) -> str:
     lines += ["", "## Events: who reacts", "", "| Event | Payload | Handlers |", "| --- | --- | --- |"]
     for e in fmap.get("events", []):
         handlers = [f"{h['package']}: {h['name']}" for h in e["handlers"]]
+        if not handlers and e.get("no_subscriber"):
+            handlers = [f"none, on purpose: {e['no_subscriber']}"]
         lines.append(
             f"| `{e['event']}` | {_cell([e['payload']] if e['payload'] else [])} | {_cell(handlers)} |"
         )

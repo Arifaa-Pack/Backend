@@ -79,11 +79,11 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 
 | Event | Payload | Handlers |
 | --- | --- | --- |
-| `agent.run_completed.v1` | `kx.core.event_payloads:AgentRunCompleted` | - |
-| `approval.overdue.v1` | `kx.core.event_payloads:ApprovalOverdue` | - |
+| `agent.run_completed.v1` | `kx.core.event_payloads:AgentRunCompleted` | `none, on purpose: AI audit record (D46): the run row and its trace are the record; nothing reacts` |
+| `approval.overdue.v1` | `kx.core.event_payloads:ApprovalOverdue` | `none, on purpose: audit: the escalation itself (SRS 16) runs from automation's quote.submitted ladder` |
 | `catalogue.product_content_changed.v1` | `kx.core.event_payloads:ProductContentChanged` | `app: arifaa_pack.container:cms_product_draft` |
 | `catalogue.product_published.v1` | `kx.core.event_payloads:ProductPublished` | `crm: kx.crm.jobs:on_product_published` |
-| `change_request.closed.v1` | `kx.core.event_payloads:ChangeRequestClosed` | - |
+| `change_request.closed.v1` | `kx.core.event_payloads:ChangeRequestClosed` | `none, on purpose: audit: the SRS 16 ladder stops itself (every step first asks the CRM is_pending)` |
 | `change_request.raised.v1` | `kx.core.event_payloads:ChangeRequested` | `automation: kx.automation.handlers:EventHandlers._change_requested` |
 | `consent.opted_out.v1` | `kx.core.event_payloads:OptedOut` | `automation: kx.automation.handlers:EventHandlers._opted_out`<br>`crm: kx.crm.jobs:on_opted_out` |
 | `consent.stop_unclear.v1` | `kx.core.event_payloads:StopUnclear` | `automation: kx.automation.handlers:EventHandlers._stop_unclear` |
@@ -96,20 +96,20 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | `deal.stage_changed.v1` | `kx.core.event_payloads:DealStageChanged` | `automation: kx.automation.handlers:EventHandlers._stage_changed` |
 | `deal.won.v1` | `kx.core.event_payloads:DealWon` | `automation: kx.automation.handlers:EventHandlers._deal_won` |
 | `kb.content_published.v1` | `kx.core.event_payloads:KbContentPublished` | `agents: kx.agents.handlers:AgentHandlers._kb` |
-| `lane.risk_assessed.v1` | `kx.core.event_payloads:LaneRiskAssessed` | - |
+| `lane.risk_assessed.v1` | `kx.core.event_payloads:LaneRiskAssessed` | `none, on purpose: v2 (D14): payload only, nothing publishes it yet (freight-lane risk)` |
 | `message.received.v1` | `kx.core.event_payloads:MessageReceived` | `agents: kx.agents.handlers:AgentHandlers._message`<br>`crm: kx.crm.jobs:on_message_received` |
 | `message.status.v1` | `kx.core.event_payloads:MessageStatus` | `crm: kx.crm.jobs:on_message_status` |
 | `negotiation.paused.v1` | `kx.core.event_payloads:NegotiationPaused` | `automation: kx.automation.handlers:EventHandlers._negotiation_paused` |
 | `order.status_changed.v1` | `kx.core.event_payloads:OrderStatusChanged` | `automation: kx.automation.handlers:EventHandlers._order_status_changed` |
 | `price.proposed.v1` | `kx.core.event_payloads:PriceProposed` | `crm: kx.crm.jobs:on_price_proposed` |
-| `price.stale.v1` | `kx.core.event_payloads:PriceStale` | - |
+| `price.stale.v1` | `kx.core.event_payloads:PriceStale` | `none, on purpose: v2 (D14, cost mode only, off in v1): the manager alert is not built (OPEN_QUESTIONS #78)` |
 | `quote.approved.v1` | `kx.core.event_payloads:QuoteApproved` | `agents: kx.agents.handlers:AgentHandlers._quote`<br>`automation: kx.automation.handlers:EventHandlers._quote_approved` |
 | `quote.correction_requested.v1` | `kx.core.event_payloads:QuoteCorrectionRequested` | `agents: kx.agents.handlers:AgentHandlers._quote` |
 | `quote.not_delivered.v1` | `kx.core.event_payloads:QuoteNotDelivered` | `crm: kx.crm.jobs:on_quote_not_delivered` |
 | `quote.rejected.v1` | `kx.core.event_payloads:QuoteRejected` | `agents: kx.agents.handlers:AgentHandlers._quote` |
 | `quote.resend_requested.v1` | `kx.core.event_payloads:QuoteResendRequested` | `automation: kx.automation.handlers:EventHandlers._quote_resend` |
 | `quote.submitted.v1` | `kx.core.event_payloads:QuoteSubmitted` | `automation: kx.automation.handlers:EventHandlers._quote_submitted` |
-| `settings.changed.v1` | `kx.core.event_payloads:SettingsChanged` | - |
+| `settings.changed.v1` | `kx.core.event_payloads:SettingsChanged` | `none, on purpose: audit: CRM processes re-read settings within 30 s; other packages keep no copy` |
 | `staff.notice_requested.v1` | `kx.core.event_payloads:StaffNotice` | `automation: kx.automation.handlers:EventHandlers._staff_notice` |
 | `texts.text_changed.v1` | `kx.core.event_payloads:MessageTextChanged` | `app: arifaa_pack.texts_sync:translate_text` |
 

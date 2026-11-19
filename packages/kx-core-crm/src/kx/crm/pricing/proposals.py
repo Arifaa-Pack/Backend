@@ -152,7 +152,8 @@ async def material_freshness(
 
 
 async def emit_stale(session: AsyncSession, s: BusinessSettings, now: datetime, actor: Actor) -> int:
-    """PRICE_STALE for each material at warn/block level (automation alerts the manager)."""
+    """PRICE_STALE for each material at warn/block level (v2, cost mode). Nothing subscribes yet: the manager
+    alert is open (OPEN_QUESTIONS #78)."""
     count = 0
     for f in await material_freshness(session, s, now):
         if f.level == "ok":

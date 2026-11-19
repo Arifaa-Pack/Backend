@@ -8,7 +8,13 @@ column.
 Sources: the SRS (`docs/Arifaa Pack — Detailed Business Flow v1 (SRS basis) (2).md`) and the platform docs
 (`docs/Arifaa Platform — Platforms, Pricing & Fallbacks/`). Rows 1–39 come from the 5 Nov build; rows 40–68
 from the 11 Nov plan (`docs/V1_CHANGE_PLAN.md` WP13–WP29); rows 69 on from the 16 Nov v2 platform plan
-(WP-V2-01 … 14, D41–D53).
+(WP-V2-01 … 14, D41–D53); row 78 from the 19 Nov architecture follow-up.
+
+## 19 Nov (architecture follow-up)
+
+| # | WP | Question | What I chose for now | Where |
+|---|---|---|---|---|
+| 78 | ADR-0001 | v2 cost mode publishes `price.stale.v1` when a material's approved rate is 3 / 7 days old (warn / block, D14), and the code said "automation alerts the manager", but no alert was ever built. Who is told, on which channel, with what words? | Nothing in v1 (cost mode is off). The event is listed in `kx.core.events.NO_SUBSCRIBER` with this reason; the staleness block itself works (quotes in cost mode stop at "block"). Build the alert with v2, through `notify_staff` and an editable text. | `kx/crm/pricing/proposals.py` `emit_stale`, `kx/core/events.py` |
 
 ## 16 Nov (server plan v2)
 

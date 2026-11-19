@@ -3,7 +3,8 @@
 Why a snapshot: every rule (approval window, MD limit, staleness, grant TTL ...) reads several keys
 in one request; one query + one pydantic parse per TTL keeps that cheap, and parsing the whole table
 on every *write* guarantees the MD can never save a value that breaks another rule. Other processes
-see a change within `ttl_seconds`; SETTINGS_CHANGED lets consumers (automation, agents) refresh too.
+see a change within `ttl_seconds`. SETTINGS_CHANGED is an audit record: automation and agents keep no copy
+of these settings, so nothing needs to refresh.
 """
 
 from __future__ import annotations

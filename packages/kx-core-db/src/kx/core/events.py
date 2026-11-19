@@ -61,6 +61,18 @@ CATALOGUE_PRODUCT_CONTENT: Final = "catalogue.product_content_changed.v1"
 MESSAGE_TEXT_CHANGED: Final = "texts.text_changed.v1"
 CONVERSATION_SUMMARY_UPDATED: Final = "conversation.summary_updated.v1"  # §7A.2: AI summary on the deal
 
+# Events written to the outbox that nothing subscribes to, on purpose, and why. A unit test keeps the list
+# true both ways (tests/unit/test_featuremap.py): an event without a handler must be listed here, and a
+# listed event that gains a handler must leave the list.
+NO_SUBSCRIBER: Final[dict[str, str]] = {
+    AGENT_RUN_COMPLETED: "AI audit record (D46): the run row and its trace are the record; nothing reacts",
+    APPROVAL_OVERDUE: "audit: the escalation itself (SRS 16) runs from automation's quote.submitted ladder",
+    CHANGE_REQUEST_CLOSED: "audit: the SRS 16 ladder stops itself (every step first asks the CRM is_pending)",
+    LANE_RISK_ASSESSED: "v2 (D14): payload only, nothing publishes it yet (freight-lane risk)",
+    PRICE_STALE: "v2 (D14, cost mode only, off in v1): the manager alert is not built (OPEN_QUESTIONS #78)",
+    SETTINGS_CHANGED: "audit: CRM processes re-read settings within 30 s; other packages keep no copy",
+}
+
 
 class Event(BaseModel):
     """Envelope shared by every event."""
