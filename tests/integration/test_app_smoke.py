@@ -79,7 +79,10 @@ async def test_api_boots_and_routes_events(migrated: dict[str, str]) -> None:
         LifespanManager(app),
         AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as http,
     ):
-        assert (await http.get("/healthz")).json() == {"status": "ok"}
+        health = await http.get("/healthz")
+        assert health.json() == {"status": "ok"}
+        assert health.headers["x-frame-options"] == "DENY"  # SecurityHeaders is wired (19 Nov re-test)
+        assert (await http.get("/v1/contacts?q=%00")).status_code == 400  # RejectNul is wired
         r = await http.get("/v1/deals")
         assert r.status_code == 401 and r.headers["content-type"].startswith("application/problem+json")
         assert (await http.get("/webhooks/whatsapp", params={"hub.mode": "subscribe"})).status_code in {

@@ -14,6 +14,7 @@ from arifaa_pack.config import app_settings
 from arifaa_pack.container import build
 from arifaa_pack.cors import SplitCors
 from arifaa_pack.errorlog import LogUnhandled
+from arifaa_pack.inputguard import RejectNul, SecurityHeaders
 from arifaa_pack.telemetry import beat_health, init_telemetry, instrument_api
 from kx.agents.website import build_router as website_router
 from kx.automation.admin_api import build_router as channels_admin_router
@@ -22,7 +23,7 @@ from kx.automation.inbound.webhooks import build_router as webhook_router
 from kx.automation.optout.unsubscribe import build_router as unsubscribe_router
 from kx.core.errors import Unavailable, install_problem_handlers
 from kx.core.logging import configure_logging
-from kx.core.settings import get_settings
+from kx.core.settings import Environment, get_settings
 from kx.crm import SessionGuard
 from kx.crm import build_router as crm_router
 
@@ -48,7 +49,16 @@ def create_app() -> FastAPI:
             app.state.container = c
             yield
 
-    app = FastAPI(title="Kairox CRM API", version="1.0.0", lifespan=lifespan)
+    # 19 Nov re-test: the API description is public only where people test against it (not in production)
+    public_docs = core.env is not Environment.PRODUCTION
+    app = FastAPI(
+        title="Kairox CRM API",
+        version="1.0.0",
+        lifespan=lifespan,
+        docs_url="/docs" if public_docs else None,
+        redoc_url="/redoc" if public_docs else None,
+        openapi_url="/openapi.json" if public_docs else None,
+    )
     instrument_api(app)  # HTTP + Celery producer spans to SigNoz (no-op without KX_APP_OTLP_ENDPOINT)
     install_problem_handlers(app)  # also turns bad webhook signatures into 401s
     # L2: 1 MB bodies (10 MB for the spreadsheet imports), before any route reads. Added first so it sits
@@ -57,6 +67,8 @@ def create_app() -> FastAPI:
         LogUnhandled
     )  # innermost: logs a crash inside the request's trace (log <-> trace link)
     app.add_middleware(BodyLimit)
+    app.add_middleware(RejectNul)  # 19 Nov re-test: a NUL in a search reached PostgreSQL (500); now a 400
+    app.add_middleware(SecurityHeaders)  # nosniff, no framing, no referrer, CSP (outside the 400 / 413 above)
     app.add_middleware(  # M2: credentials only for the CRM; the website only reaches /v1/public/*
         SplitCors,
         crm_origins=app_settings().cors_origins,
