@@ -33,7 +33,6 @@ from kx.agents.knowledge.service import KnowledgeSearch
 from kx.agents.language import reply_language
 from kx.agents.llm.service import ModelRouter
 from kx.agents.memory.service import TurnStore
-from kx.agents.orchestrator import Route, route
 from kx.agents.registry import (
     AgentRegistry,
     DefaultPromptStore,
@@ -43,6 +42,7 @@ from kx.agents.registry import (
     PromptStore,
     team_member,
 )
+from kx.agents.router.service import Route, route
 from kx.agents.runs import RunStatus, RunStore, UsageMeter
 from kx.agents.tracing.service import Tracer
 from kx.core.contracts import AiRole, Channel, CrmGateway, OptOutScope

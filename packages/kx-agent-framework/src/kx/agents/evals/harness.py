@@ -16,9 +16,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from kx.agents.context import AgentContext
 from kx.agents.language import detect_script_language
 from kx.agents.llm.service import ModelRouter
-from kx.agents.orchestrator import route
 from kx.agents.orm import EvalRun
 from kx.agents.registry import AgentRegistry, DefaultPromptStore, Phrase
+from kx.agents.router.service import route
 from kx.agents.service import GraphRunner
 from kx.agents.testing import FakeCrmGateway, ScriptedChatModel, make_deal, tool_call
 from kx.core.contracts import AllowedPrice, CounterVerdict, DealStage

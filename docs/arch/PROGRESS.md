@@ -1063,3 +1063,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 18.41s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `website` @ `df1fc35`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-website`, COMPLETED
+
+## 2b.23 slice `router` — TESTING (COMPLETED when tagged `arch-slice/agents-router`)
+
+- **Moved:** `orchestrator.py` → `router/service.py` (the deterministic router, the Orchestrator role); `orchestrator.py` is now an alias shim (24 of 24 names); 3 imports rewritten.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 468 files already formatted
+  - mypy: Success: no issues found in 306 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 19.86s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `llm` @ `6b6c4a6`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-llm`, COMPLETED

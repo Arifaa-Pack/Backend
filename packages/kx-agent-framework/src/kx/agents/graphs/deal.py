@@ -24,8 +24,8 @@ from pydantic import BaseModel, Field
 from kx.agents.context import AgentContext
 from kx.agents.graphs.compose import compose
 from kx.agents.llm.service import ModelSet
-from kx.agents.orchestrator import PAYMENT_TOPIC
 from kx.agents.registry import Phrase, team_member
+from kx.agents.router.service import PAYMENT_TOPIC
 from kx.core.contracts import AllowedPrice, ChangeField, ChangeType, CounterVerdict, CounterVerdictKind
 from kx.core.money import MONEY_PLACES, display, q
 from kx.core.price_guard import extract_prices
