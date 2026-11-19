@@ -164,6 +164,12 @@ class ContactPatch(BaseModel):
     preferred_channel: Literal["whatsapp", "email", "phone"] | None = None
     language: str | None = None
     timezone: str | None = None
+    # D59 (SRS §8, §22): the buyer agreed to hear from us on this channel. True records a consent row with the
+    # wording they saw and when; False / None records nothing (a stop is an opt-out, never set from here).
+    whatsapp_opt_in: bool | None = None
+    email_opt_in: bool | None = None
+    consent_wording: str | None = Field(default=None, max_length=500)
+    consent_via: Literal["web_chat", "web_voice", "web_form", "whatsapp", "email", "phone"] | None = None
 
     @field_validator("language", mode="after")
     @classmethod
@@ -227,6 +233,24 @@ class DeliveryEstimateView(_Frozen):
     lead_time_text: str | None = None
 
 
+Availability = Literal["in_stock", "limited", "made_to_order", "unknown"]
+
+
+class VariantView(_Frozen):
+    """D61: one sellable ERP item of a website product, as the AI may describe it. Stock is a word only (the
+    `stock.limited_below` setting decides "limited"); price tiers appear only as the quantities where a better
+    price starts, never as amounts. No cost, minimum price or list price."""
+
+    sku: str
+    description: str  # the ERP item: 8325 ALUMINIUM CONTAINER
+    packing: str | None  # 1*1000 PCS, 1*1.400 KG, CARTON
+    unit: str
+    availability: Availability
+    moq: int | None = None
+    quantity_breaks: tuple[Decimal, ...] = ()  # e.g. (10000, 50000): better pricing starts there
+    quotable: bool = True  # False: the salesperson prices it (no approved price list yet)
+
+
 # ---------------- protocols implemented by packages, wired by the app -----------------------------
 OptOutScope = Literal["all", "whatsapp", "email", "phone"]
 
@@ -256,6 +280,10 @@ class CrmGateway(Protocol):
     async def mark_agreed(self, deal_id: uuid.UUID, actor: AiRole) -> None: ...
     async def schedule_follow_up(self, deal_id: uuid.UUID, due_at: datetime, reason: str) -> None: ...
     async def delivery_estimate(self, deal_id: uuid.UUID) -> DeliveryEstimateView | None: ...
+    async def product_variants(self, website_product_id: str) -> tuple[VariantView, ...]:
+        """D61: the sellable variants (ERP items) linked to a website product, for the AI to explain."""
+        ...
+
     async def add_timeline(self, deal_id: uuid.UUID, kind: str, summary: str, actor: AiRole) -> None: ...
     async def record_message(
         self,

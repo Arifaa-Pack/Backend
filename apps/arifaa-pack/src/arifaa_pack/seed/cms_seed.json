@@ -1,935 +1,978 @@
 {
- "_note": "Arifa Pack website content for `kx content import-site` (D54, WP-C2). Section ids = the website's DOM ids (github.com/rizwankairoxaitech/Arifa-Pack); design ids from design doc v4. Edit in the CMS after import.",
- "site": {
-  "en": {
-   "company_name": "Arifa Packing & Packaging LLC",
-   "tagline": "Considered in detail. Made to perform.",
-   "phones": [
-    {
-     "label": "+971 6 747 7061",
-     "number": "+97167477061"
+  "_note": "Arifa Pack website content for `kx content import-site` (D54, WP-C2). Section ids = the website's DOM ids (github.com/rizwankairoxaitech/Arifa-Pack); design ids from design doc v4. Edit in the CMS after import.",
+  "site": {
+    "en": {
+      "company_name": "Arifa Packing & Packaging LLC",
+      "tagline": "Considered in detail. Made to perform.",
+      "phones": [
+        {
+          "label": "+971 6 747 7061",
+          "number": "+97167477061"
+        },
+        {
+          "label": "+971 6 748 5384",
+          "number": "+97167485384"
+        }
+      ],
+      "emails": [
+        {
+          "label": "Sales",
+          "address": "info@arifapack.com"
+        }
+      ],
+      "addresses": [
+        {
+          "label": "Head office and factory",
+          "lines": [
+            "Al Jurf Industrial Area 2",
+            "Ajman, UAE"
+          ]
+        }
+      ],
+      "hours": {
+        "text": "Monday to Saturday, 08:00 to 20:00",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat"
+        ],
+        "opens": "08:00",
+        "closes": "20:00",
+        "timezone": "Asia/Dubai"
+      },
+      "site_url": "https://www.arifapack.com",
+      "product_pages": false,
+      "assistant": {
+        "handover": "Our sales team is preparing your quotation; you'll receive it on WhatsApp shortly."
+      }
     },
-    {
-     "label": "+971 6 748 5384",
-     "number": "+97167485384"
+    "ar": {
+      "company_name": "عارفة للتغليف والتعبئة",
+      "hours": {
+        "text": "من الاثنين إلى السبت، 08:00 إلى 20:00"
+      },
+      "addresses": [
+        {
+          "label": "المكتب الرئيسي والمصنع",
+          "lines": [
+            "المنطقة الصناعية الجرف 2",
+            "عجمان، الإمارات"
+          ]
+        }
+      ]
     }
-   ],
-   "emails": [
-    {
-     "label": "Sales",
-     "address": "info@arifapack.com"
+  },
+  "photo_base_url": "https://www.arifapack.com/images/catalogue",
+  "photos": [
+    "ac-73365",
+    "ac-831120",
+    "ac-83120",
+    "ac-83160",
+    "ac-83185-n",
+    "ac-83185-r",
+    "ac-83190",
+    "ac-83241",
+    "ac-8325",
+    "ac-8342",
+    "ac-8357",
+    "ac-8367",
+    "ac-8368",
+    "ac-8389-e",
+    "ac-8389-ls",
+    "ac-8389-r",
+    "ac-8390",
+    "ac-8576",
+    "ac-8582",
+    "ap-65180",
+    "ap-65220",
+    "ap-6550",
+    "ap-6586",
+    "cling-30",
+    "cup-14082",
+    "cut-black-fork",
+    "cut-black-knife",
+    "cut-black-spoon",
+    "cut-clear-fork",
+    "cut-clear-knife",
+    "cut-clear-spoon",
+    "cut-white-fork",
+    "cut-white-knife",
+    "cut-white-spoon",
+    "foil-30-blue",
+    "foil-30",
+    "foil-45-blue",
+    "foil-45",
+    "mw-1000-black",
+    "mw-1000-clear",
+    "mw-500-black",
+    "mw-500-clear",
+    "mw-650-black",
+    "mw-650-clear",
+    "mw-750-black",
+    "mw-750-clear",
+    "pot-22",
+    "pot-25",
+    "pot-29",
+    "pot-34",
+    "pot-39",
+    "sr-con-73365",
+    "sr-con-83120",
+    "sr-con-83185",
+    "sr-con-83190",
+    "sr-con-8342",
+    "sr-con-8389",
+    "sr-mw-500-black",
+    "sr-pla-65180",
+    "sr-pla-65220",
+    "sr-pla-6550",
+    "sr-pla-6586",
+    "sr-pot-22",
+    "sr-pot-25",
+    "sr-pot-34",
+    "sr-pot-39",
+    "tray-3180",
+    "tray-5186",
+    "tray-6175",
+    "tray-7148"
+  ],
+  "family_synonyms": {
+    "containers": {
+      "en": [
+        "aluminium containers",
+        "foil containers",
+        "takeaway containers",
+        "food containers",
+        "containers with lids",
+        "trays with lids"
+      ],
+      "ar": [
+        "حاويات ألمنيوم",
+        "علب ألمنيوم",
+        "حاويات طعام",
+        "علب سفري"
+      ]
+    },
+    "foil": {
+      "en": [
+        "aluminium foil",
+        "foil roll",
+        "kitchen foil",
+        "blue line foil",
+        "tin foil"
+      ],
+      "ar": [
+        "ورق ألمنيوم",
+        "ورق القصدير",
+        "رول ألمنيوم",
+        "رقائق الألمنيوم"
+      ]
+    },
+    "platters": {
+      "en": [
+        "aluminium platters",
+        "serving platters",
+        "catering platters",
+        "round platters"
+      ],
+      "ar": [
+        "صواني ألمنيوم",
+        "صواني تقديم",
+        "أطباق ألمنيوم"
+      ]
+    },
+    "cups-trays": {
+      "en": [
+        "cups",
+        "trays",
+        "baking cups",
+        "round cups",
+        "cake trays"
+      ],
+      "ar": [
+        "أكواب ألمنيوم",
+        "صواني صغيرة",
+        "أكواب خبز"
+      ]
+    },
+    "pots": {
+      "en": [
+        "aluminium pots",
+        "round pots",
+        "cooking pots",
+        "deep pots"
+      ],
+      "ar": [
+        "قدور ألمنيوم",
+        "قدور دائرية"
+      ]
+    },
+    "microwave": {
+      "en": [
+        "microwave containers",
+        "plastic containers",
+        "black containers",
+        "clear containers",
+        "pp containers"
+      ],
+      "ar": [
+        "حاويات ميكروويف",
+        "علب بلاستيك",
+        "حاويات بلاستيكية"
+      ]
+    },
+    "cutlery": {
+      "en": [
+        "cutlery",
+        "plastic cutlery",
+        "spoons",
+        "forks",
+        "knives",
+        "spoon",
+        "fork",
+        "knife"
+      ],
+      "ar": [
+        "أدوات المائدة",
+        "ملاعق",
+        "شوك",
+        "سكاكين",
+        "ملعقة",
+        "شوكة",
+        "سكين"
+      ]
+    },
+    "cling-film": {
+      "en": [
+        "cling film",
+        "food wrap",
+        "plastic wrap",
+        "stretch film",
+        "wrapping film"
+      ],
+      "ar": [
+        "نايلون تغليف",
+        "غلاف بلاستيكي",
+        "سلوفان",
+        "فيلم تغليف"
+      ]
     }
-   ],
-   "addresses": [
-    {
-     "label": "Head office and factory",
-     "lines": [
-      "Al Jurf Industrial Area 2",
-      "Ajman, UAE"
-     ]
+  },
+  "pages": {
+    "home": {
+      "en": {
+        "title": "Home",
+        "path": "/",
+        "blocks": [
+          {
+            "section_id": "top",
+            "design_id": "HM-01",
+            "kind": "hero",
+            "heading": "Considered in detail. Made to perform.",
+            "keywords": [
+              "home",
+              "start",
+              "range"
+            ]
+          },
+          {
+            "section_id": "intro",
+            "design_id": "HM-02",
+            "kind": "text",
+            "heading": "The company",
+            "keywords": [
+              "company",
+              "who are you",
+              "what do you make"
+            ],
+            "eyebrow": "(01)"
+          },
+          {
+            "section_id": "factory",
+            "design_id": "HM-03",
+            "kind": "film",
+            "heading": "The line",
+            "keywords": [
+              "how it is made",
+              "press",
+              "production line",
+              "making"
+            ],
+            "eyebrow": "(02)"
+          },
+          {
+            "section_id": "range",
+            "design_id": "HM-04",
+            "kind": "list",
+            "heading": "Products",
+            "keywords": [
+              "families",
+              "range",
+              "categories"
+            ],
+            "eyebrow": "(03)"
+          },
+          {
+            "section_id": "floor",
+            "design_id": "HM-05",
+            "kind": "film",
+            "heading": "Walk the floor",
+            "keywords": [
+              "factory film",
+              "video",
+              "tour",
+              "factory tour"
+            ],
+            "eyebrow": "(04)"
+          },
+          {
+            "section_id": "company",
+            "design_id": "HM-06",
+            "kind": "cards",
+            "heading": "What we do",
+            "keywords": [
+              "services",
+              "directors",
+              "custom printing",
+              "branding"
+            ],
+            "eyebrow": "(05)"
+          },
+          {
+            "section_id": "contact",
+            "design_id": "HM-07",
+            "kind": "cta",
+            "heading": "Request a quote",
+            "keywords": [
+              "quote",
+              "quotation",
+              "enquiry"
+            ]
+          }
+        ]
+      },
+      "ar": {
+        "title": "الرئيسية",
+        "blocks": [
+          {},
+          {
+            "heading": "الشركة"
+          },
+          {
+            "heading": "خط الإنتاج"
+          },
+          {
+            "heading": "المنتجات"
+          },
+          {
+            "heading": "جولة في المصنع"
+          },
+          {
+            "heading": "ماذا نفعل"
+          },
+          {
+            "heading": "اطلب عرض سعر"
+          }
+        ]
+      }
+    },
+    "products": {
+      "en": {
+        "title": "Products",
+        "path": "/products",
+        "blocks": [
+          {
+            "section_id": "top",
+            "design_id": "PR-01",
+            "kind": "hero",
+            "heading": "Every code, every carton.",
+            "keywords": [
+              "all products",
+              "catalogue"
+            ]
+          },
+          {
+            "section_id": "families",
+            "design_id": "PR-02",
+            "kind": "cards",
+            "heading": "Browse by family",
+            "keywords": [
+              "family",
+              "families",
+              "categories"
+            ]
+          },
+          {
+            "section_id": "catalogue",
+            "design_id": "PR-03",
+            "kind": "list",
+            "heading": "Catalogue",
+            "keywords": [
+              "search",
+              "code",
+              "product list",
+              "self range"
+            ]
+          },
+          {
+            "section_id": "not-listed",
+            "design_id": "PR-06",
+            "kind": "cta",
+            "heading": "Not listed?",
+            "keywords": [
+              "other size",
+              "custom size",
+              "not listed"
+            ]
+          }
+        ]
+      },
+      "ar": {
+        "title": "المنتجات",
+        "blocks": [
+          {},
+          {
+            "heading": "تصفح حسب الفئة"
+          },
+          {
+            "heading": "الكتالوج"
+          },
+          {
+            "heading": "غير مدرج؟"
+          }
+        ]
+      }
+    },
+    "about": {
+      "en": {
+        "title": "About",
+        "path": "/about",
+        "blocks": [
+          {
+            "section_id": "top",
+            "design_id": "AB-01",
+            "kind": "hero",
+            "heading": "Packaging that protects, presents and performs.",
+            "keywords": [
+              "about",
+              "company"
+            ]
+          },
+          {
+            "section_id": "story",
+            "design_id": "AB-02",
+            "kind": "text",
+            "heading": "Heritage",
+            "keywords": [
+              "history",
+              "since 1997",
+              "heritage"
+            ],
+            "eyebrow": "(01)"
+          },
+          {
+            "section_id": "values",
+            "design_id": "AB-03",
+            "kind": "list",
+            "heading": "Core values",
+            "keywords": [
+              "values"
+            ],
+            "eyebrow": "(02)"
+          },
+          {
+            "section_id": "reach",
+            "design_id": "AB-04",
+            "kind": "map",
+            "heading": "From Ajman to the world",
+            "keywords": [
+              "export",
+              "worldwide",
+              "countries",
+              "delivery"
+            ],
+            "eyebrow": "(03)"
+          },
+          {
+            "section_id": "chairman",
+            "design_id": "AB-05",
+            "kind": "quote",
+            "heading": "From the President / CEO",
+            "keywords": [
+              "ceo",
+              "president",
+              "message"
+            ],
+            "eyebrow": "(04)"
+          },
+          {
+            "section_id": "leadership",
+            "design_id": "AB-06",
+            "kind": "cards",
+            "heading": "Leadership",
+            "keywords": [
+              "directors",
+              "management",
+              "team"
+            ],
+            "eyebrow": "(05)"
+          },
+          {
+            "section_id": "what-we-do",
+            "design_id": "AB-07",
+            "kind": "cards",
+            "heading": "What we do",
+            "keywords": [
+              "services"
+            ],
+            "eyebrow": "(06)"
+          },
+          {
+            "section_id": "visit",
+            "design_id": "AB-08",
+            "kind": "contact",
+            "heading": "Visit",
+            "keywords": [
+              "address",
+              "visit",
+              "location",
+              "hours"
+            ],
+            "eyebrow": "(07)"
+          }
+        ]
+      },
+      "ar": {
+        "title": "من نحن",
+        "blocks": [
+          {},
+          {
+            "heading": "الإرث"
+          },
+          {
+            "heading": "القيم الأساسية"
+          },
+          {
+            "heading": "من عجمان إلى العالم"
+          },
+          {
+            "heading": "كلمة الرئيس / الرئيس التنفيذي"
+          },
+          {
+            "heading": "القيادة"
+          },
+          {
+            "heading": "ماذا نفعل"
+          },
+          {
+            "heading": "زيارتنا"
+          }
+        ]
+      }
+    },
+    "quality": {
+      "en": {
+        "title": "Quality",
+        "path": "/quality",
+        "blocks": [
+          {
+            "section_id": "top",
+            "design_id": "QA-01",
+            "kind": "hero",
+            "heading": "Shown, not claimed.",
+            "keywords": [
+              "quality",
+              "inspection"
+            ]
+          },
+          {
+            "section_id": "line",
+            "design_id": "QA-02",
+            "kind": "steps",
+            "heading": "The line, checked",
+            "keywords": [
+              "checks",
+              "quality control",
+              "process"
+            ],
+            "eyebrow": "(01)"
+          },
+          {
+            "section_id": "hygiene",
+            "design_id": "QA-03",
+            "kind": "media",
+            "heading": "Hygiene you can see",
+            "keywords": [
+              "hygiene",
+              "food safety",
+              "clean"
+            ],
+            "eyebrow": "(02)"
+          },
+          {
+            "section_id": "documents",
+            "design_id": "QA-04",
+            "kind": "list",
+            "heading": "Certificates and documents",
+            "keywords": [
+              "certificates",
+              "iso",
+              "test reports",
+              "specifications"
+            ],
+            "eyebrow": "(03)"
+          },
+          {
+            "section_id": "sustainability",
+            "design_id": "QA-05",
+            "kind": "chart",
+            "heading": "Sustainability",
+            "keywords": [
+              "recycling",
+              "aluminium",
+              "sustainability"
+            ],
+            "eyebrow": "(04)"
+          },
+          {
+            "section_id": "see-it",
+            "design_id": "QA-06",
+            "kind": "cta",
+            "heading": "See it for yourself",
+            "keywords": [
+              "film",
+              "range"
+            ]
+          }
+        ]
+      },
+      "ar": {
+        "title": "الجودة",
+        "blocks": [
+          {},
+          {
+            "heading": "خط الإنتاج، مفحوصاً"
+          },
+          {
+            "heading": "نظافة يمكنك رؤيتها"
+          },
+          {
+            "heading": "الشهادات والوثائق"
+          },
+          {
+            "heading": "الاستدامة"
+          },
+          {
+            "heading": "شاهده بنفسك"
+          }
+        ]
+      }
+    },
+    "clients": {
+      "en": {
+        "title": "Clients",
+        "path": "/clients",
+        "blocks": [
+          {
+            "section_id": "industries",
+            "design_id": "CL-01",
+            "kind": "map",
+            "heading": "Delivery route",
+            "keywords": [
+              "industries",
+              "bakeries",
+              "hotels",
+              "restaurants",
+              "supermarkets",
+              "caterers",
+              "distributors"
+            ]
+          },
+          {
+            "section_id": "clients",
+            "design_id": "CL-02",
+            "kind": "logos",
+            "heading": "Our clients",
+            "keywords": [
+              "clients",
+              "customers",
+              "logos"
+            ],
+            "eyebrow": "(01)"
+          },
+          {
+            "section_id": "reviews",
+            "design_id": "CL-03",
+            "kind": "stories",
+            "heading": "Customer stories",
+            "keywords": [
+              "stories",
+              "testimonials",
+              "case studies"
+            ],
+            "eyebrow": "(02)"
+          },
+          {
+            "section_id": "your-business",
+            "design_id": "CL-04",
+            "kind": "cta",
+            "heading": "Your business",
+            "keywords": [
+              "my business",
+              "what we pack"
+            ],
+            "eyebrow": "(03)"
+          }
+        ]
+      },
+      "ar": {
+        "title": "العملاء",
+        "blocks": [
+          {
+            "heading": "مسار التوصيل"
+          },
+          {
+            "heading": "عملاؤنا"
+          },
+          {
+            "heading": "قصص العملاء"
+          },
+          {
+            "heading": "عملك أنت"
+          }
+        ]
+      }
+    },
+    "contact": {
+      "en": {
+        "title": "Contact",
+        "path": "/contact",
+        "blocks": [
+          {
+            "section_id": "enquiry",
+            "design_id": "CT-01",
+            "kind": "form",
+            "heading": "Enquiry desk",
+            "keywords": [
+              "quote",
+              "enquiry",
+              "order",
+              "request"
+            ]
+          },
+          {
+            "section_id": "call",
+            "design_id": "CT-02",
+            "kind": "contact",
+            "heading": "Rather talk?",
+            "keywords": [
+              "phone",
+              "call",
+              "whatsapp",
+              "email"
+            ],
+            "eyebrow": "(01)"
+          },
+          {
+            "section_id": "where",
+            "design_id": "CT-03",
+            "kind": "map",
+            "heading": "Where we are",
+            "keywords": [
+              "address",
+              "map",
+              "directions",
+              "location"
+            ],
+            "eyebrow": "(02)"
+          }
+        ]
+      },
+      "ar": {
+        "title": "تواصل معنا",
+        "blocks": [
+          {
+            "heading": "مكتب الاستفسارات"
+          },
+          {
+            "heading": "تفضّل التحدّث؟"
+          },
+          {
+            "heading": "أين نحن"
+          }
+        ]
+      }
     }
-   ],
-   "hours": {
-    "text": "Monday to Saturday, 08:00 to 20:00",
-    "days": [
-     "mon",
-     "tue",
-     "wed",
-     "thu",
-     "fri",
-     "sat"
+  },
+  "tour_chapters": {
+    "arrival": {
+      "en": {
+        "title": "Arrival",
+        "seconds": 16.3
+      },
+      "ar": {
+        "title": "الوصول"
+      }
+    },
+    "forming": {
+      "en": {
+        "title": "Forming",
+        "seconds": 24.2,
+        "family": "containers"
+      },
+      "ar": {
+        "title": "التشكيل"
+      }
+    },
+    "lids": {
+      "en": {
+        "title": "Lids",
+        "seconds": 73.4
+      },
+      "ar": {
+        "title": "الأغطية"
+      }
+    },
+    "foil": {
+      "en": {
+        "title": "Foil",
+        "seconds": 82.8,
+        "family": "foil"
+      },
+      "ar": {
+        "title": "ورق الألمنيوم"
+      }
+    },
+    "packing": {
+      "en": {
+        "title": "Packing",
+        "seconds": 101.4
+      },
+      "ar": {
+        "title": "التعبئة"
+      }
+    },
+    "moulding": {
+      "en": {
+        "title": "Moulding",
+        "seconds": 112.1,
+        "family": "cutlery"
+      },
+      "ar": {
+        "title": "القولبة"
+      }
+    },
+    "warehouse": {
+      "en": {
+        "title": "Warehouse",
+        "seconds": 120.1
+      },
+      "ar": {
+        "title": "المستودع"
+      }
+    }
+  },
+  "stations": {
+    "material-in": {
+      "en": {
+        "title": "Material in"
+      },
+      "ar": {
+        "title": "دخول المواد"
+      }
+    },
+    "forming": {
+      "en": {
+        "title": "Forming"
+      },
+      "ar": {
+        "title": "التشكيل"
+      }
+    },
+    "machine-control": {
+      "en": {
+        "title": "Machine control"
+      },
+      "ar": {
+        "title": "التحكم بالآلة"
+      }
+    },
+    "lids-matching": {
+      "en": {
+        "title": "Lids and matching"
+      },
+      "ar": {
+        "title": "الأغطية ومطابقتها"
+      }
+    },
+    "quality-check": {
+      "en": {
+        "title": "Quality check"
+      },
+      "ar": {
+        "title": "فحص الجودة"
+      }
+    },
+    "packing": {
+      "en": {
+        "title": "Packing"
+      },
+      "ar": {
+        "title": "التعبئة"
+      }
+    },
+    "dispatch": {
+      "en": {
+        "title": "Sealed and dispatched"
+      },
+      "ar": {
+        "title": "الإغلاق والشحن"
+      }
+    }
+  },
+  "erp_match": {
+    "_note": "Words an ERP item description must contain to be a variant of this website product (D61), where the site's ref is not what the ERP writes (the trade pots show XS-XL, the ERP the size in cm).",
+    "pot-22": [
+      "22",
+      "POT"
     ],
-    "opens": "08:00",
-    "closes": "20:00",
-    "timezone": "Asia/Dubai"
-   },
-   "site_url": "https://www.arifapack.com",
-   "product_pages": false,
-   "assistant": {
-    "handover": "Our sales team is preparing your quotation; you'll receive it on WhatsApp shortly."
-   }
-  },
-  "ar": {
-   "company_name": "عارفة للتغليف والتعبئة",
-   "hours": {
-    "text": "من الاثنين إلى السبت، 08:00 إلى 20:00"
-   },
-   "addresses": [
-    {
-     "label": "المكتب الرئيسي والمصنع",
-     "lines": [
-      "المنطقة الصناعية الجرف 2",
-      "عجمان، الإمارات"
-     ]
-    }
-   ]
+    "sr-pot-22": [
+      "22",
+      "POT"
+    ],
+    "pot-25": [
+      "25",
+      "POT"
+    ],
+    "sr-pot-25": [
+      "25",
+      "POT"
+    ],
+    "pot-29": [
+      "29",
+      "POT"
+    ],
+    "sr-pot-29": [
+      "29",
+      "POT"
+    ],
+    "pot-34": [
+      "34",
+      "POT"
+    ],
+    "sr-pot-34": [
+      "34",
+      "POT"
+    ],
+    "pot-39": [
+      "39",
+      "POT"
+    ],
+    "sr-pot-39": [
+      "39",
+      "POT"
+    ]
   }
- },
- "photo_base_url": "https://www.arifapack.com/images/catalogue",
- "photos": [
-  "ac-73365",
-  "ac-831120",
-  "ac-83120",
-  "ac-83160",
-  "ac-83185-n",
-  "ac-83185-r",
-  "ac-83190",
-  "ac-83241",
-  "ac-8325",
-  "ac-8342",
-  "ac-8357",
-  "ac-8367",
-  "ac-8368",
-  "ac-8389-e",
-  "ac-8389-ls",
-  "ac-8389-r",
-  "ac-8390",
-  "ac-8576",
-  "ac-8582",
-  "ap-65180",
-  "ap-65220",
-  "ap-6550",
-  "ap-6586",
-  "cling-30",
-  "cup-14082",
-  "cut-black-fork",
-  "cut-black-knife",
-  "cut-black-spoon",
-  "cut-clear-fork",
-  "cut-clear-knife",
-  "cut-clear-spoon",
-  "cut-white-fork",
-  "cut-white-knife",
-  "cut-white-spoon",
-  "foil-30-blue",
-  "foil-30",
-  "foil-45-blue",
-  "foil-45",
-  "mw-1000-black",
-  "mw-1000-clear",
-  "mw-500-black",
-  "mw-500-clear",
-  "mw-650-black",
-  "mw-650-clear",
-  "mw-750-black",
-  "mw-750-clear",
-  "pot-22",
-  "pot-25",
-  "pot-29",
-  "pot-34",
-  "pot-39",
-  "sr-con-73365",
-  "sr-con-83120",
-  "sr-con-83185",
-  "sr-con-83190",
-  "sr-con-8342",
-  "sr-con-8389",
-  "sr-mw-500-black",
-  "sr-pla-65180",
-  "sr-pla-65220",
-  "sr-pla-6550",
-  "sr-pla-6586",
-  "sr-pot-22",
-  "sr-pot-25",
-  "sr-pot-34",
-  "sr-pot-39",
-  "tray-3180",
-  "tray-5186",
-  "tray-6175",
-  "tray-7148"
- ],
- "family_synonyms": {
-  "containers": {
-   "en": [
-    "aluminium containers",
-    "foil containers",
-    "takeaway containers",
-    "food containers",
-    "containers with lids",
-    "trays with lids"
-   ],
-   "ar": [
-    "حاويات ألمنيوم",
-    "علب ألمنيوم",
-    "حاويات طعام",
-    "علب سفري"
-   ]
-  },
-  "foil": {
-   "en": [
-    "aluminium foil",
-    "foil roll",
-    "kitchen foil",
-    "blue line foil",
-    "tin foil"
-   ],
-   "ar": [
-    "ورق ألمنيوم",
-    "ورق القصدير",
-    "رول ألمنيوم",
-    "رقائق الألمنيوم"
-   ]
-  },
-  "platters": {
-   "en": [
-    "aluminium platters",
-    "serving platters",
-    "catering platters",
-    "round platters"
-   ],
-   "ar": [
-    "صواني ألمنيوم",
-    "صواني تقديم",
-    "أطباق ألمنيوم"
-   ]
-  },
-  "cups-trays": {
-   "en": [
-    "cups",
-    "trays",
-    "baking cups",
-    "round cups",
-    "cake trays"
-   ],
-   "ar": [
-    "أكواب ألمنيوم",
-    "صواني صغيرة",
-    "أكواب خبز"
-   ]
-  },
-  "pots": {
-   "en": [
-    "aluminium pots",
-    "round pots",
-    "cooking pots",
-    "deep pots"
-   ],
-   "ar": [
-    "قدور ألمنيوم",
-    "قدور دائرية"
-   ]
-  },
-  "microwave": {
-   "en": [
-    "microwave containers",
-    "plastic containers",
-    "black containers",
-    "clear containers",
-    "pp containers"
-   ],
-   "ar": [
-    "حاويات ميكروويف",
-    "علب بلاستيك",
-    "حاويات بلاستيكية"
-   ]
-  },
-  "cutlery": {
-   "en": [
-    "cutlery",
-    "plastic cutlery",
-    "spoons",
-    "forks",
-    "knives",
-    "spoon",
-    "fork",
-    "knife"
-   ],
-   "ar": [
-    "أدوات المائدة",
-    "ملاعق",
-    "شوك",
-    "سكاكين",
-    "ملعقة",
-    "شوكة",
-    "سكين"
-   ]
-  },
-  "cling-film": {
-   "en": [
-    "cling film",
-    "food wrap",
-    "plastic wrap",
-    "stretch film",
-    "wrapping film"
-   ],
-   "ar": [
-    "نايلون تغليف",
-    "غلاف بلاستيكي",
-    "سلوفان",
-    "فيلم تغليف"
-   ]
-  }
- },
- "pages": {
-  "home": {
-   "en": {
-    "title": "Home",
-    "path": "/",
-    "blocks": [
-     {
-      "section_id": "top",
-      "design_id": "HM-01",
-      "kind": "hero",
-      "heading": "Considered in detail. Made to perform.",
-      "keywords": [
-       "home",
-       "start",
-       "range"
-      ]
-     },
-     {
-      "section_id": "intro",
-      "design_id": "HM-02",
-      "kind": "text",
-      "heading": "The company",
-      "keywords": [
-       "company",
-       "who are you",
-       "what do you make"
-      ],
-      "eyebrow": "(01)"
-     },
-     {
-      "section_id": "factory",
-      "design_id": "HM-03",
-      "kind": "film",
-      "heading": "The line",
-      "keywords": [
-       "how it is made",
-       "press",
-       "production line",
-       "making"
-      ],
-      "eyebrow": "(02)"
-     },
-     {
-      "section_id": "range",
-      "design_id": "HM-04",
-      "kind": "list",
-      "heading": "Products",
-      "keywords": [
-       "families",
-       "range",
-       "categories"
-      ],
-      "eyebrow": "(03)"
-     },
-     {
-      "section_id": "floor",
-      "design_id": "HM-05",
-      "kind": "film",
-      "heading": "Walk the floor",
-      "keywords": [
-       "factory film",
-       "video",
-       "tour",
-       "factory tour"
-      ],
-      "eyebrow": "(04)"
-     },
-     {
-      "section_id": "company",
-      "design_id": "HM-06",
-      "kind": "cards",
-      "heading": "What we do",
-      "keywords": [
-       "services",
-       "directors",
-       "custom printing",
-       "branding"
-      ],
-      "eyebrow": "(05)"
-     },
-     {
-      "section_id": "contact",
-      "design_id": "HM-07",
-      "kind": "cta",
-      "heading": "Request a quote",
-      "keywords": [
-       "quote",
-       "quotation",
-       "enquiry"
-      ]
-     }
-    ]
-   },
-   "ar": {
-    "title": "الرئيسية",
-    "blocks": [
-     {},
-     {
-      "heading": "الشركة"
-     },
-     {
-      "heading": "خط الإنتاج"
-     },
-     {
-      "heading": "المنتجات"
-     },
-     {
-      "heading": "جولة في المصنع"
-     },
-     {
-      "heading": "ماذا نفعل"
-     },
-     {
-      "heading": "اطلب عرض سعر"
-     }
-    ]
-   }
-  },
-  "products": {
-   "en": {
-    "title": "Products",
-    "path": "/products",
-    "blocks": [
-     {
-      "section_id": "top",
-      "design_id": "PR-01",
-      "kind": "hero",
-      "heading": "Every code, every carton.",
-      "keywords": [
-       "all products",
-       "catalogue"
-      ]
-     },
-     {
-      "section_id": "families",
-      "design_id": "PR-02",
-      "kind": "cards",
-      "heading": "Browse by family",
-      "keywords": [
-       "family",
-       "families",
-       "categories"
-      ]
-     },
-     {
-      "section_id": "catalogue",
-      "design_id": "PR-03",
-      "kind": "list",
-      "heading": "Catalogue",
-      "keywords": [
-       "search",
-       "code",
-       "product list",
-       "self range"
-      ]
-     },
-     {
-      "section_id": "not-listed",
-      "design_id": "PR-06",
-      "kind": "cta",
-      "heading": "Not listed?",
-      "keywords": [
-       "other size",
-       "custom size",
-       "not listed"
-      ]
-     }
-    ]
-   },
-   "ar": {
-    "title": "المنتجات",
-    "blocks": [
-     {},
-     {
-      "heading": "تصفح حسب الفئة"
-     },
-     {
-      "heading": "الكتالوج"
-     },
-     {
-      "heading": "غير مدرج؟"
-     }
-    ]
-   }
-  },
-  "about": {
-   "en": {
-    "title": "About",
-    "path": "/about",
-    "blocks": [
-     {
-      "section_id": "top",
-      "design_id": "AB-01",
-      "kind": "hero",
-      "heading": "Packaging that protects, presents and performs.",
-      "keywords": [
-       "about",
-       "company"
-      ]
-     },
-     {
-      "section_id": "story",
-      "design_id": "AB-02",
-      "kind": "text",
-      "heading": "Heritage",
-      "keywords": [
-       "history",
-       "since 1997",
-       "heritage"
-      ],
-      "eyebrow": "(01)"
-     },
-     {
-      "section_id": "values",
-      "design_id": "AB-03",
-      "kind": "list",
-      "heading": "Core values",
-      "keywords": [
-       "values"
-      ],
-      "eyebrow": "(02)"
-     },
-     {
-      "section_id": "reach",
-      "design_id": "AB-04",
-      "kind": "map",
-      "heading": "From Ajman to the world",
-      "keywords": [
-       "export",
-       "worldwide",
-       "countries",
-       "delivery"
-      ],
-      "eyebrow": "(03)"
-     },
-     {
-      "section_id": "chairman",
-      "design_id": "AB-05",
-      "kind": "quote",
-      "heading": "From the President / CEO",
-      "keywords": [
-       "ceo",
-       "president",
-       "message"
-      ],
-      "eyebrow": "(04)"
-     },
-     {
-      "section_id": "leadership",
-      "design_id": "AB-06",
-      "kind": "cards",
-      "heading": "Leadership",
-      "keywords": [
-       "directors",
-       "management",
-       "team"
-      ],
-      "eyebrow": "(05)"
-     },
-     {
-      "section_id": "what-we-do",
-      "design_id": "AB-07",
-      "kind": "cards",
-      "heading": "What we do",
-      "keywords": [
-       "services"
-      ],
-      "eyebrow": "(06)"
-     },
-     {
-      "section_id": "visit",
-      "design_id": "AB-08",
-      "kind": "contact",
-      "heading": "Visit",
-      "keywords": [
-       "address",
-       "visit",
-       "location",
-       "hours"
-      ],
-      "eyebrow": "(07)"
-     }
-    ]
-   },
-   "ar": {
-    "title": "من نحن",
-    "blocks": [
-     {},
-     {
-      "heading": "الإرث"
-     },
-     {
-      "heading": "القيم الأساسية"
-     },
-     {
-      "heading": "من عجمان إلى العالم"
-     },
-     {
-      "heading": "كلمة الرئيس / الرئيس التنفيذي"
-     },
-     {
-      "heading": "القيادة"
-     },
-     {
-      "heading": "ماذا نفعل"
-     },
-     {
-      "heading": "زيارتنا"
-     }
-    ]
-   }
-  },
-  "quality": {
-   "en": {
-    "title": "Quality",
-    "path": "/quality",
-    "blocks": [
-     {
-      "section_id": "top",
-      "design_id": "QA-01",
-      "kind": "hero",
-      "heading": "Shown, not claimed.",
-      "keywords": [
-       "quality",
-       "inspection"
-      ]
-     },
-     {
-      "section_id": "line",
-      "design_id": "QA-02",
-      "kind": "steps",
-      "heading": "The line, checked",
-      "keywords": [
-       "checks",
-       "quality control",
-       "process"
-      ],
-      "eyebrow": "(01)"
-     },
-     {
-      "section_id": "hygiene",
-      "design_id": "QA-03",
-      "kind": "media",
-      "heading": "Hygiene you can see",
-      "keywords": [
-       "hygiene",
-       "food safety",
-       "clean"
-      ],
-      "eyebrow": "(02)"
-     },
-     {
-      "section_id": "documents",
-      "design_id": "QA-04",
-      "kind": "list",
-      "heading": "Certificates and documents",
-      "keywords": [
-       "certificates",
-       "iso",
-       "test reports",
-       "specifications"
-      ],
-      "eyebrow": "(03)"
-     },
-     {
-      "section_id": "sustainability",
-      "design_id": "QA-05",
-      "kind": "chart",
-      "heading": "Sustainability",
-      "keywords": [
-       "recycling",
-       "aluminium",
-       "sustainability"
-      ],
-      "eyebrow": "(04)"
-     },
-     {
-      "section_id": "see-it",
-      "design_id": "QA-06",
-      "kind": "cta",
-      "heading": "See it for yourself",
-      "keywords": [
-       "film",
-       "range"
-      ]
-     }
-    ]
-   },
-   "ar": {
-    "title": "الجودة",
-    "blocks": [
-     {},
-     {
-      "heading": "خط الإنتاج، مفحوصاً"
-     },
-     {
-      "heading": "نظافة يمكنك رؤيتها"
-     },
-     {
-      "heading": "الشهادات والوثائق"
-     },
-     {
-      "heading": "الاستدامة"
-     },
-     {
-      "heading": "شاهده بنفسك"
-     }
-    ]
-   }
-  },
-  "clients": {
-   "en": {
-    "title": "Clients",
-    "path": "/clients",
-    "blocks": [
-     {
-      "section_id": "industries",
-      "design_id": "CL-01",
-      "kind": "map",
-      "heading": "Delivery route",
-      "keywords": [
-       "industries",
-       "bakeries",
-       "hotels",
-       "restaurants",
-       "supermarkets",
-       "caterers",
-       "distributors"
-      ]
-     },
-     {
-      "section_id": "clients",
-      "design_id": "CL-02",
-      "kind": "logos",
-      "heading": "Our clients",
-      "keywords": [
-       "clients",
-       "customers",
-       "logos"
-      ],
-      "eyebrow": "(01)"
-     },
-     {
-      "section_id": "reviews",
-      "design_id": "CL-03",
-      "kind": "stories",
-      "heading": "Customer stories",
-      "keywords": [
-       "stories",
-       "testimonials",
-       "case studies"
-      ],
-      "eyebrow": "(02)"
-     },
-     {
-      "section_id": "your-business",
-      "design_id": "CL-04",
-      "kind": "cta",
-      "heading": "Your business",
-      "keywords": [
-       "my business",
-       "what we pack"
-      ],
-      "eyebrow": "(03)"
-     }
-    ]
-   },
-   "ar": {
-    "title": "العملاء",
-    "blocks": [
-     {
-      "heading": "مسار التوصيل"
-     },
-     {
-      "heading": "عملاؤنا"
-     },
-     {
-      "heading": "قصص العملاء"
-     },
-     {
-      "heading": "عملك أنت"
-     }
-    ]
-   }
-  },
-  "contact": {
-   "en": {
-    "title": "Contact",
-    "path": "/contact",
-    "blocks": [
-     {
-      "section_id": "enquiry",
-      "design_id": "CT-01",
-      "kind": "form",
-      "heading": "Enquiry desk",
-      "keywords": [
-       "quote",
-       "enquiry",
-       "order",
-       "request"
-      ]
-     },
-     {
-      "section_id": "call",
-      "design_id": "CT-02",
-      "kind": "contact",
-      "heading": "Rather talk?",
-      "keywords": [
-       "phone",
-       "call",
-       "whatsapp",
-       "email"
-      ],
-      "eyebrow": "(01)"
-     },
-     {
-      "section_id": "where",
-      "design_id": "CT-03",
-      "kind": "map",
-      "heading": "Where we are",
-      "keywords": [
-       "address",
-       "map",
-       "directions",
-       "location"
-      ],
-      "eyebrow": "(02)"
-     }
-    ]
-   },
-   "ar": {
-    "title": "تواصل معنا",
-    "blocks": [
-     {
-      "heading": "مكتب الاستفسارات"
-     },
-     {
-      "heading": "تفضّل التحدّث؟"
-     },
-     {
-      "heading": "أين نحن"
-     }
-    ]
-   }
-  }
- },
- "tour_chapters": {
-  "arrival": {
-   "en": {
-    "title": "Arrival",
-    "seconds": 16.3
-   },
-   "ar": {
-    "title": "الوصول"
-   }
-  },
-  "forming": {
-   "en": {
-    "title": "Forming",
-    "seconds": 24.2,
-    "family": "containers"
-   },
-   "ar": {
-    "title": "التشكيل"
-   }
-  },
-  "lids": {
-   "en": {
-    "title": "Lids",
-    "seconds": 73.4
-   },
-   "ar": {
-    "title": "الأغطية"
-   }
-  },
-  "foil": {
-   "en": {
-    "title": "Foil",
-    "seconds": 82.8,
-    "family": "foil"
-   },
-   "ar": {
-    "title": "ورق الألمنيوم"
-   }
-  },
-  "packing": {
-   "en": {
-    "title": "Packing",
-    "seconds": 101.4
-   },
-   "ar": {
-    "title": "التعبئة"
-   }
-  },
-  "moulding": {
-   "en": {
-    "title": "Moulding",
-    "seconds": 112.1,
-    "family": "cutlery"
-   },
-   "ar": {
-    "title": "القولبة"
-   }
-  },
-  "warehouse": {
-   "en": {
-    "title": "Warehouse",
-    "seconds": 120.1
-   },
-   "ar": {
-    "title": "المستودع"
-   }
-  }
- },
- "stations": {
-  "material-in": {
-   "en": {
-    "title": "Material in"
-   },
-   "ar": {
-    "title": "دخول المواد"
-   }
-  },
-  "forming": {
-   "en": {
-    "title": "Forming"
-   },
-   "ar": {
-    "title": "التشكيل"
-   }
-  },
-  "machine-control": {
-   "en": {
-    "title": "Machine control"
-   },
-   "ar": {
-    "title": "التحكم بالآلة"
-   }
-  },
-  "lids-matching": {
-   "en": {
-    "title": "Lids and matching"
-   },
-   "ar": {
-    "title": "الأغطية ومطابقتها"
-   }
-  },
-  "quality-check": {
-   "en": {
-    "title": "Quality check"
-   },
-   "ar": {
-    "title": "فحص الجودة"
-   }
-  },
-  "packing": {
-   "en": {
-    "title": "Packing"
-   },
-   "ar": {
-    "title": "التعبئة"
-   }
-  },
-  "dispatch": {
-   "en": {
-    "title": "Sealed and dispatched"
-   },
-   "ar": {
-    "title": "الإغلاق والشحن"
-   }
-  }
- }
 }

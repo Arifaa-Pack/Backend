@@ -465,4 +465,7 @@ def product_payload(
         spec=spec,
         published=published,
         custom_printing=p.custom_printing,
+        ref=p.ref,
+        range=p.range,
+        match_words=list(p.erp_match),
     )

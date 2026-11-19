@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Literal, get_args
+from typing import Any, Final, Literal, get_args
 
 from sqlalchemy import ColumnElement, Text, cast, exists, func, literal, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -23,6 +23,7 @@ from kx.crm.models import (
     Approval,
     ChangeRequest,
     Company,
+    Consent,
     Contact,
     Deal,
     DealRequirement,
@@ -320,6 +321,7 @@ async def patch_contact(session: AsyncSession, deal: Deal, patch: ContactPatch, 
     elif known_only:
         deal.company_id = deal.company_id or contact.company_id
     await session.flush()
+    _record_opt_ins(session, contact, patch)
     await record(
         session,
         actor,
@@ -331,6 +333,31 @@ async def patch_contact(session: AsyncSession, deal: Deal, patch: ContactPatch, 
         timeline=Timeline("contact", "Contact details captured", deal.id, contact.id),
     )
     return contact
+
+
+DEFAULT_CONSENT_WORDING: Final = {
+    "whatsapp": "I agree that Arifa Pack may send my quotation and follow-ups on WhatsApp.",
+    "email": "I agree that Arifa Pack may send my quotation and follow-ups by email.",
+}
+
+
+def _record_opt_ins(session: AsyncSession, contact: Contact, patch: ContactPatch) -> None:
+    """D59 (SRS §8, §22): the buyer said yes to WhatsApp and / or email; keep the words they saw and when.
+    Only a yes is recorded here: a stop is an opt-out (`contacts.consent`), and a yes never lifts a stop that
+    the suppression list holds (the AI may add a stop, never remove one)."""
+    for channel, agreed in (("whatsapp", patch.whatsapp_opt_in), ("email", patch.email_opt_in)):
+        if not agreed:
+            continue
+        session.add(
+            Consent(
+                contact_id=contact.id,
+                channel=channel,
+                status="granted",
+                wording=(patch.consent_wording or DEFAULT_CONSENT_WORDING[channel])[:2000],
+                evidence={"source": "buyer", "via": patch.consent_via or "unknown"},
+                captured_via=patch.consent_via or "manual",
+            )
+        )
 
 
 def _has_identity(contact: Contact, phone: str, email: str) -> bool:

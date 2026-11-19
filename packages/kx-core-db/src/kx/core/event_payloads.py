@@ -277,6 +277,11 @@ class ProductPublished(EventPayload):
     spec: dict[str, object] = {}
     published: bool = True
     custom_printing: bool | None = None
+    # D61: what links the CRM's ERP items (its variants) to this website product: the reference buyers use
+    # ("8325") or the editors' own match words, and the range (self = the retail packs)
+    ref: str | None = None
+    range: Literal["trade", "self"] | None = None
+    match_words: list[str] = []
 
 
 class ProductContentChanged(EventPayload):

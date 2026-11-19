@@ -80,6 +80,7 @@ def _product_docs(
 ) -> list[tuple[str, dict[str, Any]]]:
     with_photo = set(seed.get("photos", []))
     base = str(seed.get("photo_base_url", "")).rstrip("/")
+    erp_match = {k: v for k, v in seed.get("erp_match", {}).items() if not k.startswith("_")}
     out = []
     for p in catalogue.get("products", []):
         href = str(p.get("href") or "")
@@ -91,6 +92,7 @@ def _product_docs(
             "qty": p.get("qty"),
             "range": p.get("range", "trade"),
             "legacy_paths": [href if href.startswith("/") else f"/{href}"] if href else [],
+            "erp_match": erp_match.get(p["id"]),  # D61: how its ERP items are recognised
         }
         if base and p["id"] in with_photo:
             en["photos"] = [{"url": f"{base}/{p['id']}.webp", "alt": f"{p['name']} {p['ref']}"}]

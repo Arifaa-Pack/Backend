@@ -17,7 +17,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 DEFAULT_LIMIT: Final = 1_000_000
 IMPORT_LIMIT: Final = 10 * 1024 * 1024
-IMPORT_PREFIXES: Final = ("/v1/catalogue/workbook/", "/v1/price-list/import")
+IMPORT_PREFIXES: Final = ("/v1/catalogue/workbook/", "/v1/price-list/import", "/v1/catalogue/erp-import")
 
 
 class BodyLimit:

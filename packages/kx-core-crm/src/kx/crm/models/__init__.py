@@ -1,4 +1,4 @@
-"""Typed ORM for the 48 tables of the `crm` database (mirrors db/ddl/01_crm.sql exactly)."""
+"""Typed ORM for the 49 tables of the `crm` database (mirrors db/ddl/01_crm.sql exactly)."""
 
 from kx.crm.models.base import Base
 from kx.crm.models.catalogue import (
@@ -15,6 +15,7 @@ from kx.crm.models.catalogue import (
     ProductCosting,
     ProductPriceTier,
     SupplierLeadTime,
+    WebsiteProduct,
 )
 from kx.crm.models.changes import ChangeRequest
 from kx.crm.models.customers import Company, Consent, Contact
@@ -108,5 +109,6 @@ __all__ = [
     "TimelineEvent",
     "User",
     "VisitSlot",
+    "WebsiteProduct",
     "metadata",
 ]

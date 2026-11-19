@@ -8,16 +8,21 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.core.auth import Principal, Role, require_human_mfa
-from kx.core.errors import RuleViolation
-from kx.crm._shared.api_context import ApiContext
-from kx.crm._shared.journal import Actor
-from kx.crm.catalogue import workbook
+from kx.core.auth import Principal, Role, require_human_mfa, require_role
+from kx.core.errors import NotFound, RuleViolation
+from kx.crm._shared.api_context import STAFF, ApiContext
+from kx.crm._shared.journal import Actor, record
+from kx.crm.catalogue import erp_import, variants, workbook
+from kx.crm.models import Product
 
 # client decision 18 Nov: manager, MD and admin (a person with MFA: the workbook changes prices)
 Editor = Annotated[Principal, Depends(require_human_mfa(Role.MANAGER, Role.MD, Role.ADMIN))]
+# D61: the ERP import and variant links touch no price: manager, MD or admin, signed in
+Catalogue = Annotated[Principal, Depends(require_role(Role.MANAGER, Role.ADMIN))]
+Staff = Annotated[Principal, Depends(require_role(*STAFF))]
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 MAX_BYTES = 10 * 1024 * 1024
 
@@ -137,6 +142,33 @@ def _preview_out(pv: workbook.Preview) -> PreviewOut:
     )
 
 
+class ErpImportOut(BaseModel):
+    rows: int
+    created: int
+    updated: int
+    sellable: int
+    not_sellable: int
+    linked_to_website: int
+    ambiguous_links: int
+    errors: list[str]
+    saved: bool
+
+
+class WebsiteLinkIn(BaseModel):
+    cms_product_id: str | None  # the website product (ac-8325); null = unlink
+
+
+class VariantOut(BaseModel):
+    sku: str
+    description: str
+    packing: str | None
+    unit: str
+    availability: str
+    moq: int | None
+    quantity_breaks: list[str]
+    quotable: bool
+
+
 async def _file(request: Request) -> bytes:
     data = await request.body()
     if not data:
@@ -147,6 +179,7 @@ async def _file(request: Request) -> bytes:
 
 
 def router(ctx: ApiContext) -> APIRouter:
+    root = APIRouter()
     r = APIRouter(prefix="/catalogue/workbook", tags=["product workbook"])
     Session = Annotated[AsyncSession, Depends(ctx.session)]  # noqa: N806
     deps = ctx.deps
@@ -183,4 +216,68 @@ def router(ctx: ApiContext) -> APIRouter:
             website_drafts=done.website_drafts,
         )
 
-    return r
+    erp = APIRouter(prefix="/catalogue", tags=["product workbook"])
+
+    @erp.post("/erp-import", response_model=ErpImportOut)
+    async def import_erp(
+        request: Request, s: Session, p: Catalogue, dry_run: Annotated[bool, Query()] = False
+    ) -> ErpImportOut:
+        """D61: body = the ERP stock list (CSV or .xlsx with the columns Category, Item Description, Brand,
+        Unit, OpnStk, In, Out, ClosStk). Every row is kept (packing and raw material too, marked not
+        sellable); codes are made from description + unit; closing stock is saved; new sellable items are
+        linked to their website product where it is safe. Prices are never touched. `dry_run=true` shows
+        what would change and saves nothing."""
+        data = await _file(request)
+        async with s.begin_nested() as nested:
+            report = await erp_import.import_erp(s, data, actor=Actor.user(p), now=deps.now())
+            if dry_run:
+                await nested.rollback()
+        return ErpImportOut(**erp_import.summary(report), saved=not dry_run)
+
+    @erp.put("/products/{sku}/website-link", status_code=204)
+    async def set_website_link(sku: str, body: WebsiteLinkIn, s: Session, p: Catalogue) -> Response:
+        """Link an ERP item (a variant) to its website product, or unlink it (null): when the automatic
+        match was not sure, or was wrong."""
+        product = (
+            await s.execute(select(Product).where(func.upper(Product.sku) == sku.upper()).with_for_update())
+        ).scalar_one_or_none()
+        if product is None:
+            raise NotFound(f"product {sku} not found")
+        before = product.cms_product_id
+        product.cms_product_id = body.cms_product_id
+        await record(
+            s,
+            Actor.user(p),
+            "catalogue.variant_linked",
+            "product",
+            product.id,
+            before={"cms_product_id": before},
+            after={"cms_product_id": body.cms_product_id},
+        )
+        return Response(status_code=204)
+
+    @erp.get("/website-products/{cms_product_id}/variants", response_model=list[VariantOut])
+    async def website_variants(cms_product_id: str, s: Session, _: Staff) -> list[VariantOut]:
+        """The sellable variants of a website product, as the AI describes them (availability word, the
+        quantities where a better price starts; no amounts)."""
+        settings = await deps.settings.get(s)
+        found = await variants.variants_of(
+            s, cms_product_id, limited_below=settings.stock_limited_below, now=deps.now()
+        )
+        return [
+            VariantOut(
+                sku=v.sku,
+                description=v.description,
+                packing=v.packing,
+                unit=v.unit,
+                availability=v.availability,
+                moq=v.moq,
+                quantity_breaks=[str(q) for q in v.quantity_breaks],
+                quotable=v.quotable,
+            )
+            for v in found
+        ]
+
+    root.include_router(r)
+    root.include_router(erp)
+    return root

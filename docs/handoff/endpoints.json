@@ -1084,6 +1084,58 @@
     },
     {
       "folder": "04 Products, stock and price list",
+      "name": "Import erp",
+      "method": "POST",
+      "path": "/v1/catalogue/erp-import",
+      "who": "manager, md, admin",
+      "roles": [
+        "manager",
+        "admin",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "D61: body = the ERP stock list (CSV or .xlsx with the columns Category, Item Description, Brand, Unit, OpnStk, In, Out, ClosStk).",
+      "expected_status": 200,
+      "package": "CRM"
+    },
+    {
+      "folder": "04 Products, stock and price list",
+      "name": "Set website link",
+      "method": "PUT",
+      "path": "/v1/catalogue/products/{sku}/website-link",
+      "who": "manager, md, admin",
+      "roles": [
+        "manager",
+        "admin",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "Link an ERP item (a variant) to its website product, or unlink it (null): when the automatic match was not sure, or was wrong.",
+      "expected_status": 204,
+      "package": "CRM"
+    },
+    {
+      "folder": "04 Products, stock and price list",
+      "name": "Website variants",
+      "method": "GET",
+      "path": "/v1/catalogue/website-products/{cms_product_id}/variants",
+      "who": "sales, manager, md, admin",
+      "roles": [
+        "sales",
+        "manager",
+        "admin",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "The sellable variants of a website product, as the AI describes them (availability word, the quantities where a better price starts; no amounts).",
+      "expected_status": 200,
+      "package": "CRM"
+    },
+    {
+      "folder": "04 Products, stock and price list",
       "name": "Material rate proposals (saves rate_id)",
       "method": "GET",
       "path": "/v1/price-proposals",

@@ -70,7 +70,28 @@ class Product(Base):
     spec: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     cms_published: Mapped[bool] = mapped_column(Boolean, default=False)
     cms_synced_at: Mapped[datetime | None] = mapped_column(TZ)
+    # D61 (crm_0018): the ERP item this product is; the website product it is a variant of (cms_product_id)
+    sellable: Mapped[bool] = mapped_column(Boolean, default=True)  # packing / raw material / scrap: False
+    erp_category: Mapped[str | None] = mapped_column(Text)
+    erp_description: Mapped[str | None] = mapped_column(Text)
+    erp_packing: Mapped[str | None] = mapped_column(Text)  # the ERP "Unit": 1*1000 PCS, 1*1.400 KG, CARTON
+    brand: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = created_at()
+    updated_at: Mapped[datetime] = updated_at()
+
+
+class WebsiteProduct(Base):
+    """D61: a website product the CMS published; the CRM's ERP items (variants) are matched against it."""
+
+    __tablename__ = "website_products"
+
+    cms_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    ref: Mapped[str | None] = mapped_column(Text)
+    family: Mapped[str | None] = mapped_column(Text)
+    name: Mapped[str] = mapped_column(Text)
+    range: Mapped[str] = mapped_column(Text, default="trade")
+    match_words: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    published: Mapped[bool] = mapped_column(Boolean, default=True)
     updated_at: Mapped[datetime] = updated_at()
 
 

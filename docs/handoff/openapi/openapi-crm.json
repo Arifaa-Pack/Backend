@@ -4003,6 +4003,191 @@
         }
       }
     },
+    "/v1/catalogue/erp-import": {
+      "post": {
+        "tags": [
+          "product workbook"
+        ],
+        "summary": "Import Erp",
+        "description": "D61: body = the ERP stock list (CSV or .xlsx with the columns Category, Item Description, Brand,\nUnit, OpnStk, In, Out, ClosStk). Every row is kept (packing and raw material too, marked not\nsellable); codes are made from description + unit; closing stock is saved; new sellable items are\nlinked to their website product where it is safe. Prices are never touched. `dry_run=true` shows\nwhat would change and saves nothing.",
+        "operationId": "import_erp_v1_catalogue_erp_import_post",
+        "parameters": [
+          {
+            "name": "dry_run",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Dry Run"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpImportOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalogue/products/{sku}/website-link": {
+      "put": {
+        "tags": [
+          "product workbook"
+        ],
+        "summary": "Set Website Link",
+        "description": "Link an ERP item (a variant) to its website product, or unlink it (null): when the automatic\nmatch was not sure, or was wrong.",
+        "operationId": "set_website_link_v1_catalogue_products__sku__website_link_put",
+        "parameters": [
+          {
+            "name": "sku",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sku"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsiteLinkIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalogue/website-products/{cms_product_id}/variants": {
+      "get": {
+        "tags": [
+          "product workbook"
+        ],
+        "summary": "Website Variants",
+        "description": "The sellable variants of a website product, as the AI describes them (availability word, the\nquantities where a better price starts; no amounts).",
+        "operationId": "website_variants_v1_catalogue_website_products__cms_product_id__variants_get",
+        "parameters": [
+          {
+            "name": "cms_product_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cms Product Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VariantOut"
+                  },
+                  "title": "Response Website Variants V1 Catalogue Website Products  Cms Product Id  Variants Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/price-proposals": {
       "get": {
         "tags": [
@@ -8310,6 +8495,62 @@
         ],
         "title": "DeclineIn"
       },
+      "ErpImportOut": {
+        "properties": {
+          "rows": {
+            "type": "integer",
+            "title": "Rows"
+          },
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "updated": {
+            "type": "integer",
+            "title": "Updated"
+          },
+          "sellable": {
+            "type": "integer",
+            "title": "Sellable"
+          },
+          "not_sellable": {
+            "type": "integer",
+            "title": "Not Sellable"
+          },
+          "linked_to_website": {
+            "type": "integer",
+            "title": "Linked To Website"
+          },
+          "ambiguous_links": {
+            "type": "integer",
+            "title": "Ambiguous Links"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "saved": {
+            "type": "boolean",
+            "title": "Saved"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows",
+          "created",
+          "updated",
+          "sellable",
+          "not_sellable",
+          "linked_to_website",
+          "ambiguous_links",
+          "errors",
+          "saved"
+        ],
+        "title": "ErpImportOut"
+      },
       "FieldChangeOut": {
         "properties": {
           "field": {
@@ -12304,6 +12545,91 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VariantOut": {
+        "properties": {
+          "sku": {
+            "type": "string",
+            "title": "Sku"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "packing": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Packing"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "availability": {
+            "type": "string",
+            "title": "Availability"
+          },
+          "moq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moq"
+          },
+          "quantity_breaks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Quantity Breaks"
+          },
+          "quotable": {
+            "type": "boolean",
+            "title": "Quotable"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sku",
+          "description",
+          "packing",
+          "unit",
+          "availability",
+          "moq",
+          "quantity_breaks",
+          "quotable"
+        ],
+        "title": "VariantOut"
+      },
+      "WebsiteLinkIn": {
+        "properties": {
+          "cms_product_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cms Product Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cms_product_id"
+        ],
+        "title": "WebsiteLinkIn"
       },
       "WonIn": {
         "properties": {

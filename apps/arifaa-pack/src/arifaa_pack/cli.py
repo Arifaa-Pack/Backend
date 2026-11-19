@@ -1,6 +1,6 @@
 """`kx` entrypoint: api | worker | beat | voice | migrate | reindex | platform show | create-user | map |
-content import-site (one image; Coolify services api, worker, beat (exactly one), voice, plus the one-off
-migrate job)."""
+content import-site | catalogue import-erp (one image; Coolify services api, worker, beat (exactly one),
+voice, plus the one-off migrate job)."""
 
 from __future__ import annotations
 
@@ -254,6 +254,36 @@ def _map(args: argparse.Namespace) -> None:
     print(f"wrote {target}")
 
 
+def _catalogue(args: argparse.Namespace) -> None:
+    """WP-C9 (D61): load Arifa's ERP stock list (CSV or .xlsx, the ERP's own columns) into the CRM: every
+    item and its closing stock; packing / raw material kept but not sellable; new sellable items linked to
+    their website product where it is safe. Prices are never touched. `--dry-run` saves nothing."""
+    import asyncio  # noqa: PLC0415
+    import pathlib  # noqa: PLC0415
+    from datetime import UTC, datetime  # noqa: PLC0415
+
+    from kx.core.db import Databases  # noqa: PLC0415
+    from kx.core.settings import get_settings  # noqa: PLC0415
+    from kx.crm import Actor, erp_summary, import_erp  # noqa: PLC0415
+
+    data = pathlib.Path(args.file).read_bytes()
+
+    async def run() -> None:
+        dbs = Databases(get_settings(), only={LogicalDb.CRM})
+        try:
+            async with dbs.transaction(LogicalDb.CRM) as s, s.begin_nested() as nested:
+                report = await import_erp(s, data, actor=Actor.system("cli"), now=datetime.now(UTC))
+                if args.dry_run:
+                    await nested.rollback()
+        finally:
+            await dbs.dispose()
+        for key, value in erp_summary(report).items():
+            print(f"{key}: {value}")
+        print("dry run: nothing saved" if args.dry_run else "saved")
+
+    asyncio.run(run())
+
+
 def _content(args: argparse.Namespace) -> None:
     """WP-C2 (D54): load the current website's content into the CMS and publish it, so the client edits it
     from day one and the AI's site map and knowledge base are filled. Defaults to the Arifa seed shipped with
@@ -336,6 +366,11 @@ def main(argv: list[str] | None = None) -> None:  # noqa: PLR0915 - one parser p
     u.add_argument("--phone", default=None, help="E.164, for WhatsApp / call alerts")
     u.add_argument("--break-glass", action="store_true", help="emergency admin: every sign-in is alerted")
     u.set_defaults(fn=_create_user)
+    cg = sub.add_parser("catalogue", help="D61 CRM: import the ERP stock list (WP-C9)")
+    cg.add_argument("action", choices=["import-erp"])
+    cg.add_argument("file", help="the ERP export (CSV or .xlsx): Category, Item Description, Unit, ClosStk")
+    cg.add_argument("--dry-run", action="store_true", help="show what would change, save nothing")
+    cg.set_defaults(fn=_catalogue)
     ct = sub.add_parser("content", help="D54 CMS: import the current website's content (WP-C2)")
     ct.add_argument("action", choices=["import-site"])
     ct.add_argument(

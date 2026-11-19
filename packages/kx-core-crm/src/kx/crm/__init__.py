@@ -19,6 +19,8 @@ if TYPE_CHECKING:
     from kx.crm.auth.service import create_user
     from kx.crm.auth.session_guard import SessionGuard
     from kx.crm.auth.throttle import MemoryThrottle
+    from kx.crm.catalogue.erp_import import import_erp
+    from kx.crm.catalogue.erp_import import summary as erp_summary
     from kx.crm.company.service import letterhead as company_letterhead
     from kx.crm.deps import CrmDeps
     from kx.crm.gateway import ApprovalStatusReaderImpl, CrmGatewayImpl, GrantConsumerImpl
@@ -61,6 +63,8 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "company_letterhead": ("kx.crm.company.service", "letterhead"),
     "load_text_edits": ("kx.crm.texts.service", "load_edits"),
     "save_text_translation": ("kx.crm.texts.service", "save_translation"),
+    "import_erp": ("kx.crm.catalogue.erp_import", "import_erp"),  # D61 `kx catalogue import-erp`
+    "erp_summary": ("kx.crm.catalogue.erp_import", "summary"),
 }
 
 __all__ = [
@@ -81,6 +85,8 @@ __all__ = [
     "build_router",
     "company_letterhead",
     "create_user",
+    "erp_summary",
+    "import_erp",
     "jobs",
     "load_text_edits",
     "retention_rules",

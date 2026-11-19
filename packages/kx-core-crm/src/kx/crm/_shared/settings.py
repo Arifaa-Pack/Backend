@@ -120,6 +120,8 @@ class BusinessSettings(BaseModel):
     report_recipients: tuple[ReportRecipient, ...] = _alias("reports.recipients", ("manager", "md"))
     # 18 Nov: letterhead, logo and bank details staff edit in the CRM (empty = company.yaml)
     company_profile: CompanyProfile = _alias("company.profile", CompanyProfile())
+    # D61: stock below this (in the item's unit) is "limited" to buyers; none in stock = "made to order"
+    stock_limited_below: Decimal = _alias("stock.limited_below", Decimal(10), ge=0)
     flags: dict[str, bool] = Field(default_factory=dict)
 
     @property

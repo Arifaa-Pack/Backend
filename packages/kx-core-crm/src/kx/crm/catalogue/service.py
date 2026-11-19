@@ -1,13 +1,19 @@
-"""§7 / D22: the CMS product record mirrored into the CRM by product code (`products.sku`).
+"""§7 / D22 / D61: what the CMS publishes about a product reaches the CRM.
 
 "Which system is the master copy: CMS for descriptive content; CRM for prices, MOQ and the default delivery
-time." So a publish writes only the descriptive fields (name, category, specification, custom-printing flag,
-the CMS id and the published flag) and never touches price lists, tiers, MOQ, lead days or `is_quotable`.
+time." Since 19 Nov (D61) a CMS product is the website's marketing record (`ac-8325`); what Arifa sells,
+prices and stocks are its **variants**: the ERP items in the CRM (`catalogue.erp_import`), linked to it by
+`products.cms_product_id`. A publish therefore:
 
-A code the CRM has not seen yet becomes a product that is **not quotable** until the manager adds its price
-list and switches it on (D8: the AI never prices a product without approved prices). An unknown category is
-created with the CMS's name, so the product can be filed; its margin rules stay empty until the manager sets
-them. Unpublish keeps the product (open deals and quotes refer to it) and only clears the published flag.
+* remembers the website product (`website_products`) so ERP items can be matched to it, now and on later
+  imports;
+* links the unlinked sellable ERP items that fit it (`variants.link_unlinked`);
+* writes the descriptive fields (name of the website product, specification, custom-printing flag, published
+  flag) onto its variants, never prices, tiers, MOQ, lead days or `is_quotable`.
+
+A website product with no ERP item yet creates nothing in the CRM: the AI records the buyer's words as the
+requirement and the salesperson picks the item. Unpublish keeps the variants (open deals and quotes refer to
+them) and only clears their published flag.
 """
 
 from __future__ import annotations
@@ -18,58 +24,39 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.event_payloads import ProductPublished
+from kx.core.no_prices import drop_price_keys
 from kx.crm._shared.journal import Actor, record
-from kx.crm.models import Product, ProductCategory
+from kx.crm.catalogue.variants import link_unlinked, remember_website_product
+from kx.crm.models import Product
 
-UNFILED = "UNCATEGORISED"
 _ACTOR = Actor.system("cms_sync")
 
 
-async def _category(session: AsyncSession, code: str | None, name: str | None) -> str:
-    code = (code or UNFILED).strip().upper()
-    if await session.get(ProductCategory, code) is None:
-        session.add(ProductCategory(code=code, name=(name or code).strip()))
-        await session.flush()
-        await record(session, _ACTOR, "catalogue.category_created", "product_category", code)
-    return code
-
-
-async def mirror_product(session: AsyncSession, p: ProductPublished, now: datetime) -> Product:
-    sku = p.code.strip().upper()
-    product = (
-        await session.execute(select(Product).where(func.upper(Product.sku) == sku).with_for_update())
-    ).scalar_one_or_none()
-    before = None
-    if product is None:
-        product = Product(
-            sku=sku,
-            name=p.name,
-            category_code=await _category(session, p.category_code, p.category_name),
-            is_quotable=False,  # D8: no approved price yet
-            spec={},
-        )
-        session.add(product)
-    else:
-        before = {
-            "name": product.name,
-            "category_code": product.category_code,
-            "cms_published": product.cms_published,
-        }
-        product.name = p.name
-        if p.category_code:
-            product.category_code = await _category(session, p.category_code, p.category_name)
-    product.spec = dict(p.spec)
-    if p.custom_printing is not None:
-        product.custom_printing = p.custom_printing
-    product.cms_product_id, product.cms_published, product.cms_synced_at = p.cms_id, p.published, now
+async def mirror_product(session: AsyncSession, p: ProductPublished, now: datetime) -> list[Product]:
+    """The variants of the published website product, updated (empty when no ERP item is linked yet)."""
+    await remember_website_product(session, p)
+    linked, ambiguous = await link_unlinked(session) if p.published else (0, 0)
+    linked_here = func.lower(Product.cms_product_id) == p.cms_id.lower()
+    variants = list((await session.execute(select(Product).where(linked_here).with_for_update())).scalars())
+    descriptive = drop_price_keys(p.spec)
+    for product in variants:
+        product.spec = {**(product.spec or {}), **descriptive}  # the workbook's columns show the same text
+        if p.custom_printing is not None:
+            product.custom_printing = p.custom_printing
+        product.cms_published, product.cms_synced_at = p.published, now
     await session.flush()
     await record(
         session,
         _ACTOR,
         "catalogue.product_published" if p.published else "catalogue.product_unpublished",
-        "product",
-        product.id,
-        before=before,
-        after={"name": product.name, "category_code": product.category_code, "cms_published": p.published},
+        "website_product",
+        p.cms_id,
+        after={
+            "name": p.name,
+            "variants": len(variants),
+            "newly_linked": linked,
+            "ambiguous": ambiguous,
+            "cms_published": p.published,
+        },
     )
-    return product
+    return variants

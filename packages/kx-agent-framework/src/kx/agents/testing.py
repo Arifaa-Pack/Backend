@@ -42,6 +42,7 @@ from kx.core.contracts import (
     QuoteLineView,
     QuoteView,
     RequirementPatch,
+    VariantView,
 )
 
 
@@ -181,6 +182,7 @@ class FakeCrmGateway:
         self.verdicts = list(verdicts)
         self.secret_unit_cost = Decimal("0.1234")  # never part of any DTO
         self.calls: list[tuple[str, Any]] = []
+        self.variants: dict[str, tuple[VariantView, ...]] = {}  # website product id -> its ERP items (D61)
 
     async def resolve_deal(
         self, channel: Channel, address: str | None, visitor_ref: uuid.UUID | None
@@ -230,6 +232,9 @@ class FakeCrmGateway:
 
     async def schedule_follow_up(self, deal_id: uuid.UUID, due_at: datetime, reason: str) -> None:
         self.calls.append(("schedule_follow_up", due_at))
+
+    async def product_variants(self, website_product_id: str) -> tuple[VariantView, ...]:
+        return self.variants.get(website_product_id, ())
 
     async def delivery_estimate(self, deal_id: uuid.UUID) -> DeliveryEstimateView | None:
         return None

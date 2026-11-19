@@ -1117,3 +1117,36 @@ kept, flagged and silent (no auto opt-out, no auto-link, manager and salesperson
     - security headers on every answer; no API docs in production;
     - a company's customer type now gets 422 instead of 500.
 * **Tester pack** (branch `docs/tester-pack`): Postman collection and environments generated from the code (117 operations, 20 negative tests); the Word guide `docs/testing/TESTER_HELPER.docx`.
+
+## 19 Nov (continued). Website AI + CMS: the CMS package, the site import, the ERP items (WP-C0, C1, C2, C9)
+
+Branch `feat/website-ai` (from `docs/tester-pack`), one commit per WP, plan `docs/V1_CHANGE_PLAN.md` (D54–D61).
+
+* **WP-C0:** `docs/frontend` and `docs/testing` merged into `docs/handoff/`. One generator, `make handoff`,
+  writes the API docs, the OpenAPI files and one Postman collection per package.
+* **WP-C1:** `packages/kx-cms` (`kx.cms`, its own database `cms`). Drafts, publish, versions and restore;
+  media on R2; preview tokens; the site manifest; public `/v1/content/*` and admin `/v1/cms/*` APIs;
+  website revalidation (HMAC); the content-editor role. No prices in any content (`kx.core.no_prices`).
+* **WP-C2:** `kx content import-site` loads the current website (8 families, 78 products, pages with their
+  section ids, 7 tour chapters, 7 stations, synonyms, Arabic): 128 documents, idempotent.
+* **WP-C9 (D61):** Arifa's ERP stock list in the CRM.
+  - `kx catalogue import-erp <file> [--dry-run]` and `POST /v1/catalogue/erp-import`. The ERP export is
+    read as it is: no item codes, the header repeated on every page, thousands commas.
+  - Every row is kept. Packing material, raw material and scrap are marked not sellable, never quoted and
+    never sent to the CMS. Each item keeps its ERP category, description, packing ("1*1000 PCS",
+    "1*1.400 KG"), measure (pcs, kg, carton, packet) and closing stock. Its CRM code is generated from
+    description + packing (`8325-ALUMINIUM-CONTAINER-1X1000-PCS`), so the same file updates the same items.
+  - A CMS publish no longer creates CRM products. It remembers the website product and links the ERP
+    items that fit it (model number; "30 cm" + the family word; RETAIL = the self range; the CMS field
+    `erp_match` where the site's ref differs, e.g. the trade pots XS–XL). A tie or no fit is left for the
+    salesperson (`PUT /v1/catalogue/products/{sku}/website-link`). On the pasted sample, 13 of 13 sellable
+    rows link correctly; the one item the site does not show (1065) waits for the salesperson.
+  - `GET /v1/catalogue/website-products/{id}/variants` and `CrmGateway.product_variants`. The AI gets each
+    variant's packing, measure, availability as a word (in stock / limited below the
+    `stock.limited_below` setting / made to order) and the quantities where better pricing starts. It never
+    gets an amount. Container + lid are two variants, so two quote lines.
+  - Opt-ins (D59, CRM part of WP-C6): `ContactPatch.whatsapp_opt_in` / `email_opt_in` write `consents`
+    rows with the words the buyer saw and where.
+  - Migration `crm_0018`. Tests: `test_erp_variants.py` (the pasted ERP rows), `test_catalogue_db.py`
+    rewritten for variants.
+

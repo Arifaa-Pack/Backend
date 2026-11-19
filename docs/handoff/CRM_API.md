@@ -4165,6 +4165,113 @@ Body: the SAME .xlsx file as the preview; `token` from the preview. Saves everyt
 
 ---
 
+#### `POST /v1/catalogue/erp-import`
+
+D61: body = the ERP stock list (CSV or .xlsx with the columns Category, Item Description, Brand, Unit, OpnStk, In, Out, ClosStk). Every row is kept (packing and raw material too, marked not sellable); codes are made from description + unit; closing stock is saved; new sellable items are linked to their website product where it is safe. Prices are never touched. `dry_run=true` shows what would change and saves nothing.
+
+**Who:** manager, admin, md
+
+**Parameters**
+
+| Name | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `dry_run` | query | boolean | no | default `false` |
+
+**Response 200:** `ErpImportOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "rows": 1,
+  "created": 1,
+  "updated": 1,
+  "sellable": 1,
+  "not_sellable": 1,
+  "linked_to_website": 1,
+  "ambiguous_links": 1,
+  "errors": [
+    "<errors>"
+  ],
+  "saved": false
+}
+```
+
+</details>
+
+
+---
+
+#### `PUT /v1/catalogue/products/{sku}/website-link`
+
+Link an ERP item (a variant) to its website product, or unlink it (null): when the automatic match was not sure, or was wrong.
+
+**Who:** manager, admin, md
+
+**Parameters**
+
+| Name | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `sku` | path | string | yes |  |
+
+**Request body** (`application/json`): `WebsiteLinkIn`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `cms_product_id` | string or null | yes |  |
+
+<details><summary>Example request</summary>
+
+```json
+{
+  "cms_product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+}
+```
+
+</details>
+
+**Response 204:** (no body)
+
+---
+
+#### `GET /v1/catalogue/website-products/{cms_product_id}/variants`
+
+The sellable variants of a website product, as the AI describes them (availability word, the quantities where a better price starts; no amounts).
+
+**Who:** sales, manager, admin, md
+
+**Parameters**
+
+| Name | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `cms_product_id` | path | string | yes |  |
+
+**Response 200:** list of `VariantOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "sku": "<sku>",
+    "description": "<description>",
+    "packing": "<packing>",
+    "unit": "<unit>",
+    "availability": "<availability>",
+    "moq": 1,
+    "quantity_breaks": [
+      "<quantity_breaks>"
+    ],
+    "quotable": false
+  }
+]
+```
+
+</details>
+
+
+---
+
 ### quotes
 
 #### `GET /v1/quote-versions/{version_id}`
@@ -5606,6 +5713,20 @@ One of: `NEW`, `QUALIFIED`, `QUOTATION`, `NEGOTIATION`, `READY_TO_CLOSE`, `PAYME
 |---|---|---|---|
 | `reason` | string | yes | min length 1; max length 1000 |
 
+### `ErpImportOut`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `rows` | integer | yes |  |
+| `created` | integer | yes |  |
+| `updated` | integer | yes |  |
+| `sellable` | integer | yes |  |
+| `not_sellable` | integer | yes |  |
+| `linked_to_website` | integer | yes |  |
+| `ambiguous_links` | integer | yes |  |
+| `errors` | list of string | yes |  |
+| `saved` | boolean | yes |  |
+
 ### `FieldChangeOut`
 
 | Field | Type | Required | Notes |
@@ -6417,6 +6538,25 @@ CRM-owned fields only (D22): the CMS owns the description.
 | `countries` | list of string or null | no |  |
 | `category_codes` | list of string or null | no |  |
 | `alert_channels` | list of `whatsapp` \| `email` \| `call` \| `in_app` or null | no |  |
+
+### `VariantOut`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `sku` | string | yes |  |
+| `description` | string | yes |  |
+| `packing` | string or null | yes |  |
+| `unit` | string | yes |  |
+| `availability` | string | yes |  |
+| `moq` | integer or null | yes |  |
+| `quantity_breaks` | list of string | yes |  |
+| `quotable` | boolean | yes |  |
+
+### `WebsiteLinkIn`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `cms_product_id` | string or null | yes |  |
 
 ### `WonIn`
 

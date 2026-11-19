@@ -59,6 +59,7 @@ ALLOW: tuple[str, ...] = (
     "delivery_estimates",
     "factory_visits",
     "message_texts",  # 18 Nov (crm_0014 grants it): wording only, no personal or price data
+    "website_products",  # 19 Nov (crm_0018 grants it): website names and refs, no price or personal data
     "feature_flags",
     "fx_rates",
     "lane_risk_history",

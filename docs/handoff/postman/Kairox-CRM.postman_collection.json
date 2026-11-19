@@ -2928,6 +2928,122 @@
           ]
         },
         {
+          "name": "Import erp",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/catalogue/erp-import",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "catalogue",
+                "erp-import"
+              ],
+              "query": [
+                {
+                  "key": "dry_run",
+                  "value": "",
+                  "description": "optional",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "D61: body = the ERP stock list (CSV or .xlsx with the columns Category, Item Description, Brand, Unit, OpnStk, In, Out, ClosStk). Every row is kept (packing and raw material too, marked not sellable); codes are made from description + unit; closing stock is saved; new sellable items are linked to their website product where it is safe. Prices are never touched. `dry_run=true` shows what would change and saves nothing.\n\n**Who may call it:** manager, md, admin\n\n**Expected on success:** HTTP 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set website link",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/catalogue/products/{{sku}}/website-link",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "catalogue",
+                "products",
+                "{{sku}}",
+                "website-link"
+              ]
+            },
+            "description": "Link an ERP item (a variant) to its website product, or unlink it (null): when the automatic match was not sure, or was wrong.\n\n**Who may call it:** manager, md, admin\n\n**Expected on success:** HTTP 204",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cms_product_id\": \"{{cms_product_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Website variants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/catalogue/website-products/{{cms_product_id}}/variants",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "catalogue",
+                "website-products",
+                "{{cms_product_id}}",
+                "variants"
+              ]
+            },
+            "description": "The sellable variants of a website product, as the AI describes them (availability word, the quantities where a better price starts; no amounts).\n\n**Who may call it:** sales, manager, md, admin\n\n**Expected on success:** HTTP 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Material rate proposals (saves rate_id)",
           "request": {
             "method": "GET",

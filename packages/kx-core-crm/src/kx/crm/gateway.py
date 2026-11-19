@@ -37,6 +37,7 @@ from kx.core.contracts import (
     QuoteView,
     RequirementPatch,
     RequirementView,
+    VariantView,
 )
 from kx.core.db import Databases
 from kx.core.identity import phone_kind
@@ -45,6 +46,7 @@ from kx.crm._shared import staff
 from kx.crm._shared.journal import Actor
 from kx.crm.approvals import service as approvals
 from kx.crm.assignment import service as assignment
+from kx.crm.catalogue import variants
 from kx.crm.change_requests import service as change_requests
 from kx.crm.contacts import consent
 from kx.crm.deals import service as deal_svc
@@ -244,6 +246,15 @@ class CrmGatewayImpl:
     async def delivery_estimate(self, deal_id: uuid.UUID) -> DeliveryEstimateView | None:
         async with self._tx() as s:
             return await delivery_view(s, self._deps, deal_id)
+
+    async def product_variants(self, website_product_id: str) -> tuple[VariantView, ...]:
+        """D61: what the AI may say about a website product's variants: packing, availability as a word,
+        the quantities where a better price starts. Never an amount."""
+        async with self._tx() as s:
+            settings = await self._deps.settings.get(s)
+            return await variants.variants_of(
+                s, website_product_id, limited_below=settings.stock_limited_below, now=self._deps.now()
+            )
 
     async def add_timeline(self, deal_id: uuid.UUID, kind: str, summary: str, actor: AiRole) -> None:
         async with self._tx() as s:

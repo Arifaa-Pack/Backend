@@ -144,6 +144,9 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | POST | `/v1/auth/refresh` | `kx.crm.auth.router:router.<locals>.refresh` | `kx.crm.auth.service:refresh` |
 | POST | `/v1/auth/totp/confirm` | `kx.crm.auth.router:router.<locals>.totp_confirm` | `kx.crm.auth.service:confirm_totp` |
 | POST | `/v1/auth/totp/enrol` | `kx.crm.auth.router:router.<locals>.totp_enrol` | `kx.crm.auth.service:begin_totp` |
+| POST | `/v1/catalogue/erp-import` | `kx.crm.catalogue.router:router.<locals>.import_erp` | `kx.crm.catalogue.erp_import:import_erp`<br>`kx.crm.catalogue.erp_import:summary` |
+| PUT | `/v1/catalogue/products/{sku}/website-link` | `kx.crm.catalogue.router:router.<locals>.set_website_link` | `kx.crm._shared.journal:record` |
+| GET | `/v1/catalogue/website-products/{cms_product_id}/variants` | `kx.crm.catalogue.router:router.<locals>.website_variants` | `kx.crm.catalogue.variants:variants_of` |
 | GET | `/v1/catalogue/workbook` | `kx.crm.catalogue.router:router.<locals>.download` | `kx.crm.catalogue.workbook:download` |
 | POST | `/v1/catalogue/workbook/apply` | `kx.crm.catalogue.router:router.<locals>.apply` | `kx.crm.catalogue.workbook:apply` |
 | POST | `/v1/catalogue/workbook/preview` | `kx.crm.catalogue.router:router.<locals>.preview` | `kx.crm.catalogue.workbook:preview` |

@@ -169,7 +169,8 @@ async def test_orm_matches_ddl(databases: Databases) -> None:
     # 45 baseline + product_price_tiers, quote_line_tiers, change_requests (5 Nov)
     # + staff_credentials, auth_sessions, auth_challenges (11 Nov, D26 in-house login)
     # + message_texts (18 Nov, editable message texts, crm_0014)
-    assert len(m.metadata.tables) == 52
+    # + website_products (19 Nov, D61: the website products the ERP items are variants of, crm_0018)
+    assert len(m.metadata.tables) == 53
     problems = []
     for table in m.metadata.tables.values():
         cols = db[table.name]
