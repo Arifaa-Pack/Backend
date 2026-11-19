@@ -141,9 +141,9 @@ other mapping files, and this table is updated with each move.
 | POST | `/v1/auth/refresh` | `kx.crm.api.auth:router.<locals>.refresh` | `kx.crm.services.auth:refresh` |
 | POST | `/v1/auth/totp/confirm` | `kx.crm.api.auth:router.<locals>.totp_confirm` | `kx.crm.services.auth:confirm_totp` |
 | POST | `/v1/auth/totp/enrol` | `kx.crm.api.auth:router.<locals>.totp_enrol` | `kx.crm.services.auth:begin_totp` |
-| GET | `/v1/catalogue/workbook` | `kx.crm.api.catalogue_workbook:router.<locals>.download` | `kx.crm.services.workbook:download` |
-| POST | `/v1/catalogue/workbook/apply` | `kx.crm.api.catalogue_workbook:router.<locals>.apply` | `kx.crm.services.workbook:apply` |
-| POST | `/v1/catalogue/workbook/preview` | `kx.crm.api.catalogue_workbook:router.<locals>.preview` | `kx.crm.services.workbook:preview` |
+| GET | `/v1/catalogue/workbook` | `kx.crm.catalogue.router:router.<locals>.download` | `kx.crm.catalogue.workbook:download` |
+| POST | `/v1/catalogue/workbook/apply` | `kx.crm.catalogue.router:router.<locals>.apply` | `kx.crm.catalogue.workbook:apply` |
+| POST | `/v1/catalogue/workbook/preview` | `kx.crm.catalogue.router:router.<locals>.preview` | `kx.crm.catalogue.workbook:preview` |
 | GET | `/v1/change-requests` | `kx.crm.api.change_requests:router.<locals>.inbox` | `kx.crm.api.deals:visible_to` |
 | GET | `/v1/change-requests/{cr_id}` | `kx.crm.api.change_requests:router.<locals>.card` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |
 | POST | `/v1/change-requests/{cr_id}/decline` | `kx.crm.api.change_requests:router.<locals>.decline` | `kx.crm.services.change_requests:decline` |

@@ -14,7 +14,6 @@ from kx.crm.api import (
     admin,
     assignment,
     auth,
-    catalogue_workbook,
     change_requests,
     deal_actions,
     deals,
@@ -25,6 +24,7 @@ from kx.crm.api import (
 )
 from kx.crm.api.context import ApiContext
 from kx.crm.api.session_guard import SessionGuard
+from kx.crm.catalogue import router as catalogue_workbook
 from kx.crm.company import router as company
 from kx.crm.deps import CrmDeps
 from kx.crm.operations import router as operations
