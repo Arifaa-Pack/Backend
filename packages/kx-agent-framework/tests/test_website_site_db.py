@@ -321,3 +321,13 @@ async def test_the_agent_moves_the_page_while_it_answers(env: Env) -> None:
     assert body["reply"] == "This is our 8325 container."
     (action,) = body["actions"]
     assert (action["type"], action["product_id"], action["layer"]) == ("show_product", "ac-8325", "agent")
+
+
+@pytest.mark.db
+async def test_the_voice_recording_notice_is_due_once_per_visit(env: Env, databases: Any) -> None:
+    from kx.agents.website.service import WebsiteTurns
+
+    sid, _ = await start(env)
+    turns = WebsiteTurns(databases, None, env.gateway, Manifests(), env.clock)  # type: ignore[arg-type]
+    assert await turns.recording_notice_due(uuid.UUID(sid)) is True
+    assert await turns.recording_notice_due(uuid.UUID(sid)) is False

@@ -16,6 +16,7 @@ livekit-agents is an optional extra; the vendor plugins are installed with the a
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 import uuid
@@ -29,6 +30,7 @@ from kx.agents.roles.language import DEFAULT_LANGUAGE, normalise_language
 from kx.agents.roles.registry import Phrase, PromptStore
 from kx.agents.runtime.service import AgentService, InboundTurn
 from kx.agents.site.models import visit_thread
+from kx.agents.voice.bridge import VisitHooks, VisitTurn, VoiceBridge
 from kx.core.contracts import AiRole, CrmGateway
 from kx.core.optout import match_voice
 from kx.core.platform import Field, Modes, order, resolve_modes
@@ -155,24 +157,32 @@ def make_livekit_entrypoint(
     service: AgentService,
     plugins: VoicePlugins,
     router: VoiceRouter | None = None,
+    *,
     on_minutes: Callable[[Decimal], Awaitable[object]] | None = None,
     on_call: CallHook | None = None,
+    visit_turn: VisitTurn | None = None,
+    visit_hooks: VisitHooks | None = None,
 ) -> Callable[[Any], Any]:
     """Entrypoint for `livekit.agents.cli.run_app(WorkerOptions(entrypoint_fnc=...))`.
     Participant metadata must carry `deal_ref` and `language` (set by the token endpoint). `on_minutes`
     receives each call's length in minutes when the room closes (D34 daily voice-minute cap); `on_call` is
     told
-    when a call starts and ends (the app counts free-version calls at once, D52)."""
+    when a call starts and ends (the app counts free-version calls at once, D52). With `visit_turn` and
+    `visit_hooks` (WP-C5) a call is the website visit's own turn: page actions and captions go to the browser
+    on the room's data channel and typed text comes back on it (`kx.agents.voice.bridge`)."""
     from livekit import agents as lk  # noqa: PLC0415 - optional extra: imported only when the voice worker starts
 
     voice_router = router or VoiceRouter()
 
     class KairoxVoiceAgent(lk.Agent):
-        def __init__(self, deal_id: uuid.UUID, language: str, room: str) -> None:
+        def __init__(self, deal_id: uuid.UUID, language: str, room: str, bridge: VoiceBridge | None) -> None:
             super().__init__(instructions="Kairox sales assistant (replies come from the Kairox graphs).")
             self._deal_id, self._language, self._room = deal_id, language, room
+            self._bridge = bridge
 
         async def on_enter(self) -> None:
+            if self._bridge is not None and not await self._bridge.notice_due():
+                return  # a rejoin after a page load: the notice was given, and no second greeting
             notice = service.prompts.phrase(Phrase.RECORDING_NOTICE, self._language)
             await self.session.say(notice, allow_interruptions=False)
 
@@ -181,6 +191,13 @@ def make_livekit_entrypoint(
             if (said := await voice_stop(service, self._deal_id, text, self._language)) is not None:
                 if said:  # "" = stay quiet and listen ("stop" means "wait", §8.1 step 10)
                     yield said
+                return
+            if self._bridge is not None:  # WP-C5: the visit's turn (page actions and captions on the room)
+                reply = await self._bridge.answer(text)
+                if reply:
+                    yield await speakable(
+                        reply, service.gateway, self._deal_id, service.prompts, self._language
+                    )
                 return
             result = await service.handle_turn(
                 InboundTurn(
@@ -223,8 +240,54 @@ def make_livekit_entrypoint(
         session: Any = lk.AgentSession(
             stt=plugins.stt(route), tts=plugins.tts(route), vad=plugins.vad(), llm=graph_llm()
         )
+        deal_id = uuid.UUID(meta["deal_ref"])
+        bridge = _bridge(ctx, meta, deal_id, language=route.language, turn=visit_turn, hooks=visit_hooks)
         await session.start(
-            room=ctx.room, agent=KairoxVoiceAgent(uuid.UUID(meta["deal_ref"]), route.language, ctx.room.name)
+            room=ctx.room, agent=KairoxVoiceAgent(deal_id, route.language, ctx.room.name, bridge)
         )
+        if bridge is not None:
+            _listen(ctx.room, bridge, session)
 
     return entrypoint
+
+
+def _bridge(
+    ctx: Any,
+    meta: dict[str, Any],
+    deal_id: uuid.UUID,
+    *,
+    language: str,
+    turn: VisitTurn | None,
+    hooks: VisitHooks | None,
+) -> VoiceBridge | None:
+    if turn is None or hooks is None:
+        return None
+    try:
+        session_id = uuid.UUID(meta.get("session_id") or ctx.room.name.removeprefix("web-"))
+    except ValueError:
+        return None  # not a website visit's room
+
+    async def publish(topic: str, payload: dict[str, Any]) -> None:
+        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+        await ctx.room.local_participant.publish_data(body, reliable=True, topic=topic)
+
+    return VoiceBridge(session_id, deal_id, language, turn, hooks, publish)
+
+
+_DATA_TASKS: set[asyncio.Task[None]] = set()
+
+
+def _listen(room: Any, bridge: VoiceBridge, session: Any) -> None:
+    """Typed text and page moves from the browser during the call (one ordered conversation)."""
+
+    async def handle(topic: str | None, data: bytes) -> None:
+        text = await bridge.on_data(topic, data)
+        if text:
+            session.generate_reply(user_input=text)  # answered through llm_node, like speech
+
+    def on_data(packet: Any) -> None:
+        task = asyncio.create_task(handle(packet.topic, bytes(packet.data)))
+        _DATA_TASKS.add(task)
+        task.add_done_callback(_DATA_TASKS.discard)
+
+    room.on("data_received", on_data)

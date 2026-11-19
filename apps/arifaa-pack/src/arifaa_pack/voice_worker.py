@@ -68,12 +68,14 @@ async def entry(ctx: Any) -> None:
     """One website voice call. Builds the container on the process's first call, then reuses it."""
     if "fn" not in _STATE:
         from arifaa_pack.container import build  # noqa: PLC0415 - heavy import, job process only
-        from kx.agents import VoiceRouter, make_livekit_entrypoint  # noqa: PLC0415
+        from kx.agents import VoiceRouter, WebsiteTurns, make_livekit_entrypoint  # noqa: PLC0415
 
         stack = AsyncExitStack()
         c = await stack.enter_async_context(build())
         s = app_settings()
         slots = VoiceSlots(c.redis, c.core.company_code, s.voice_max_concurrent_free)
+        w = c.website_deps  # WP-C5: a call is the visit's own turn (page actions, captions, typed text)
+        visit = WebsiteTurns(w.databases, w.service, w.gateway, w.site_manifest, w.clock)
         _STATE.update(
             stack=stack,
             fn=make_livekit_entrypoint(
@@ -82,6 +84,8 @@ async def entry(ctx: Any) -> None:
                 VoiceRouter(c.voice_routes),
                 on_minutes=partial(c.spend.add, "voice_minutes"),  # D34 daily voice-minute cap
                 on_call=slots.on_call,  # D52 free-version calls at once
+                visit_turn=visit.turn,
+                visit_hooks=visit,
             ),
         )
     await _STATE["fn"](ctx)

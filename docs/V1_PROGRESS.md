@@ -1192,3 +1192,12 @@ Branch `feat/website-ai` (from `docs/tester-pack`), one commit per WP, plan `doc
     0 missed. It led to scored page / section matching (a named page wins; Home loses a tie), Arabic section
     keywords and page names in the manifest. The cases go to the website as
     `docs/handoff/vectors/site-nav.json`.
+* **WP-C5 (D55, D57, D58): voice does everything chat does** (`kx/agents/voice/bridge.py`).
+  - A call runs the visit's own website turn (`WebsiteTurns.turn`): the instant resolver moves the page on
+    the final speech-to-text words before the agent starts; the agent's site tools move it again while it
+    answers; the reply is checked by the price guard and once more before text-to-speech.
+  - On the LiveKit data channel: `kx.site.actions` (page actions), `kx.captions` (visitor and assistant
+    captions, §9), `kx.chat.in` (typed text during the call, answered in the call, one ordered stream) and
+    `kx.site.context` (the visitor moved).
+  - The recording notice plays once per visit (`agents_0006 recording_notice_at`): a page reload that
+    rejoins the room does not repeat it, and the agent never greets twice.

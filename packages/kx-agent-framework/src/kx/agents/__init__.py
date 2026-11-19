@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from kx.agents.voice.service import VoiceRoute, VoiceRouter, make_livekit_entrypoint, voice_routes
     from kx.agents.website.router import LiveKitConfig, PublicScope, WebsiteDeps
     from kx.agents.website.router import build_router as website_router
+    from kx.agents.website.service import WebsiteTurns
 
 # public name -> (module, attribute); an empty attribute means the module itself
 _EXPORTS: dict[str, tuple[str, str]] = {
@@ -67,6 +68,7 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "LiveKitConfig": ("kx.agents.website.router", "LiveKitConfig"),
     "PublicScope": ("kx.agents.website.router", "PublicScope"),
     "WebsiteDeps": ("kx.agents.website.router", "WebsiteDeps"),
+    "WebsiteTurns": ("kx.agents.website.service", "WebsiteTurns"),
     "website_router": ("kx.agents.website.router", "build_router"),
 }
 
@@ -90,6 +92,7 @@ __all__ = [
     "VoiceRoute",
     "VoiceRouter",
     "WebsiteDeps",
+    "WebsiteTurns",
     "make_livekit_entrypoint",
     "open_checkpointer",
     "retention",

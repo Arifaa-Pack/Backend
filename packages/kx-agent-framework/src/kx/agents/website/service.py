@@ -236,6 +236,19 @@ class WebsiteTurns:
         log.info("website.nudge", kind=kind, session=str(session_id))
         return Nudge(kind, reply, actions)
 
+    async def recording_notice_due(self, session_id: uuid.UUID) -> bool:
+        """True once per visit (§6.1): the first call plays the recording notice; a rejoin after a page load
+        does not (agents_0006 `recording_notice_at`)."""
+        async with self.databases.transaction(LogicalDb.AGENTS) as s:
+            stmt = select(Visitor).where(Visitor.id == session_id).with_for_update()
+            visitor = (await s.execute(stmt)).scalar_one_or_none()
+            if visitor is None:
+                return True
+            if visitor.recording_notice_at is not None:
+                return False
+            visitor.recording_notice_at = self.clock()
+            return True
+
     def _allowed(self, visitor: Visitor) -> bool:
         now = self.clock()
         return (
