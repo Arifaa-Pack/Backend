@@ -13,6 +13,7 @@ from arifaa_pack.bodylimit import BodyLimit
 from arifaa_pack.config import app_settings
 from arifaa_pack.container import build
 from arifaa_pack.cors import SplitCors
+from arifaa_pack.errorlog import LogUnhandled
 from arifaa_pack.telemetry import beat_health, init_telemetry, instrument_api
 from kx.agents.website import build_router as website_router
 from kx.automation.admin_api import build_router as channels_admin_router
@@ -48,6 +49,9 @@ def create_app() -> FastAPI:
     install_problem_handlers(app)  # also turns bad webhook signatures into 401s
     # L2: 1 MB bodies (10 MB for the spreadsheet imports), before any route reads. Added first so it sits
     # inside CORS (the last one added is the outermost): a browser then sees the 413, not a CORS error.
+    app.add_middleware(
+        LogUnhandled
+    )  # innermost: logs a crash inside the request's trace (log <-> trace link)
     app.add_middleware(BodyLimit)
     app.add_middleware(  # M2: credentials only for the CRM; the website only reaches /v1/public/*
         SplitCors,

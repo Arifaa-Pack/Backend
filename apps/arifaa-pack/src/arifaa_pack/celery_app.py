@@ -15,12 +15,15 @@ Platform contest round 4 conditions, as built here:
 from __future__ import annotations
 
 import asyncio
+import os
 import threading
+import time
 import uuid
 from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack
 from datetime import UTC, datetime
-from typing import Any, ClassVar, TypeVar
+from pathlib import Path
+from typing import Any, ClassVar, Final, TypeVar
 
 from celery import signals
 
@@ -64,10 +67,16 @@ class _Process:
         state: _State | None = getattr(cls._local, "state", None)
         if state is None:
             _configure()
-            state = cls._local.state = _State()
+            try:
+                state = cls._local.state = _State()
+            except Exception:
+                _health_mark(RUNTIME_FAILED)  # the container health check turns unhealthy (D-1, 18 Nov)
+                raise
             with cls._lock:
                 cls._all.append(state)
-        return state.loop.run_until_complete(work(state.container))
+        result = state.loop.run_until_complete(work(state.container))
+        _health_mark(RUNTIME_OK)
+        return result
 
     @classmethod
     def close(cls) -> None:
@@ -79,6 +88,28 @@ class _Process:
             except Exception:  # shutting down: close the others anyway
                 log.warning("worker.close_failed", exc_info=True)
         cls._local = threading.local()
+
+
+# Live test 18 Nov (D-1): the worker reported healthy while every job failed because its runtime could not be
+# built. docker/healthcheck.py reads these two files: the newer one wins.
+HEALTH_DIR: Final = Path(os.environ.get("KX_HEALTH_DIR", "/tmp/kx-health"))  # noqa: S108 - tmpfs, ours only
+RUNTIME_OK: Final = "runtime_ok"
+RUNTIME_FAILED: Final = "runtime_failed"
+OK_MARK_EVERY_SECONDS: Final = 10.0
+_last_mark: dict[str, float] = {}
+
+
+def _health_mark(name: str) -> None:
+    """Write the time to HEALTH_DIR/name (a success at most every 10 s; never fails a task)."""
+    now = time.time()
+    if name == RUNTIME_OK and now - _last_mark.get(name, 0.0) < OK_MARK_EVERY_SECONDS:
+        return
+    _last_mark[name] = now
+    try:
+        HEALTH_DIR.mkdir(parents=True, exist_ok=True)
+        (HEALTH_DIR / name).write_text(f"{now:.3f}")
+    except OSError:
+        log.warning("worker.health_mark_failed", name=name)
 
 
 _configured = threading.Event()
@@ -101,6 +132,19 @@ def _configure(**_: Any) -> None:
         )
         instrument_celery()  # job spans, joined to the trace of the request that queued them
         _configured.set()
+
+
+@signals.beat_init.connect
+def _configure_beat(**_: Any) -> None:
+    """Beat's own logs and spans (live test 18 Nov: Beat sent nothing to SigNoz). Each `kx.periodic` it sends
+    becomes a producer span, joined to the worker span that runs it."""
+    core = get_settings()
+    configure_logging(core.log_level, core.log_json)
+    from arifaa_pack.telemetry import init_telemetry, instrument_celery  # noqa: PLC0415
+
+    init_telemetry(app_settings(), component="beat", company=core.company_code, environment=core.env.value)
+    instrument_celery()
+    log.info("beat.started", entries=len(app.conf.beat_schedule or {}))
 
 
 @signals.worker_process_shutdown.connect

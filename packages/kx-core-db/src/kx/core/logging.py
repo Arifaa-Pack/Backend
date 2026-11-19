@@ -10,6 +10,7 @@ from contextvars import ContextVar
 from typing import Any
 
 import structlog
+from opentelemetry import trace
 
 trace_id_var: ContextVar[str | None] = ContextVar("trace_id", default=None)
 
@@ -47,8 +48,15 @@ def _mask_processor(_: Any, __: str, event_dict: MutableMapping[str, Any]) -> Mu
 
 
 def _trace_processor(_: Any, __: str, event_dict: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+    """The trace (and span) a log line belongs to, so SigNoz links logs and traces (live test 18 Nov: ERROR
+    lines had an empty trace_id). The explicit context variable wins, else the current OpenTelemetry span."""
     if (tid := trace_id_var.get()) is not None:
         event_dict.setdefault("trace_id", tid)
+        return event_dict
+    ctx = trace.get_current_span().get_span_context()
+    if ctx.is_valid:
+        event_dict.setdefault("trace_id", format(ctx.trace_id, "032x"))
+        event_dict.setdefault("span_id", format(ctx.span_id, "016x"))
     return event_dict
 
 

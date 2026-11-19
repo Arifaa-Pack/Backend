@@ -25,6 +25,15 @@ class ChannelError(Exception):
         self.retryable = retryable
         self.status = status
 
+    def __reduce__(self) -> tuple[Any, tuple[str, str, bool, int | None]]:
+        """Picklable (live test 18 Nov): Celery pickles a task's exception; the keyword-only arguments made it
+        fail, so the logs showed `UnpickleableExceptionWrapper` instead of the provider and the reason."""
+        return _channel_error, (self.provider, self.detail, self.retryable, self.status)
+
+
+def _channel_error(provider: str, detail: str, retryable: bool, status: int | None) -> ChannelError:
+    return ChannelError(provider, detail, retryable=retryable, status=status)
+
 
 def is_transient(exc: BaseException) -> bool:
     if isinstance(exc, httpx.HTTPStatusError):
