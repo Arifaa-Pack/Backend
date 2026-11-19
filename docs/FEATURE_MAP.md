@@ -39,7 +39,7 @@ other mapping files, and this table is updated with each move.
 | `kx.core.contracts:ClickToCall` | `kx.automation.alerts.service:CallBridge` | `packages/kx-core-automation/src/kx/automation/alerts/service.py` |
 | `kx.core.contracts:CrmGateway` | `kx.crm.gateway:CrmGatewayImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
 | `kx.core.contracts:GrantConsumer` | `kx.crm.gateway:GrantConsumerImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
-| `kx.core.contracts:MessageSender` | `kx.automation.outbound:OutboundService` | `packages/kx-core-automation/src/kx/automation/outbound/__init__.py` |
+| `kx.core.contracts:MessageSender` | `kx.automation.outbound.service:OutboundService` | `packages/kx-core-automation/src/kx/automation/outbound/service.py` |
 | `kx.core.contracts:StaffMailer` | `arifaa_pack.adapters:StaffCodeMailer` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 
 ## Other ports (Protocols inside a package)
@@ -62,10 +62,10 @@ other mapping files, and this table is updated with each move.
 | `kx.automation.email.channel:SesV2Client` | - | - |
 | `kx.automation.jobs:MediaDownloader` | `kx.automation.whatsapp.channel:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/whatsapp/channel.py` |
 | `kx.automation.media:S3Client` | - | - |
-| `kx.automation.outbound:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
-| `kx.automation.outbound:RateLimiter` | `kx.automation.outbound.ratelimit:TokenBucketLimiter` | `packages/kx-core-automation/src/kx/automation/outbound/ratelimit.py` |
-| `kx.automation.outbound:TemplateSpend` | `kx.core.spend:SpendMeter` | `packages/kx-core-db/src/kx/core/spend.py` |
-| `kx.automation.outbound:WhatsAppTransport` | `kx.automation.whatsapp.channel:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/whatsapp/channel.py` |
+| `kx.automation.outbound.service:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
+| `kx.automation.outbound.service:RateLimiter` | `kx.automation.outbound.ratelimit:TokenBucketLimiter` | `packages/kx-core-automation/src/kx/automation/outbound/ratelimit.py` |
+| `kx.automation.outbound.service:TemplateSpend` | `kx.core.spend:SpendMeter` | `packages/kx-core-db/src/kx/core/spend.py` |
+| `kx.automation.outbound.service:WhatsAppTransport` | `kx.automation.whatsapp.channel:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/whatsapp/channel.py` |
 | `kx.automation.ports:ApprovalStatusReader` | `kx.crm.gateway:ApprovalStatusReaderImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
 | `kx.automation.ports:MediaStore` | `kx.automation.media:S3MediaStore` | `packages/kx-core-automation/src/kx/automation/media.py` |
 | `kx.automation.ports:TaskScheduler` | `kx.automation.jobs:JobScheduler` | `packages/kx-core-automation/src/kx/automation/jobs.py` |

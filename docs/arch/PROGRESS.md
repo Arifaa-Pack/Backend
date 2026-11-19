@@ -892,3 +892,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 18.07s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `inbound` @ `7c622da`: tests=992, failures=0, errors=0, skipped=4, exit=0 → tagged `arch-slice/automation-inbound-2b` (the first-round tag `arch-slice/automation-inbound` stays), COMPLETED
+
+## 2b.12 slice `outbound` — TESTING (COMPLETED when tagged `arch-slice/automation-outbound`)
+
+- **Moved:** the code of `outbound/__init__.py` (OutboundService) → `outbound/service.py` (byte-identical); `outbound/__init__.py` re-exports it (78 of 78 names); 4 imports rewritten; `tests/unit/test_featuremap.py` asserts the new implementation path of MessageSender (kx map names the real module).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 452 files already formatted
+  - mypy: Success: no issues found in 290 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed (after the path update of tests/unit/test_featuremap.py) =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `optout` @ `8cad49c`: tests=992, failures=0, errors=0, skipped=4, exit=0 → tagged `arch-slice/automation-optout-2b`, COMPLETED

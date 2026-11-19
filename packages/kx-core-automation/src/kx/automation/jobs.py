@@ -33,7 +33,7 @@ from kx.automation.followups.service import FollowUps
 from kx.automation.handlers import EventHandlers, stop_after_no_answer
 from kx.automation.inbound import service as inbound
 from kx.automation.models import SCHEMA, ChannelAccount, OutboundMessage
-from kx.automation.outbound import STUCK_ERROR, OutboundService, TransientDeliveryError
+from kx.automation.outbound.service import STUCK_ERROR, OutboundService, TransientDeliveryError
 from kx.automation.outbox import emit
 from kx.automation.ports import MediaStore, SweepCallback, TaskScheduler
 from kx.automation.scraping.service import PriceScraper

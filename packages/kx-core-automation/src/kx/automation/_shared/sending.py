@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import uuid
 
-from kx.automation.outbound import TRANSIENT_REASONS
+from kx.automation.outbound.service import TRANSIENT_REASONS
 from kx.core.contracts import MessageSender, OutboundRequest
 from kx.core.errors import RuleViolation
 from kx.core.logging import get_logger

@@ -19,7 +19,7 @@ from kx.automation.alerts.service import ApprovalLadder, LadderTicket, notify_st
 from kx.automation.followups.service import FollowUps  # noqa: F401  (old import path, ADR-0001)
 from kx.automation.models import SCHEMA, ChannelAccount, InboundMessage, Thread
 from kx.automation.optout import service as optout
-from kx.automation.outbound import TRANSIENT_REASONS
+from kx.automation.outbound.service import TRANSIENT_REASONS
 from kx.automation.outbox import emit
 from kx.automation.ports import Clock, TaskScheduler, utc_now
 from kx.automation.repo import ALL_CHANNELS
