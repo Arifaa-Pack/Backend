@@ -12,7 +12,7 @@ import yaml  # type: ignore[import-untyped]  # types-PyYAML not in the lock yet
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from kx.agents.models import Effort
+from kx.agents.llm.service import Effort
 
 COMPANY_YAML = pathlib.Path(__file__).with_name("company.yaml")
 

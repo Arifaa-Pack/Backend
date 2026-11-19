@@ -46,14 +46,14 @@ from arifaa_pack.telemetry import heartbeat
 from kx.agents import retention as agents_retention
 from kx.agents.handlers import AgentHandlers
 from kx.agents.knowledge.service import KnowledgeBase, KnowledgeIndexer
-from kx.agents.memory.service import open_checkpointer
-from kx.agents.models import (
+from kx.agents.llm.service import (
     AnthropicApiProvider,
     GeminiApiProvider,
     ModelProvider,
     ModelRouter,
     tier_options,
 )
+from kx.agents.memory.service import open_checkpointer
 from kx.agents.service import AgentService
 from kx.agents.tracing.service import Tracer
 from kx.agents.voice.service import VoiceRoute, VoiceRouter, voice_routes

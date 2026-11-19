@@ -18,7 +18,7 @@ from langgraph.types import Checkpointer, interrupt
 
 from kx.agents.context import AgentContext
 from kx.agents.graphs.compose import compose
-from kx.agents.models import ModelSet
+from kx.agents.llm.service import ModelSet
 from kx.core.errors import Conflict
 
 Outcome = Literal["approved", "rejected", "correction"]

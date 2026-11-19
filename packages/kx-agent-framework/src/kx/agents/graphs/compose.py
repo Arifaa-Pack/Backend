@@ -9,8 +9,8 @@ from langchain_core.runnables import RunnableConfig
 
 from kx.agents.context import AgentContext
 from kx.agents.guard.service import PriceGuard, with_note
+from kx.agents.llm.service import ModelSet
 from kx.agents.middleware import deal_facts
-from kx.agents.models import ModelSet
 from kx.core.contracts import AllowedPrice
 
 

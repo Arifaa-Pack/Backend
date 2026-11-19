@@ -194,7 +194,7 @@ def _evals(args: argparse.Namespace) -> None:
 
     from arifaa_pack.config import app_settings  # noqa: PLC0415
     from kx.agents.evals.harness import run_suite  # noqa: PLC0415
-    from kx.agents.models import (  # noqa: PLC0415
+    from kx.agents.llm.service import (  # noqa: PLC0415
         AnthropicApiProvider,
         GeminiApiProvider,
         ModelProvider,

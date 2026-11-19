@@ -51,7 +51,7 @@ other mapping files, and this table is updated with each move.
 | `kx.agents.knowledge.service:ContentSource` | `arifaa_pack.adapters:PayloadContentSource` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.knowledge.service:Embedder` | `arifaa_pack.adapters:HttpEmbedder` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.knowledge.service:KnowledgeSearch` | `kx.agents.knowledge.service:KnowledgeBase` | `packages/kx-agent-framework/src/kx/agents/knowledge/service.py` |
-| `kx.agents.models:ModelProvider` | `kx.agents.models:AnthropicApiProvider`<br>`kx.agents.models:GeminiApiProvider` | `packages/kx-agent-framework/src/kx/agents/models.py`<br>`packages/kx-agent-framework/src/kx/agents/models.py` |
+| `kx.agents.llm.service:ModelProvider` | `kx.agents.llm.service:AnthropicApiProvider`<br>`kx.agents.llm.service:GeminiApiProvider` | `packages/kx-agent-framework/src/kx/agents/llm/service.py`<br>`packages/kx-agent-framework/src/kx/agents/llm/service.py` |
 | `kx.agents.registry:PromptStore` | `kx.agents.registry:DefaultPromptStore` | `packages/kx-agent-framework/src/kx/agents/registry.py` |
 | `kx.agents.voice.service:VoicePlugins` | `arifaa_pack.adapters:PlatformVoicePlugins` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.website.router:HumanCheck` | `arifaa_pack.adapters:TurnstileVerifier` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |

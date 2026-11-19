@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 
 from kx.agents.context import AgentContext
 from kx.agents.graphs.compose import compose
-from kx.agents.models import ModelSet
+from kx.agents.llm.service import ModelSet
 from kx.agents.orchestrator import PAYMENT_TOPIC
 from kx.agents.registry import Phrase, team_member
 from kx.core.contracts import AllowedPrice, ChangeField, ChangeType, CounterVerdict, CounterVerdictKind

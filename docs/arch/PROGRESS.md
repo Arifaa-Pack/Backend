@@ -1048,3 +1048,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 19.36s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `voice` @ `ce85e89`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-voice`, COMPLETED
+
+## 2b.22 slice `llm` — TESTING (COMPLETED when tagged `arch-slice/agents-llm`)
+
+- **Moved:** `models.py` → `llm/service.py` (the model factory: tier → chat model, provider fallback); `models.py` is now an alias shim (36 of 36 names); 12 imports rewritten (incl. the app's `cli.py`, `config.py`, `container.py`, `texts_sync.py`). The rewriter had dropped one `# noqa: PLC0415` on a multi-line import in `cli.py`: restored, the tool fixed, the whole history checked (no other case).
+- **Gates:**
+  - ruff check: Found 1 error.
+  - ruff format: 466 files already formatted
+  - mypy: Success: no issues found in 304 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 18.41s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `website` @ `df1fc35`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-website`, COMPLETED

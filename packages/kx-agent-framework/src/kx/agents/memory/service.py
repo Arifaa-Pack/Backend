@@ -24,7 +24,7 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.agents.models import ModelSet
+from kx.agents.llm.service import ModelSet
 from kx.agents.orm import SCHEMA, AgentRun, Conversation, GuardEvent, KnowledgeGap, Turn, Visitor
 from kx.core import events as ev
 from kx.core.contracts import Channel

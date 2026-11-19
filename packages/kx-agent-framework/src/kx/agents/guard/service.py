@@ -24,7 +24,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from kx.agents.context import AgentContext, GuardEventRecord, PriceCheck, RunLog
-from kx.agents.models import ModelSet
+from kx.agents.llm.service import ModelSet
 from kx.agents.registry import Phrase
 from kx.agents.runs import UsageMeter
 from kx.core.contracts import AllowedPrice, Channel

@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from kx.agents.context import AgentContext
 from kx.agents.language import detect_script_language
-from kx.agents.models import ModelRouter
+from kx.agents.llm.service import ModelRouter
 from kx.agents.orchestrator import route
 from kx.agents.orm import EvalRun
 from kx.agents.registry import AgentRegistry, DefaultPromptStore, Phrase
