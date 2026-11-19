@@ -8,6 +8,8 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import os
+import subprocess
 import sys
 import time
 import uuid
@@ -21,6 +23,20 @@ import kxclient as k  # noqa: E402
 
 OUT = Path(__file__).resolve().parents[1] / "results"
 R: list[dict[str, Any]] = []
+
+
+def reset_throttle() -> None:
+    """Harness (M3, 19 Nov): forget the sign-in counters in Redis between probe groups, like a fresh environment.
+    Every probe of the platform comes from this one PC, so without this one group's throttle answers the next."""
+    run = dict(capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=60)
+    keys = subprocess.run(["docker", "exec", "kxlive-redis-1", "redis-cli", "--scan", "--pattern", "kx:pack:*auth*"], **run).stdout.split()
+    if keys:
+        subprocess.run(["docker", "exec", "kxlive-redis-1", "redis-cli", "del", *keys], **run)
+
+
+def from_ip(addr: str) -> dict[str, str]:
+    """The client address the proxy saw (the stack trusts X-Forwarded-For, as production trusts Cloudflare)."""
+    return {"X-Forwarded-For": addr}
 
 
 def rec(area: str, probe: str, ok: bool, expected: str, got: Any, sev: str = "") -> None:
@@ -43,8 +59,15 @@ async def main() -> None:
             rec("headers", f"security headers on {path}", not missing, "nosniff, frame-deny, CSP (HSTS at the edge)",
                 {"missing": missing, **hd}, "Low")
         r = await c.get("/docs")
-        rec("info", "Swagger /docs and /openapi.json public", r.status_code in (401, 403, 404), "hidden in production",
-            {"docs": r.status_code, "openapi": (await c.get("/openapi.json")).status_code}, "Low")
+        # 19 Nov: off in production, on locally and on staging (testers). This stack runs KX_ENV=local, so the
+        # production answer is read from the app built with KX_ENV=production (no server needed).
+        prod = subprocess.run([sys.executable, "-c", "from arifaa_pack.api import create_app; a = create_app(); "
+                               "print(a.docs_url, a.redoc_url, a.openapi_url)"], capture_output=True, text=True,
+                              stdin=subprocess.DEVNULL, env={**os.environ, "KX_ENV": "production"}, timeout=120)
+        prod_urls = prod.stdout.strip().splitlines()[-1] if prod.stdout.strip() else prod.stderr[-200:]
+        rec("info", "Swagger /docs and /openapi.json public", prod_urls == "None None None", "hidden in production",
+            {"this_stack_local": {"docs": r.status_code, "openapi": (await c.get("/openapi.json")).status_code},
+             "production_docs_redoc_openapi": prod_urls}, "Low")
         r = await c.options("/v1/deals", headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET",
                                                   "Access-Control-Request-Headers": "authorization"})
         rec("cors", "preflight from an unknown origin", r.headers.get("access-control-allow-origin") is None,
@@ -64,35 +87,42 @@ async def main() -> None:
         alg = json.loads(base64.urlsafe_b64decode(T["kxsales1"].split(".")[0] + "=="))
         rec("auth", "access token algorithm", alg.get("alg") in ("RS256", "ES256", "EdDSA"), "asymmetric", alg)
 
-        # ---- 2 login abuse: enumeration, lockout, throttling
-        t0 = time.perf_counter(); r1 = await c.post("/v1/auth/login", json={"email": "nobody@kairoxaitech.com", "password": "x" * 12}); a = time.perf_counter() - t0
-        t0 = time.perf_counter(); r2 = await c.post("/v1/auth/login", json={"email": "kxsales2@kairoxaitech.com", "password": "x" * 12}); b = time.perf_counter() - t0
+        # ---- 2 login abuse: enumeration, lockout, throttling (M3: per IP and per account + IP)
+        reset_throttle()
+        t0 = time.perf_counter(); r1 = await c.post("/v1/auth/login", json={"email": "nobody@kairoxaitech.com", "password": "x" * 12}, headers=from_ip("198.51.100.10")); a = time.perf_counter() - t0
+        t0 = time.perf_counter(); r2 = await c.post("/v1/auth/login", json={"email": "kxsales2@kairoxaitech.com", "password": "x" * 12}, headers=from_ip("198.51.100.10")); b = time.perf_counter() - t0
         rec("auth", "account enumeration (unknown user vs wrong password)", r1.status_code == r2.status_code and r1.text == r2.text
             and abs(a - b) < 0.25, "same status, body and time", {"unknown": [r1.status_code, r1.text[:90], round(a, 3)],
                                                                   "known": [r2.status_code, r2.text[:90], round(b, 3)]}, "Medium")
+        await k.login(c, "kxsales2", headers=from_ip("198.51.100.20"))  # the staff member's office (a known IP)
         codes = []
         for i in range(12):
-            r = await c.post("/v1/auth/login", json={"email": "kxsales2@kairoxaitech.com", "password": f"wrong-{i}-pw"})
+            r = await c.post("/v1/auth/login", json={"email": "kxsales2@kairoxaitech.com", "password": f"wrong-{i}-pw"}, headers=from_ip("203.0.113.7"))
             codes.append(r.status_code)
-        r = await c.post("/v1/auth/login", json={"email": "kxsales2@kairoxaitech.com", "password": st["kxsales2"]["password"]})
+        r = await c.post("/v1/auth/login", json={"email": "kxsales2@kairoxaitech.com", "password": st["kxsales2"]["password"]}, headers=from_ip("203.0.113.7"))
         rec("auth", "lockout after repeated wrong passwords (KX_AUTH__MAX_FAILED_ATTEMPTS=5)", r.status_code != 200,
             "correct password refused while locked", {"wrong_attempt_codes": codes, "correct_pw_after": r.status_code,
                                                       "body": r.text[:150]}, "High")
-        rec("auth", "anyone can lock a staff account by failing its login (lockout DoS)", False,
-            "per-IP throttle before the per-account lock", {"locked_after": codes.index(429) if 429 in codes else None}, "Medium")
-        stuff = [(await c.post("/v1/auth/login", json={"email": f"user{i}@kairoxaitech.com", "password": "Winter2026!"})).status_code
+        other = await c.post("/v1/auth/login", json={"email": "kxsales2@kairoxaitech.com", "password": st["kxsales2"]["password"]}, headers=from_ip("198.51.100.20"))
+        rec("auth", "anyone can lock a staff account by failing its login (lockout DoS)", other.status_code == 200,
+            "the attacker's IP is locked; the staff member still signs in from the office IP they use (M3)",
+            {"attacker_codes": codes, "staff_from_other_ip": other.status_code}, "Medium")
+        stuff = [(await c.post("/v1/auth/login", json={"email": f"user{i}@kairoxaitech.com", "password": "Winter2026!"}, headers=from_ip("203.0.113.9"))).status_code
                  for i in range(30)]
         rec("auth", "credential stuffing: 30 different e-mails from one IP", 429 in stuff, "429 per IP", stuff, "Medium")
         users = (await c.get("/v1/users", headers=H["kxadmin"])).json()
         users = users if isinstance(users, list) else users.get("items", [])
         s2 = next(u for u in users if u["email"].startswith("kxsales2@"))
+        typo = [(await c.post("/v1/auth/login", json={"email": "kxsales2@kairoxaitech.com", "password": f"typo-{i}"},
+                               headers=from_ip("198.51.100.20"))).status_code for i in range(6)]  # mistyped at the office
         r = await c.post(f"/v1/users/{s2['id']}/unlock", headers=H["kxadmin"])
-        r2 = await c.post("/v1/auth/login", json={"email": "kxsales2@kairoxaitech.com", "password": st["kxsales2"]["password"]})
-        rec("auth", "admin unlock restores the account", r.status_code < 300 and r2.status_code == 200, "unlocked",
-            [r.status_code, r2.status_code])
+        r2 = await c.post("/v1/auth/login", json={"email": "kxsales2@kairoxaitech.com", "password": st["kxsales2"]["password"]}, headers=from_ip("198.51.100.20"))
+        rec("auth", "admin unlock restores the account (the staff member locked out at the office signs in at once)",
+            r.status_code < 300 and r2.status_code == 200 and 429 in typo, "unlocked", {"typos": typo, "unlock": r.status_code, "login_after": r2.status_code})
 
         # ---- 3 MFA / reset code guessing
-        r = await c.post("/v1/auth/login", json={"email": "kxsales1@kairoxaitech.com", "password": st["kxsales1"]["password"]})
+        reset_throttle()
+        r = await c.post("/v1/auth/login", json={"email": "kxsales1@kairoxaitech.com", "password": st["kxsales1"]["password"]}, headers=from_ip("198.51.100.30"))
         ch = r.json().get("challenge_token")
         guesses = [(await c.post("/v1/auth/mfa/totp", json={"challenge_token": ch, "code": f"{i:06d}"})).status_code for i in range(8)]
         good = await c.post("/v1/auth/mfa/totp", json={"challenge_token": ch, "code": k.totp(st["kxsales1"]["totp_secret"])})
@@ -100,17 +130,19 @@ async def main() -> None:
             {"wrong": guesses, "right_code_after": good.status_code}, "High")
         s1 = next(u for u in users if u["email"].startswith("kxsales1@"))
         await c.post(f"/v1/users/{s1['id']}/unlock", headers=H["kxadmin"])
-        rr = await c.post("/v1/auth/password/reset/start", json={"email": "nobody@kairoxaitech.com"})
-        rk = await c.post("/v1/auth/password/reset/start", json={"email": "kxsales2@kairoxaitech.com"})
+        reset_throttle()
+        rr = await c.post("/v1/auth/password/reset/start", json={"email": "nobody@kairoxaitech.com"}, headers=from_ip("198.51.100.40"))
+        rk = await c.post("/v1/auth/password/reset/start", json={"email": "kxsales2@kairoxaitech.com"}, headers=from_ip("198.51.100.40"))
         rec("auth", "reset start does not reveal whether an account exists", rr.status_code == rk.status_code and rr.text == rk.text,
             "same answer", [rr.status_code, rr.text[:80], rk.status_code, rk.text[:80]], "Medium")
+        reset_throttle()
         t0 = time.time()
-        await c.post("/v1/auth/password/reset/start", json={"email": "kxsales2@kairoxaitech.com"})
+        await c.post("/v1/auth/password/reset/start", json={"email": "kxsales2@kairoxaitech.com"}, headers=from_ip("198.51.100.50"))
         real = await k.latest_code("kxsales2", t0)
         fin = [(await c.post("/v1/auth/password/reset/finish", json={"email": "kxsales2@kairoxaitech.com", "code": f"{(int(real) + i + 1) % 10**6:06d}",
-                                                                     "new_password": "Brute-" + uuid.uuid4().hex})).status_code for i in range(6)]
+                                                                     "new_password": "Brute-" + uuid.uuid4().hex}, headers=from_ip("198.51.100.50"))).status_code for i in range(6)]
         newpw = "Live-" + uuid.uuid4().hex
-        ok_real = await c.post("/v1/auth/password/reset/finish", json={"email": "kxsales2@kairoxaitech.com", "code": real, "new_password": newpw})
+        ok_real = await c.post("/v1/auth/password/reset/finish", json={"email": "kxsales2@kairoxaitech.com", "code": real, "new_password": newpw}, headers=from_ip("198.51.100.50"))
         if ok_real.status_code < 300:
             st2 = k.load_state(); st2["kxsales2"]["password"] = newpw; k.save_state(st2)
         rec("auth", "reset code: real code refused after 6 wrong guesses (KX_AUTH__CODE_MAX_TRIES=5)", ok_real.status_code >= 400,
@@ -118,6 +150,7 @@ async def main() -> None:
         await c.post(f"/v1/users/{s2['id']}/unlock", headers=H["kxadmin"])
 
         # ---- 4 session / token lifecycle
+        reset_throttle()
         tok = await k.login(c, "kxsales1")
         r = await c.post("/v1/auth/logout", headers={"Authorization": f"Bearer {tok}"})
         r2 = await c.get("/v1/auth/me", headers={"Authorization": f"Bearer {tok}"})
@@ -134,7 +167,21 @@ async def main() -> None:
         comp = await c.post("/v1/companies", headers=H["kxmgr"], json={"name": "=HYPERLINK(\"http://evil.example\",\"click\")",
                                                                        "country_code": "AE"})
         cid = comp.json().get("id") if comp.status_code < 300 else None
-        r = await c.patch(f"/v1/companies/{cid}", headers=H["kxsales1"], json={"name": "Renamed by another salesperson"}) if cid else None
+        # L3 (19 Nov): a company nobody is linked to yet is open to every salesperson (so a new contact can be
+        # linked to it); it becomes a customer once a contact on a deal belongs to it. Link it to a contact on a
+        # deal another person owns, then let kxsales1 try to rename it.
+        me1 = (await c.get("/v1/auth/me", headers=H["kxsales1"])).json()
+        dl = (await c.get("/v1/deals", headers=H["kxmgr"], params={"limit": 100})).json()
+        items = dl["items"] if isinstance(dl, dict) else dl
+        other = next((d for d in items if d.get("owner_user_id") and d["owner_user_id"] != me1["id"]), None)
+        if other is None and items:  # load-test deals are unassigned: give one to kxsales2 (test stack only)
+            s2_id = next(u["id"] for u in users if u["email"].startswith("kxsales2@"))
+            rr = await c.post(f"/v1/deals/{items[0]['id']}/reassign", headers=H["kxmgr"], json={"user_id": s2_id})
+            other = items[0] if rr.status_code < 300 else None
+        if cid and other:
+            ct = (await c.get(f"/v1/deals/{other['id']}", headers=H["kxmgr"])).json()["contact"]["id"]
+            await c.patch(f"/v1/contacts/{ct}", headers=H["kxmgr"], json={"company_id": cid})
+        r = await c.patch(f"/v1/companies/{cid}", headers=H["kxsales1"], json={"name": "Renamed by another salesperson"}) if cid and other else None
         rec("authz", "salesperson edits a company that is not on their deals", r is not None and r.status_code in (403, 404),
             "403", {"create": comp.status_code, "patch": r.status_code if r else None}, "Medium")
         if cid:

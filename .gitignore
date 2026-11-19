@@ -18,3 +18,5 @@ dist/
 build/
 # Office lock files (they hold the Windows account name)
 ~$*
+# local pytest runs of the round-2 fixes (evidence of record is in the reports)
+live-test/results/verify-*/

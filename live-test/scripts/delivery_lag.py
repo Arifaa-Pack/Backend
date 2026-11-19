@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import statistics
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -17,7 +18,7 @@ def q(sql: str) -> list[str]:
                           capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=120).stdout.split()
 
 
-for f in sorted(RES.glob("load_c*_w*.json")):
+for f in sorted(RES.glob(sys.argv[1] if len(sys.argv) > 1 else "load_c*_w*.json")):  # e.g. "load_c*_r2.json"
     d = json.loads(f.read_text(encoding="utf-8"))
     start = time.mktime(time.strptime(d["started"], "%Y-%m-%d %H:%M:%S"))
     end = start + d["minutes"] * 60

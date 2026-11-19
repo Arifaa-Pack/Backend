@@ -1,0 +1,44 @@
+[PASS] headers: security headers on /healthz -> {"missing": [], "strict-transport-security": null, "x-content-type-options": "nosniff", "x-frame-options": "DENY", "content-security-policy": "default-src 'none'; frame-ancestors 'none'", "referrer-policy": "no-referrer", "server": "uvicorn", "cache-control": 
+[PASS] headers: security headers on /v1/auth/me -> {"missing": [], "strict-transport-security": null, "x-content-type-options": "nosniff", "x-frame-options": "DENY", "content-security-policy": "default-src 'none'; frame-ancestors 'none'", "referrer-policy": "no-referrer", "server": "uvicorn", "cache-control": 
+[PASS] headers: security headers on /docs -> {"missing": [], "strict-transport-security": null, "x-content-type-options": "nosniff", "x-frame-options": "DENY", "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' http
+[PASS] info: Swagger /docs and /openapi.json public -> {"this_stack_local": {"docs": 200, "openapi": 200}, "production_docs_redoc_openapi": "None None None"}
+[PASS] cors: preflight from an unknown origin -> {"status": 405, "acao": null}
+[PASS] cors: preflight from the configured CRM origin -> {"status": 200, "acao": "http://localhost:3001", "credentials": "true"}
+[PASS] info: malformed JSON -> no stack trace -> {"status": 422, "body": "{\"detail\":[{\"type\":\"json_invalid\",\"loc\":[\"body\",1],\"msg\":\"JSON decode error\",\"input\":{},\"ctx\":{\"error\":\"Expecting property name enclosed in double quotes\"}}]}"}
+[PASS] info: TRACE method disabled -> 405
+[PASS] auth: JWKS publishes only public keys -> {"keys": [{"kty": "RSA", "alg": "RS256", "kid": "kx-dev-1", "use": "sig"}]}
+[PASS] auth: access token algorithm -> {"alg": "RS256", "kid": "kx-dev-1", "typ": "JWT"}
+[PASS] auth: account enumeration (unknown user vs wrong password) -> {"unknown": [401, "{\"type\":\"https://errors.kairox.ai/unauthorized\",\"title\":\"Authentication required\",\"status\"", 0.088], "known": [401, "{\"type\":\"https://errors.kairox.ai/unauthorized\",\"title\":\"Authentication required\",\"status\"", 0.041]}
+[PASS] auth: lockout after repeated wrong passwords (KX_AUTH__MAX_FAILED_ATTEMPTS=5) -> {"wrong_attempt_codes": [401, 401, 401, 401, 401, 429, 429, 429, 429, 429, 429, 429], "correct_pw_after": 429, "body": "{\"type\":\"https://errors.kairox.ai/too_many_requests\",\"title\":\"Too many requests\",\"status\":429,\"detail\":\"too many requests; try 
+[PASS] auth: anyone can lock a staff account by failing its login (lockout DoS) -> {"attacker_codes": [401, 401, 401, 401, 401, 429, 429, 429, 429, 429, 429, 429], "staff_from_other_ip": 200}
+[PASS] auth: credential stuffing: 30 different e-mails from one IP -> [401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429]
+[PASS] auth: admin unlock restores the account (the staff member locked out at the office signs in at once) -> {"typos": [401, 401, 401, 401, 401, 429], "unlock": 200, "login_after": 200}
+[PASS] auth: TOTP guessing: challenge dies after a few wrong codes -> {"wrong": [401, 401, 401, 401, 401, 429, 429, 429], "right_code_after": 429}
+[PASS] auth: reset start does not reveal whether an account exists -> [202, "null", 202, "null"]
+[PASS] auth: reset code: real code refused after 6 wrong guesses (KX_AUTH__CODE_MAX_TRIES=5) -> {"wrong": [401, 401, 401, 401, 401, 429], "real_code_after": 429}
+[PASS] auth: access token after logout -> {"logout": 204, "me_after_logout": 401, "access_ttl_s": 900}
+[PASS] authz: IT admin promotes itself to MD -> {"status": 403, "body": "{\"type\":\"https://errors.kairox.ai/forbidden\",\"title\":\"Not allowed\",\"status\":403,\"detail\":\"nobody may change their own role\",\"instance\":\"/v1/users/01a1", "role_now": "admin"}
+[PASS] authz: salesperson edits a company that is not on their deals -> {"create": 201, "patch": 404}
+[PASS] injection: CSV/XLSX formula injection in csv export -> {"status": 200, "formula_unescaped": false}
+[PASS] injection: CSV/XLSX formula injection in xlsx export -> {"status": 200, "formula_unescaped": false}
+[PASS] injection: search payload "' OR 1=1--" -> [200, 200, 200]
+[PASS] injection: search payload '" ; DROP TABLE crm.deals;--' -> [200, 200, 200]
+[PASS] injection: search payload "%' UNION SELECT password_hash " -> [200, 200, 200]
+[PASS] injection: search payload '<script>alert(1)</script>' -> [200, 200, 200]
+[PASS] injection: search payload 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' -> [200, 200, 200]
+[PASS] injection: search payload '\x00' -> [400, 400, 400]
+[PASS] injection: search payload '${7*7}{{7*7}}' -> [200, 200, 200]
+[PASS] bounds: /v1/deals?limit=0 -> {"status": 422, "items": null}
+[PASS] bounds: /v1/deals?limit=-1 -> {"status": 422, "items": null}
+[PASS] bounds: /v1/deals?limit=100000 -> {"status": 422, "items": null}
+[PASS] bounds: /v1/deals?limit=abc -> {"status": 422, "items": null}
+[PASS] bounds: garbage pagination cursor -> 422
+[PASS] public: session token of A used on session B -> 403
+[PASS] public: 1 MB chat message -> 413
+[PASS] public: session creation burst from one IP (25) -> [429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429]
+[PASS] public: forged unsubscribe token -> 400
+[PASS] webhook: CMS webhook without secret -> 401
+[PASS] webhook: Telnyx callback with forged token -> 401
+[PASS] webhook: WhatsApp verify with a wrong verify token -> 401
+[PASS] public: anonymous identify with a real buyer's phone overwrites that buyer's contact -> {"identify": 200, "victim_deal": "D-2026-03340", "contact_before": {"full_name": null, "email": null}, "contact_after": {"full_name": null, "email": null}}
+{"pass": 43, "fail": 0}

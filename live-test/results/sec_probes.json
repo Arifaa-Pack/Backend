@@ -2,19 +2,15 @@
  {
   "area": "headers",
   "probe": "security headers on /healthz",
-  "pass": false,
+  "pass": true,
   "expected": "nosniff, frame-deny, CSP (HSTS at the edge)",
   "got": {
-   "missing": [
-    "x-content-type-options",
-    "x-frame-options",
-    "content-security-policy"
-   ],
+   "missing": [],
    "strict-transport-security": null,
-   "x-content-type-options": null,
-   "x-frame-options": null,
-   "content-security-policy": null,
-   "referrer-policy": null,
+   "x-content-type-options": "nosniff",
+   "x-frame-options": "DENY",
+   "content-security-policy": "default-src 'none'; frame-ancestors 'none'",
+   "referrer-policy": "no-referrer",
    "server": "uvicorn",
    "cache-control": null
   },
@@ -23,19 +19,15 @@
  {
   "area": "headers",
   "probe": "security headers on /v1/auth/me",
-  "pass": false,
+  "pass": true,
   "expected": "nosniff, frame-deny, CSP (HSTS at the edge)",
   "got": {
-   "missing": [
-    "x-content-type-options",
-    "x-frame-options",
-    "content-security-policy"
-   ],
+   "missing": [],
    "strict-transport-security": null,
-   "x-content-type-options": null,
-   "x-frame-options": null,
-   "content-security-policy": null,
-   "referrer-policy": null,
+   "x-content-type-options": "nosniff",
+   "x-frame-options": "DENY",
+   "content-security-policy": "default-src 'none'; frame-ancestors 'none'",
+   "referrer-policy": "no-referrer",
    "server": "uvicorn",
    "cache-control": null
   },
@@ -44,19 +36,15 @@
  {
   "area": "headers",
   "probe": "security headers on /docs",
-  "pass": false,
+  "pass": true,
   "expected": "nosniff, frame-deny, CSP (HSTS at the edge)",
   "got": {
-   "missing": [
-    "x-content-type-options",
-    "x-frame-options",
-    "content-security-policy"
-   ],
+   "missing": [],
    "strict-transport-security": null,
-   "x-content-type-options": null,
-   "x-frame-options": null,
-   "content-security-policy": null,
-   "referrer-policy": null,
+   "x-content-type-options": "nosniff",
+   "x-frame-options": "DENY",
+   "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://fastapi.tiangolo.com; frame-ancestors 'none'",
+   "referrer-policy": "no-referrer",
    "server": "uvicorn",
    "cache-control": null
   },
@@ -65,11 +53,14 @@
  {
   "area": "info",
   "probe": "Swagger /docs and /openapi.json public",
-  "pass": false,
+  "pass": true,
   "expected": "hidden in production",
   "got": {
-   "docs": 200,
-   "openapi": 200
+   "this_stack_local": {
+    "docs": 200,
+    "openapi": 200
+   },
+   "production_docs_redoc_openapi": "None None None"
   },
   "severity_if_fail": "Low"
  },
@@ -79,7 +70,7 @@
   "pass": true,
   "expected": "no Access-Control-Allow-Origin",
   "got": {
-   "status": 400,
+   "status": 405,
    "acao": null
   },
   "severity_if_fail": "High"
@@ -153,12 +144,12 @@
    "unknown": [
     401,
     "{\"type\":\"https://errors.kairox.ai/unauthorized\",\"title\":\"Authentication required\",\"status\"",
-    0.066
+    0.088
    ],
    "known": [
     401,
     "{\"type\":\"https://errors.kairox.ai/unauthorized\",\"title\":\"Authentication required\",\"status\"",
-    0.077
+    0.041
    ]
   },
   "severity_if_fail": "Medium"
@@ -174,7 +165,7 @@
     401,
     401,
     401,
-    429,
+    401,
     429,
     429,
     429,
@@ -184,24 +175,38 @@
     429
    ],
    "correct_pw_after": 429,
-   "body": "{\"type\":\"https://errors.kairox.ai/too_many_requests\",\"title\":\"Too many requests\",\"status\":429,\"detail\":\"too many failed attempts; try again later\",\"in"
+   "body": "{\"type\":\"https://errors.kairox.ai/too_many_requests\",\"title\":\"Too many requests\",\"status\":429,\"detail\":\"too many requests; try again later\",\"instance\""
   },
   "severity_if_fail": "High"
  },
  {
   "area": "auth",
   "probe": "anyone can lock a staff account by failing its login (lockout DoS)",
-  "pass": false,
-  "expected": "per-IP throttle before the per-account lock",
+  "pass": true,
+  "expected": "the attacker's IP is locked; the staff member still signs in from the office IP they use (M3)",
   "got": {
-   "locked_after": 4
+   "attacker_codes": [
+    401,
+    401,
+    401,
+    401,
+    401,
+    429,
+    429,
+    429,
+    429,
+    429,
+    429,
+    429
+   ],
+   "staff_from_other_ip": 200
   },
   "severity_if_fail": "Medium"
  },
  {
   "area": "auth",
   "probe": "credential stuffing: 30 different e-mails from one IP",
-  "pass": false,
+  "pass": true,
   "expected": "429 per IP",
   "got": [
    401,
@@ -224,28 +229,36 @@
    401,
    401,
    401,
-   401,
-   401,
-   401,
-   401,
-   401,
-   401,
-   401,
-   401,
-   401,
-   401
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429
   ],
   "severity_if_fail": "Medium"
  },
  {
   "area": "auth",
-  "probe": "admin unlock restores the account",
+  "probe": "admin unlock restores the account (the staff member locked out at the office signs in at once)",
   "pass": true,
   "expected": "unlocked",
-  "got": [
-   200,
-   200
-  ],
+  "got": {
+   "typos": [
+    401,
+    401,
+    401,
+    401,
+    401,
+    429
+   ],
+   "unlock": 200,
+   "login_after": 200
+  },
   "severity_if_fail": ""
  },
  {
@@ -293,20 +306,20 @@
     401,
     401,
     401,
-    401
+    429
    ],
-   "real_code_after": 401
+   "real_code_after": 429
   },
   "severity_if_fail": "High"
  },
  {
   "area": "auth",
   "probe": "access token after logout",
-  "pass": false,
+  "pass": true,
   "expected": "rejected (or short TTL accepted risk)",
   "got": {
    "logout": 204,
-   "me_after_logout": 200,
+   "me_after_logout": 401,
    "access_ttl_s": 900
   },
   "severity_if_fail": "Low"
@@ -326,22 +339,22 @@
  {
   "area": "authz",
   "probe": "salesperson edits a company that is not on their deals",
-  "pass": false,
+  "pass": true,
   "expected": "403",
   "got": {
    "create": 201,
-   "patch": 200
+   "patch": 404
   },
   "severity_if_fail": "Medium"
  },
  {
   "area": "injection",
   "probe": "CSV/XLSX formula injection in csv export",
-  "pass": false,
+  "pass": true,
   "expected": "cell escaped with a leading quote",
   "got": {
    "status": 200,
-   "formula_unescaped": true
+   "formula_unescaped": false
   },
   "severity_if_fail": "Medium"
  },
@@ -419,22 +432,22 @@
  {
   "area": "injection",
   "probe": "search payload '\\x00'",
-  "pass": false,
+  "pass": true,
   "expected": "no 5xx, no data",
   "got": [
-   500,
-   "disconnect:RemoteProtocolError",
-   500
+   400,
+   400,
+   400
   ],
   "severity_if_fail": "High"
  },
  {
   "area": "injection",
   "probe": "search payload '${7*7}{{7*7}}'",
-  "pass": false,
+  "pass": true,
   "expected": "no 5xx, no data",
   "got": [
-   "disconnect:RemoteProtocolError",
+   200,
    200,
    200
   ],
@@ -505,40 +518,40 @@
   "probe": "1 MB chat message",
   "pass": true,
   "expected": "413/422 before the AI",
-  "got": 422,
+  "got": 413,
   "severity_if_fail": "Medium"
  },
  {
   "area": "public",
   "probe": "session creation burst from one IP (25)",
-  "pass": false,
+  "pass": true,
   "expected": "429 (rate limit)",
   "got": [
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201,
-   201
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429,
+   429
   ],
   "severity_if_fail": "Medium"
  },
@@ -577,18 +590,18 @@
  {
   "area": "public",
   "probe": "anonymous identify with a real buyer's phone overwrites that buyer's contact",
-  "pass": false,
+  "pass": true,
   "expected": "buyer contact untouched (needs verification)",
   "got": {
    "identify": 200,
-   "victim_deal": "D-2026-00003",
+   "victim_deal": "D-2026-03340",
    "contact_before": {
     "full_name": null,
     "email": null
    },
    "contact_after": {
-    "full_name": "Attacker",
-    "email": "attacker@evil.example"
+    "full_name": null,
+    "email": null
    }
   },
   "severity_if_fail": "High"

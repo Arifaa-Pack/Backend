@@ -1,0 +1,12 @@
+{
+ "operations": 104,
+ "skipped": [
+  "POST /v1/auth/logout",
+  "POST /v1/auth/password",
+  "POST /v1/auth/password/reset/start",
+  "POST /v1/auth/totp/enrol",
+  "POST /v1/texts/translate-missing"
+ ],
+ "non_public_reachable_without_valid_token": [],
+ "server_errors_5xx": []
+}

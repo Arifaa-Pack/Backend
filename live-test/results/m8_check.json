@@ -1,0 +1,17 @@
+{
+ "real_gmail": {
+  "verified": true,
+  "authentication_results_top": [
+   "mail.kairoxaitech.com; dkim=pass header.d=gmail.com header.s=20260707 header.b=MmuhCyih; spf=permerror (mail.kairoxaitech.com: unable to verify SPF record for postmaster@[192.168.1.100]) smtp.helo=[192.168.1.100]; spf=softfail (mail.kairoxaitech.com: domain of muhammadhamthan660@gmail.com reports so"
+  ],
+  "headers_count": 2
+ },
+ "forged": {
+  "verified": false,
+  "authentication_results_top": [
+   "mail.kairoxaitech.com; spf=permerror (mail.kairoxaitech.com: unable to verify SPF record for postmaster@[192.168.1.100]) smtp.helo=[192.168.1.100]; spf=softfail (mail.kairoxaitech.com: domain of muhammadhamthan660@gmail.com reports soft fail for 172.25.0.1) smtp.mailfrom=muhammadhamthan660@gmail.com"
+  ],
+  "headers_count": 1
+ },
+ "pass": true
+}

@@ -73,18 +73,23 @@ async def _wait_window() -> None:
     await asyncio.sleep(31 - (time.time() % 30))
 
 
-async def login(c: httpx.AsyncClient, user: str, *, attempt: int = 0) -> str:
+async def login(c: httpx.AsyncClient, user: str, *, attempt: int = 0, headers: dict[str, str] | None = None) -> str:
     """Access token for a staff user (handles first sign-in: email code, password change, TOTP enrolment)."""
     st = load_state()
     s = st[user]
-    r = await c.post("/v1/auth/login", json={"email": s["email"], "password": s["password"]})
+    r = await c.post("/v1/auth/login", json={"email": s["email"], "password": s["password"]}, headers=headers)
+    for _ in range(12):  # M3 (19 Nov): the per-IP / per-account sign-in buckets refill; the harness waits
+        if r.status_code != 429:
+            break
+        await asyncio.sleep(15)
+        r = await c.post("/v1/auth/login", json={"email": s["email"], "password": s["password"]}, headers=headers)
     r.raise_for_status()
     challenge = r.json()["challenge_token"]
     if s.get("totp_secret"):
-        r = await c.post("/v1/auth/mfa/totp", json={"challenge_token": challenge, "code": totp(s["totp_secret"])})
+        r = await c.post("/v1/auth/mfa/totp", json={"challenge_token": challenge, "code": totp(s["totp_secret"])}, headers=headers)
         if r.status_code != 200 and attempt < 3:  # same 30 s code reused: wait for the next window
             await _wait_window()
-            return await login(c, user, attempt=attempt + 1)
+            return await login(c, user, attempt=attempt + 1, headers=headers)
         r.raise_for_status()
         return str(r.json()["access_token"])
     t0 = time.time()

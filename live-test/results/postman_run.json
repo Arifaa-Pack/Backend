@@ -1,0 +1,292 @@
+{
+ "stats": {
+  "iterations": {
+   "total": 1,
+   "pending": 0,
+   "failed": 0
+  },
+  "items": {
+   "total": 125,
+   "pending": 0,
+   "failed": 0
+  },
+  "scripts": {
+   "total": 131,
+   "pending": 0,
+   "failed": 0
+  },
+  "prerequests": {
+   "total": 125,
+   "pending": 0,
+   "failed": 0
+  },
+  "requests": {
+   "total": 125,
+   "pending": 0,
+   "failed": 0
+  },
+  "tests": {
+   "total": 125,
+   "pending": 0,
+   "failed": 0
+  },
+  "assertions": {
+   "total": 126,
+   "pending": 0,
+   "failed": 45
+  },
+  "testScripts": {
+   "total": 125,
+   "pending": 0,
+   "failed": 0
+  },
+  "prerequestScripts": {
+   "total": 6,
+   "pending": 0,
+   "failed": 0
+  }
+ },
+ "failures": [
+  {
+   "request": "Create a staff user (MFA)",
+   "assertion": "Status is 201",
+   "message": "expected response to have status code 201 but got 403"
+  },
+  {
+   "request": "Edit a staff user (MFA)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 403"
+  },
+  {
+   "request": "Reset a user's authenticator (lost phone, MFA)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 403"
+  },
+  {
+   "request": "Unlock a locked-out user (MFA)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 403"
+  },
+  {
+   "request": "Change a business setting (MFA)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 405"
+  },
+  {
+   "request": "Switch a feature flag (MFA)",
+   "assertion": "Status is 204",
+   "message": "expected response to have status code 204 but got 404"
+  },
+  {
+   "request": "Upload the quote logo (MFA)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 422"
+  },
+  {
+   "request": "Kill switch - set level (MFA)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 403"
+  },
+  {
+   "request": "Edit a message text (MFA)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 422"
+  },
+  {
+   "request": "Staff sends a message to the buyer",
+   "assertion": "Status is 202",
+   "message": "expected response to have status code 202 but got 422"
+  },
+  {
+   "request": "Click-to-call the buyer (saves attempt_id)",
+   "assertion": "Status is 202",
+   "message": "expected response to have status code 202 but got 422"
+  },
+  {
+   "request": "MD takes over the deal",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 403"
+  },
+  {
+   "request": "MD hands the deal back",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 403"
+  },
+  {
+   "request": "Import the price list .xlsx (MFA)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 422"
+  },
+  {
+   "request": "Preview a product workbook upload (MFA, saves workbook_token)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 422"
+  },
+  {
+   "request": "Apply the previewed workbook (MFA)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 422"
+  },
+  {
+   "request": "Approve a rate proposal (MFA)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 404"
+  },
+  {
+   "request": "Reject a rate proposal (MFA)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 404"
+  },
+  {
+   "request": "Draft a quote (the backend prices it)",
+   "assertion": "Status is 201",
+   "message": "expected response to have status code 201 but got 422"
+  },
+  {
+   "request": "Revise the quote (prices, quantity, currency)",
+   "assertion": "Status is 201",
+   "message": "expected response to have status code 201 but got 422"
+  },
+  {
+   "request": "Manager makes a price offer (MFA)",
+   "assertion": "Status is 204",
+   "message": "expected response to have status code 204 but got 422"
+  },
+  {
+   "request": "Hand-priced quote (custom / unpriced item)",
+   "assertion": "Status is 201",
+   "message": "expected response to have status code 201 but got 422"
+  },
+  {
+   "request": "Get one quote version",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 404"
+  },
+  {
+   "request": "Cost view of a quote version (MD only)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 404"
+  },
+  {
+   "request": "Revise the quote for a change request",
+   "assertion": "Status is 201",
+   "message": "expected response to have status code 201 but got 422"
+  },
+  {
+   "request": "Resolve a change request with a version",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 422"
+  },
+  {
+   "request": "Record a payment (MFA)",
+   "assertion": "Status is 201",
+   "message": "expected response to have status code 201 but got 422"
+  },
+  {
+   "request": "Mark the deal WON (MFA)",
+   "assertion": "Status is 201",
+   "message": "expected response to have status code 201 but got 422"
+  },
+  {
+   "request": "Update order status",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 405"
+  },
+  {
+   "request": "MD dashboard",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 403"
+  },
+  {
+   "request": "Edit a channel account (admin, MFA)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 403"
+  },
+  {
+   "request": "Meta webhook verification (hub.challenge)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 401"
+  },
+  {
+   "request": "1. Start a website chat session",
+   "assertion": "Status is 201",
+   "message": "expected response to have status code 201 but got 429"
+  },
+  {
+   "request": "2. Visitor sends a chat message",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 404"
+  },
+  {
+   "request": "3. Visitor types phone / email (identify)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 404"
+  },
+  {
+   "request": "4. Ask for a live-voice room token",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 404"
+  },
+  {
+   "request": "CMS publishes a product (signed)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 422"
+  },
+  {
+   "request": "Press Unsubscribe (stops every channel)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 400"
+  },
+  {
+   "request": "Alert call - staff pressed a key (signed URL)",
+   "assertion": "Status is 200",
+   "message": "expected response to have status code 200 but got 404"
+  },
+  {
+   "request": "Alert call - status update (signed URL)",
+   "assertion": "Status is 204",
+   "message": "expected response to have status code 204 but got 404"
+  },
+  {
+   "request": "N05 Salesperson reads quote costs -> 403",
+   "assertion": "Refused with 403",
+   "message": "expected 404 to be one of [ 403 ]"
+  },
+  {
+   "request": "N06 Email-code login cannot approve -> 403",
+   "assertion": "Refused with 403",
+   "message": "expected 401 to be one of [ 403 ]"
+  },
+  {
+   "request": "N07 Email-code login cannot approve a quote -> 403",
+   "assertion": "Refused with 403",
+   "message": "expected 401 to be one of [ 403 ]"
+  },
+  {
+   "request": "N14 Website message without the session token -> 401",
+   "assertion": "Refused with 401",
+   "message": "expected 404 to be one of [ 401 ]"
+  },
+  {
+   "request": "N19 Wrong password -> 401 (repeat 6 times: then 429)",
+   "assertion": "Refused with 401, 429",
+   "message": "expected 422 to be one of [ 401, 429 ]"
+  }
+ ],
+ "folders": [
+  "00 Health and keys",
+  "02 Users and admin settings",
+  "03 Contacts, companies and deals",
+  "04 Products, stock and price list",
+  "05 Quotes, approvals and change requests",
+  "06 Payment, won and orders",
+  "07 Dashboards and exports",
+  "08 Channels admin",
+  "09 Buyer simulation - WhatsApp",
+  "10 Buyer simulation - Website chat",
+  "11 CMS publish webhook",
+  "12 Unsubscribe link",
+  "13 Telnyx call webhooks",
+  "14 Negative and security tests"
+ ]
+}

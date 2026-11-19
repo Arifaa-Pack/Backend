@@ -23,89 +23,89 @@
    "forged_garbage": 200,
    "forged_expired_shape": 200,
    "kxmd": 200,
-   "kxmd_ms": 1.5045000000100117,
+   "kxmd_ms": 1.9993999885628,
    "kxmgr": 200,
-   "kxmgr_ms": 1.5239999993355013,
+   "kxmgr_ms": 2.5797999987844378,
    "kxsales1": 200,
-   "kxsales1_ms": 1.552899999296642,
+   "kxsales1_ms": 2.7448999899206683,
    "kxadmin": 200,
-   "kxadmin_ms": 1.5524999998888234
+   "kxadmin_ms": 2.2247999877436087
   },
   {
    "method": "POST",
    "path": "/v1/auth/login",
    "public": true,
    "anon": 422,
-   "forged_alg_none": 422,
-   "forged_tampered_role": 422,
-   "forged_bad_signature": 422,
-   "forged_garbage": 422,
-   "forged_expired_shape": 422,
+   "forged_alg_none": 401,
+   "forged_tampered_role": 401,
+   "forged_bad_signature": 401,
+   "forged_garbage": 401,
+   "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 47.87390000092273,
+   "kxmd_ms": 48.671600001398474,
    "kxmgr": 422,
-   "kxmgr_ms": 44.149800000013784,
+   "kxmgr_ms": 45.854900003178045,
    "kxsales1": 422,
-   "kxsales1_ms": 44.19210000014573,
+   "kxsales1_ms": 48.736600001575425,
    "kxadmin": 422,
-   "kxadmin_ms": 43.99849999936123
+   "kxadmin_ms": 51.577100006397814
   },
   {
    "method": "POST",
    "path": "/v1/auth/mfa/totp",
    "public": true,
    "anon": 422,
-   "forged_alg_none": 422,
-   "forged_tampered_role": 422,
-   "forged_bad_signature": 422,
-   "forged_garbage": 422,
-   "forged_expired_shape": 422,
+   "forged_alg_none": 401,
+   "forged_tampered_role": 401,
+   "forged_bad_signature": 401,
+   "forged_garbage": 401,
+   "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 44.52480000145442,
+   "kxmd_ms": 49.08209999848623,
    "kxmgr": 422,
-   "kxmgr_ms": 47.63979999916046,
+   "kxmgr_ms": 46.704799999133684,
    "kxsales1": 422,
-   "kxsales1_ms": 43.82810000060999,
+   "kxsales1_ms": 44.400800004950725,
    "kxadmin": 422,
-   "kxadmin_ms": 43.93840000011551
+   "kxadmin_ms": 44.16799999307841
   },
   {
    "method": "POST",
    "path": "/v1/auth/mfa/email/send",
    "public": true,
    "anon": 422,
-   "forged_alg_none": 422,
-   "forged_tampered_role": 422,
-   "forged_bad_signature": 422,
-   "forged_garbage": 422,
-   "forged_expired_shape": 422,
+   "forged_alg_none": 401,
+   "forged_tampered_role": 401,
+   "forged_bad_signature": 401,
+   "forged_garbage": 401,
+   "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 44.287599999734084,
+   "kxmd_ms": 44.8305000027176,
    "kxmgr": 422,
-   "kxmgr_ms": 44.06080000080692,
+   "kxmgr_ms": 47.30570000538137,
    "kxsales1": 422,
-   "kxsales1_ms": 43.94580000007409,
+   "kxsales1_ms": 44.65139999228995,
    "kxadmin": 422,
-   "kxadmin_ms": 43.752699999458855
+   "kxadmin_ms": 43.8548000092851
   },
   {
    "method": "POST",
    "path": "/v1/auth/mfa/email/verify",
    "public": true,
    "anon": 422,
-   "forged_alg_none": 422,
-   "forged_tampered_role": 422,
-   "forged_bad_signature": 422,
-   "forged_garbage": 422,
-   "forged_expired_shape": 422,
+   "forged_alg_none": 401,
+   "forged_tampered_role": 401,
+   "forged_bad_signature": 401,
+   "forged_garbage": 401,
+   "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 44.243899999855785,
+   "kxmd_ms": 44.571099992026575,
    "kxmgr": 422,
-   "kxmgr_ms": 43.7657999991643,
+   "kxmgr_ms": 47.57150000659749,
    "kxsales1": 422,
-   "kxsales1_ms": 43.990000000121654,
+   "kxsales1_ms": 44.35680000460707,
    "kxadmin": 422,
-   "kxadmin_ms": 44.11869999967166
+   "kxadmin_ms": 44.05090000363998
   },
   {
    "method": "POST",
@@ -118,13 +118,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 401,
-   "kxmd_ms": 48.117599999386584,
+   "kxmd_ms": 47.793699995963834,
    "kxmgr": 401,
-   "kxmgr_ms": 44.00290000012319,
+   "kxmgr_ms": 47.749300007126294,
    "kxsales1": 401,
-   "kxsales1_ms": 44.273099998463294,
+   "kxsales1_ms": 45.27780000353232,
    "kxadmin": 401,
-   "kxadmin_ms": 43.37570000097912
+   "kxadmin_ms": 46.515000009094365
   },
   {
    "method": "GET",
@@ -137,13 +137,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 4.627099999197526,
+   "kxmd_ms": 6.2867999949958175,
    "kxmgr": 200,
-   "kxmgr_ms": 4.818600000362494,
+   "kxmgr_ms": 5.190700001548976,
    "kxsales1": 200,
-   "kxsales1_ms": 4.74940000094648,
+   "kxsales1_ms": 4.676199998357333,
    "kxadmin": 200,
-   "kxadmin_ms": 4.458800000065821
+   "kxadmin_ms": 5.9338999999454245
   },
   {
    "method": "POST",
@@ -156,32 +156,32 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 44.156500000099186,
+   "kxmd_ms": 44.35630000079982,
    "kxmgr": 422,
-   "kxmgr_ms": 47.93400000016845,
+   "kxmgr_ms": 44.70779999974184,
    "kxsales1": 422,
-   "kxsales1_ms": 48.252799999318086,
+   "kxsales1_ms": 47.59760000160895,
    "kxadmin": 422,
-   "kxadmin_ms": 4.033100000015111
+   "kxadmin_ms": 48.00439999962691
   },
   {
    "method": "POST",
    "path": "/v1/auth/password/reset/finish",
    "public": true,
    "anon": 422,
-   "forged_alg_none": 422,
-   "forged_tampered_role": 422,
-   "forged_bad_signature": 422,
-   "forged_garbage": 422,
-   "forged_expired_shape": 422,
+   "forged_alg_none": 401,
+   "forged_tampered_role": 401,
+   "forged_bad_signature": 401,
+   "forged_garbage": 401,
+   "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 44.035599999915576,
+   "kxmd_ms": 44.24640000797808,
    "kxmgr": 422,
-   "kxmgr_ms": 44.13089999980002,
+   "kxmgr_ms": 44.04339999018703,
    "kxsales1": 422,
-   "kxsales1_ms": 51.88620000080846,
+   "kxsales1_ms": 44.60259999905247,
    "kxadmin": 422,
-   "kxadmin_ms": 43.95719999956782
+   "kxadmin_ms": 51.40460000257008
   },
   {
    "method": "GET",
@@ -194,13 +194,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 14.015599999765982,
+   "kxmd_ms": 11.4336000115145,
    "kxmgr": 200,
-   "kxmgr_ms": 8.958899999925052,
+   "kxmgr_ms": 8.429400011664256,
    "kxsales1": 403,
-   "kxsales1_ms": 3.894100000252365,
+   "kxsales1_ms": 3.304900004877709,
    "kxadmin": 200,
-   "kxadmin_ms": 9.3127000000095
+   "kxadmin_ms": 8.803000004263595
   },
   {
    "method": "POST",
@@ -213,13 +213,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 43.810699999085045,
+   "kxmd_ms": 45.68120000476483,
    "kxmgr": 403,
-   "kxmgr_ms": 44.02770000160672,
+   "kxmgr_ms": 47.53809999965597,
    "kxsales1": 403,
-   "kxsales1_ms": 44.00299999906565,
+   "kxsales1_ms": 51.519699991331436,
    "kxadmin": 422,
-   "kxadmin_ms": 44.48380000030738
+   "kxadmin_ms": 44.53690000809729
   },
   {
    "method": "PATCH",
@@ -232,13 +232,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 46.919700000216835,
+   "kxmd_ms": 52.1040999883553,
    "kxmgr": 403,
-   "kxmgr_ms": 44.631099999605794,
+   "kxmgr_ms": 46.35279999638442,
    "kxsales1": 403,
-   "kxsales1_ms": 44.408300000213785,
+   "kxsales1_ms": 49.64700000709854,
    "kxadmin": 404,
-   "kxadmin_ms": 45.95289999997476
+   "kxadmin_ms": 53.05940000107512
   },
   {
    "method": "POST",
@@ -251,13 +251,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 4.8565999986749375,
+   "kxmd_ms": 13.66989999951329,
    "kxmgr": 403,
-   "kxmgr_ms": 3.3382000001438428,
+   "kxmgr_ms": 4.066900000907481,
    "kxsales1": 403,
-   "kxsales1_ms": 3.4563999997772044,
+   "kxsales1_ms": 9.522499996819533,
    "kxadmin": 404,
-   "kxadmin_ms": 4.148300000451854
+   "kxadmin_ms": 6.68500000028871
   },
   {
    "method": "POST",
@@ -270,13 +270,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 6.315200000244658,
+   "kxmd_ms": 6.097699995734729,
    "kxmgr": 403,
-   "kxmgr_ms": 45.77670000071521,
+   "kxmgr_ms": 3.5235999966971576,
    "kxsales1": 403,
-   "kxsales1_ms": 3.9799999995011603,
+   "kxsales1_ms": 3.4285000001545995,
    "kxadmin": 404,
-   "kxadmin_ms": 6.492099999377388
+   "kxadmin_ms": 5.3589000017382205
   },
   {
    "method": "GET",
@@ -289,13 +289,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 9.349199999633129,
+   "kxmd_ms": 120.66680000862107,
    "kxmgr": 200,
-   "kxmgr_ms": 6.54959999883431,
+   "kxmgr_ms": 12.57070001156535,
    "kxsales1": 200,
-   "kxsales1_ms": 9.468900001593283,
+   "kxsales1_ms": 109.65389999910258,
    "kxadmin": 200,
-   "kxadmin_ms": 7.229500000903499
+   "kxadmin_ms": 7.598500000312924
   },
   {
    "method": "GET",
@@ -308,13 +308,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 5.838400000357069,
+   "kxmd_ms": 8.220400006393902,
    "kxmgr": 404,
-   "kxmgr_ms": 5.812299999888637,
+   "kxmgr_ms": 5.769800001871772,
    "kxsales1": 404,
-   "kxsales1_ms": 5.066799998530769,
+   "kxsales1_ms": 5.19680000434164,
    "kxadmin": 404,
-   "kxadmin_ms": 5.032999999457388
+   "kxadmin_ms": 5.163600013474934
   },
   {
    "method": "GET",
@@ -327,13 +327,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 5.633200000374927,
+   "kxmd_ms": 5.579999997280538,
    "kxmgr": 404,
-   "kxmgr_ms": 4.9878999998327345,
+   "kxmgr_ms": 5.318399998941459,
    "kxsales1": 404,
-   "kxsales1_ms": 20.488800000748597,
+   "kxsales1_ms": 5.9812999970745295,
    "kxadmin": 404,
-   "kxadmin_ms": 8.013099999516271
+   "kxadmin_ms": 5.143999995198101
   },
   {
    "method": "GET",
@@ -346,13 +346,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 5.797899999379297,
+   "kxmd_ms": 4.847100004553795,
    "kxmgr": 404,
-   "kxmgr_ms": 5.015000000639702,
+   "kxmgr_ms": 4.650399991078302,
    "kxsales1": 404,
-   "kxsales1_ms": 5.205999999816413,
+   "kxsales1_ms": 4.9639000062597916,
    "kxadmin": 404,
-   "kxadmin_ms": 5.0147999991168035
+   "kxadmin_ms": 4.72490000538528
   },
   {
    "method": "POST",
@@ -365,13 +365,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 5.069599999842467,
+   "kxmd_ms": 5.590699991444126,
    "kxmgr": 404,
-   "kxmgr_ms": 4.630600000382401,
+   "kxmgr_ms": 5.380900009186007,
    "kxsales1": 404,
-   "kxsales1_ms": 5.054999999629217,
+   "kxsales1_ms": 5.807800000184216,
    "kxadmin": 404,
-   "kxadmin_ms": 5.22850000015751
+   "kxadmin_ms": 5.457000006572343
   },
   {
    "method": "POST",
@@ -384,13 +384,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 48.57839999931457,
+   "kxmd_ms": 44.65880000498146,
    "kxmgr": 422,
-   "kxmgr_ms": 47.507400000540656,
+   "kxmgr_ms": 47.97410000173841,
    "kxsales1": 422,
-   "kxsales1_ms": 43.79549999976007,
+   "kxsales1_ms": 47.96799999894574,
    "kxadmin": 422,
-   "kxadmin_ms": 43.730999999752385
+   "kxadmin_ms": 48.31490000651684
   },
   {
    "method": "POST",
@@ -403,13 +403,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 45.81019999932323,
+   "kxmd_ms": 46.8271999998251,
    "kxmgr": 404,
-   "kxmgr_ms": 47.58709999987332,
+   "kxmgr_ms": 47.84910001035314,
    "kxsales1": 404,
-   "kxsales1_ms": 48.49140000078478,
+   "kxsales1_ms": 47.56249999627471,
    "kxadmin": 404,
-   "kxadmin_ms": 48.308800000086194
+   "kxadmin_ms": 48.18379999778699
   },
   {
    "method": "POST",
@@ -422,13 +422,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 44.795300000259886,
+   "kxmd_ms": 45.19319999963045,
    "kxmgr": 422,
-   "kxmgr_ms": 44.16940000010072,
+   "kxmgr_ms": 47.76440000568982,
    "kxsales1": 403,
-   "kxsales1_ms": 47.52509999889298,
+   "kxsales1_ms": 47.67829999036621,
    "kxadmin": 403,
-   "kxadmin_ms": 43.81500000090455
+   "kxadmin_ms": 48.14359999727458
   },
   {
    "method": "POST",
@@ -441,13 +441,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 52.1997999985615,
+   "kxmd_ms": 44.722300008288585,
    "kxmgr": 422,
-   "kxmgr_ms": 48.36289999911969,
+   "kxmgr_ms": 48.125599991180934,
    "kxsales1": 403,
-   "kxsales1_ms": 51.62390000077721,
+   "kxsales1_ms": 51.85940000228584,
    "kxadmin": 403,
-   "kxadmin_ms": 48.97289999826171
+   "kxadmin_ms": 47.873000003164634
   },
   {
    "method": "POST",
@@ -460,13 +460,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 47.433099998670514,
+   "kxmd_ms": 49.63919999136124,
    "kxmgr": 422,
-   "kxmgr_ms": 51.166100000045844,
+   "kxmgr_ms": 47.503099995083176,
    "kxsales1": 403,
-   "kxsales1_ms": 46.142799999870476,
+   "kxsales1_ms": 48.283800002536736,
    "kxadmin": 403,
-   "kxadmin_ms": 50.060499999744934
+   "kxadmin_ms": 51.928100001532584
   },
   {
    "method": "POST",
@@ -479,13 +479,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 5.60100000075181,
+   "kxmd_ms": 7.971200000611134,
    "kxmgr": 404,
-   "kxmgr_ms": 5.2924000010534655,
+   "kxmgr_ms": 6.826299999374896,
    "kxsales1": 404,
-   "kxsales1_ms": 5.392699998992612,
+   "kxsales1_ms": 6.049300005543046,
    "kxadmin": 404,
-   "kxadmin_ms": 4.28259999898728
+   "kxadmin_ms": 6.368999995174818
   },
   {
    "method": "POST",
@@ -498,13 +498,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 46.53320000034,
+   "kxmd_ms": 45.30399999930523,
    "kxmgr": 422,
-   "kxmgr_ms": 49.9550000004092,
+   "kxmgr_ms": 47.713499996461906,
    "kxsales1": 422,
-   "kxsales1_ms": 48.934899999949266,
+   "kxsales1_ms": 47.73320000094827,
    "kxadmin": 422,
-   "kxadmin_ms": 49.70339999999851
+   "kxadmin_ms": 48.20560000371188
   },
   {
    "method": "POST",
@@ -517,13 +517,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 46.07630000100471,
+   "kxmd_ms": 45.13470000529196,
    "kxmgr": 422,
-   "kxmgr_ms": 52.238099999158294,
+   "kxmgr_ms": 48.06139999709558,
    "kxsales1": 422,
-   "kxsales1_ms": 47.42710000027728,
+   "kxsales1_ms": 48.13500000454951,
    "kxadmin": 422,
-   "kxadmin_ms": 48.110399999131914
+   "kxadmin_ms": 48.212199995759875
   },
   {
    "method": "POST",
@@ -536,13 +536,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 47.84319999998843,
+   "kxmd_ms": 44.77000000770204,
    "kxmgr": 422,
-   "kxmgr_ms": 48.262800000884454,
+   "kxmgr_ms": 48.17489998822566,
    "kxsales1": 422,
-   "kxsales1_ms": 44.14379999980156,
+   "kxsales1_ms": 47.66150000796188,
    "kxadmin": 422,
-   "kxadmin_ms": 49.27200000020093
+   "kxadmin_ms": 48.0012999905739
   },
   {
    "method": "POST",
@@ -555,13 +555,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 55.439200001274,
+   "kxmd_ms": 50.44659999839496,
    "kxmgr": 404,
-   "kxmgr_ms": 52.14919999889389,
+   "kxmgr_ms": 47.55309999745805,
    "kxsales1": 404,
-   "kxsales1_ms": 46.49500000050466,
+   "kxsales1_ms": 47.64620000787545,
    "kxadmin": 403,
-   "kxadmin_ms": 45.99259999849892
+   "kxadmin_ms": 50.76030000054743
   },
   {
    "method": "POST",
@@ -574,13 +574,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 48.36500000055821,
+   "kxmd_ms": 45.569800000521354,
    "kxmgr": 404,
-   "kxmgr_ms": 50.831799999286886,
+   "kxmgr_ms": 48.02520001248922,
    "kxsales1": 404,
-   "kxsales1_ms": 54.98769999940123,
+   "kxsales1_ms": 48.25909998908173,
    "kxadmin": 403,
-   "kxadmin_ms": 44.25059999994119
+   "kxadmin_ms": 50.32910000591073
   },
   {
    "method": "PATCH",
@@ -593,13 +593,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 45.18629999984114,
+   "kxmd_ms": 48.120099992956966,
    "kxmgr": 422,
-   "kxmgr_ms": 51.73789999935252,
-   "kxsales1": 403,
-   "kxsales1_ms": 49.08710000017891,
+   "kxmgr_ms": 52.138300001388416,
+   "kxsales1": 422,
+   "kxsales1_ms": 51.75759999838192,
    "kxadmin": 403,
-   "kxadmin_ms": 49.595700000281795
+   "kxadmin_ms": 47.921200006385334
   },
   {
    "method": "POST",
@@ -612,13 +612,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 50.55979999997362,
+   "kxmd_ms": 45.240799998282455,
    "kxmgr": 422,
-   "kxmgr_ms": 46.47980000117968,
+   "kxmgr_ms": 51.584100001491606,
    "kxsales1": 403,
-   "kxsales1_ms": 49.29000000083761,
+   "kxsales1_ms": 47.83310000493657,
    "kxadmin": 403,
-   "kxadmin_ms": 53.423600000314764
+   "kxadmin_ms": 48.58299999614246
   },
   {
    "method": "POST",
@@ -631,13 +631,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 6.8644999992102385,
+   "kxmd_ms": 9.547800000291318,
    "kxmgr": 403,
-   "kxmgr_ms": 2.9988000005687354,
+   "kxmgr_ms": 6.617500010179356,
    "kxsales1": 403,
-   "kxsales1_ms": 3.0447000008280156,
+   "kxsales1_ms": 7.086700003128499,
    "kxadmin": 403,
-   "kxadmin_ms": 2.4663999993208563
+   "kxadmin_ms": 4.3114000000059605
   },
   {
    "method": "POST",
@@ -650,13 +650,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 5.1562000007834285,
+   "kxmd_ms": 48.98669999965932,
    "kxmgr": 403,
-   "kxmgr_ms": 3.4779999987222254,
+   "kxmgr_ms": 3.673200000775978,
    "kxsales1": 403,
-   "kxsales1_ms": 2.5972000003093854,
+   "kxsales1_ms": 3.411499987123534,
    "kxadmin": 403,
-   "kxadmin_ms": 3.1899999994493555
+   "kxadmin_ms": 4.477499998756684
   },
   {
    "method": "POST",
@@ -669,13 +669,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 48.988400001690025,
+   "kxmd_ms": 45.105299999704584,
    "kxmgr": 422,
-   "kxmgr_ms": 44.56149999896297,
+   "kxmgr_ms": 47.78730000543874,
    "kxsales1": 422,
-   "kxsales1_ms": 49.45889999908104,
+   "kxsales1_ms": 47.900399993523024,
    "kxadmin": 422,
-   "kxadmin_ms": 50.9327999989182
+   "kxadmin_ms": 51.999099989188835
   },
   {
    "method": "GET",
@@ -688,13 +688,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 7.819899999958579,
+   "kxmd_ms": 29.292099992744625,
    "kxmgr": 404,
-   "kxmgr_ms": 6.283100001382991,
+   "kxmgr_ms": 5.476699996506795,
    "kxsales1": 404,
-   "kxsales1_ms": 5.503200000021025,
+   "kxsales1_ms": 4.449100000783801,
    "kxadmin": 404,
-   "kxadmin_ms": 5.530500000531902
+   "kxadmin_ms": 5.423800001153722
   },
   {
    "method": "GET",
@@ -707,13 +707,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 7.54149999920628,
+   "kxmd_ms": 4.782499992870726,
    "kxmgr": 403,
-   "kxmgr_ms": 4.076100000020233,
+   "kxmgr_ms": 3.7887999933445826,
    "kxsales1": 403,
-   "kxsales1_ms": 5.197599999519298,
+   "kxsales1_ms": 3.685199990286492,
    "kxadmin": 403,
-   "kxadmin_ms": 4.291299999749754
+   "kxadmin_ms": 3.2780000037746504
   },
   {
    "method": "GET",
@@ -726,13 +726,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 22.921200001292164,
+   "kxmd_ms": 7.651499996427447,
    "kxmgr": 200,
-   "kxmgr_ms": 7.737399999314221,
+   "kxmgr_ms": 5.279700009850785,
    "kxsales1": 403,
-   "kxsales1_ms": 5.284799999571987,
+   "kxsales1_ms": 3.5900000075343996,
    "kxadmin": 403,
-   "kxadmin_ms": 5.806999999549589
+   "kxadmin_ms": 3.400000001420267
   },
   {
    "method": "POST",
@@ -745,13 +745,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 48.17589999947813,
+   "kxmd_ms": 44.928799994522706,
    "kxmgr": 422,
-   "kxmgr_ms": 48.02240000026359,
+   "kxmgr_ms": 47.781000001123175,
    "kxsales1": 422,
-   "kxsales1_ms": 47.98299999856681,
+   "kxsales1_ms": 44.047200004570186,
    "kxadmin": 403,
-   "kxadmin_ms": 47.92760000054841
+   "kxadmin_ms": 47.901900004944764
   },
   {
    "method": "GET",
@@ -764,13 +764,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 9.571099999448052,
+   "kxmd_ms": 8.744100006879307,
    "kxmgr": 200,
-   "kxmgr_ms": 4.933999998684158,
+   "kxmgr_ms": 6.2707999895792454,
    "kxsales1": 200,
-   "kxsales1_ms": 7.688100000450504,
+   "kxsales1_ms": 8.94289999268949,
    "kxadmin": 200,
-   "kxadmin_ms": 4.888699999355595
+   "kxadmin_ms": 7.498799997847527
   },
   {
    "method": "GET",
@@ -783,13 +783,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 7.783600000038859,
+   "kxmd_ms": 7.4351999937789515,
    "kxmgr": 404,
-   "kxmgr_ms": 5.363500000385102,
+   "kxmgr_ms": 5.2530999964801595,
    "kxsales1": 404,
-   "kxsales1_ms": 4.912700000204495,
+   "kxsales1_ms": 5.821800004923716,
    "kxadmin": 404,
-   "kxadmin_ms": 5.974800000331015
+   "kxadmin_ms": 6.3073999917833135
   },
   {
    "method": "POST",
@@ -802,13 +802,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 6.6923000013048295,
+   "kxmd_ms": 6.6544000001158565,
    "kxmgr": 404,
-   "kxmgr_ms": 4.726200000732206,
+   "kxmgr_ms": 5.735999991884455,
    "kxsales1": 404,
-   "kxsales1_ms": 4.4084000001021195,
+   "kxsales1_ms": 5.604299993137829,
    "kxadmin": 404,
-   "kxadmin_ms": 4.567399999359623
+   "kxadmin_ms": 5.79450000077486
   },
   {
    "method": "POST",
@@ -821,13 +821,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 53.758399999424,
+   "kxmd_ms": 46.76880000624806,
    "kxmgr": 404,
-   "kxmgr_ms": 51.50859999957902,
+   "kxmgr_ms": 47.47400000633206,
    "kxsales1": 404,
-   "kxsales1_ms": 51.85220000021218,
+   "kxsales1_ms": 47.9133000044385,
    "kxadmin": 404,
-   "kxadmin_ms": 47.53279999931692
+   "kxadmin_ms": 47.98139999911655
   },
   {
    "method": "POST",
@@ -840,13 +840,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 52.99089999971329,
+   "kxmd_ms": 48.5910999996122,
    "kxmgr": 422,
-   "kxmgr_ms": 49.49490000035439,
+   "kxmgr_ms": 48.78540000936482,
    "kxsales1": 422,
-   "kxsales1_ms": 48.02220000055968,
+   "kxsales1_ms": 50.86300001130439,
    "kxadmin": 422,
-   "kxadmin_ms": 47.1945000008418
+   "kxadmin_ms": 54.26029999216553
   },
   {
    "method": "POST",
@@ -859,13 +859,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 52.104399999734596,
+   "kxmd_ms": 45.26159999659285,
    "kxmgr": 422,
-   "kxmgr_ms": 51.66809999900579,
+   "kxmgr_ms": 47.950699998182245,
    "kxsales1": 422,
-   "kxsales1_ms": 48.016099999586004,
+   "kxsales1_ms": 47.771400000783615,
    "kxadmin": 422,
-   "kxadmin_ms": 47.9245999995328
+   "kxadmin_ms": 52.09249998733867
   },
   {
    "method": "GET",
@@ -878,13 +878,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 25.21820000038133,
+   "kxmd_ms": 187.63139999646228,
    "kxmgr": 200,
-   "kxmgr_ms": 8.709300000191433,
+   "kxmgr_ms": 27.498299998114817,
    "kxsales1": 200,
-   "kxsales1_ms": 14.980100000684615,
+   "kxsales1_ms": 23.088000001735054,
    "kxadmin": 200,
-   "kxadmin_ms": 9.969999999157153
+   "kxadmin_ms": 14.960999993490987
   },
   {
    "method": "GET",
@@ -897,13 +897,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 12.168000001111068,
+   "kxmd_ms": 11.333000002196059,
    "kxmgr": 200,
-   "kxmgr_ms": 4.729300000690273,
+   "kxmgr_ms": 6.07529999979306,
    "kxsales1": 200,
-   "kxsales1_ms": 4.510300001129508,
+   "kxsales1_ms": 5.709100005333312,
    "kxadmin": 200,
-   "kxadmin_ms": 4.259399998773006
+   "kxadmin_ms": 5.525400003534742
   },
   {
    "method": "POST",
@@ -916,13 +916,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 49.256999998760875,
+   "kxmd_ms": 44.691999995848164,
    "kxmgr": 422,
-   "kxmgr_ms": 45.62640000040119,
+   "kxmgr_ms": 48.01840000436641,
    "kxsales1": 403,
-   "kxsales1_ms": 51.86110000067856,
+   "kxsales1_ms": 51.93489999510348,
    "kxadmin": 422,
-   "kxadmin_ms": 48.577399998976034
+   "kxadmin_ms": 48.383400004240684
   },
   {
    "method": "PATCH",
@@ -935,13 +935,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 58.898399998724926,
+   "kxmd_ms": 47.691300002043135,
    "kxmgr": 404,
-   "kxmgr_ms": 46.59859999992477,
+   "kxmgr_ms": 49.96460000984371,
    "kxsales1": 403,
-   "kxsales1_ms": 46.08569999982137,
+   "kxsales1_ms": 50.43239999213256,
    "kxadmin": 404,
-   "kxadmin_ms": 49.140699999043136
+   "kxadmin_ms": 49.46970001037698
   },
   {
    "method": "DELETE",
@@ -954,13 +954,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 4.345600000306149,
+   "kxmd_ms": 5.876900002476759,
    "kxmgr": 404,
-   "kxmgr_ms": 5.0266999987798044,
+   "kxmgr_ms": 5.5041999876266345,
    "kxsales1": 403,
-   "kxsales1_ms": 3.477099999145139,
+   "kxsales1_ms": 3.9961000002222136,
    "kxadmin": 404,
-   "kxadmin_ms": 4.359299999123323
+   "kxadmin_ms": 5.1515999948605895
   },
   {
    "method": "POST",
@@ -973,13 +973,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 48.7355999994179,
+   "kxmd_ms": 44.62299999431707,
    "kxmgr": 422,
-   "kxmgr_ms": 45.39840000143158,
+   "kxmgr_ms": 51.47050000960007,
    "kxsales1": 403,
-   "kxsales1_ms": 4.054200000609853,
+   "kxsales1_ms": 5.2647999982582405,
    "kxadmin": 422,
-   "kxadmin_ms": 44.67730000033043
+   "kxadmin_ms": 46.3241000106791
   },
   {
    "method": "GET",
@@ -992,13 +992,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 70.71980000000622,
+   "kxmd_ms": 21.500200004084036,
    "kxmgr": 200,
-   "kxmgr_ms": 10.563900001216098,
+   "kxmgr_ms": 11.407099998905323,
    "kxsales1": 200,
-   "kxsales1_ms": 10.138100000403938,
+   "kxsales1_ms": 11.691899999277666,
    "kxadmin": 200,
-   "kxadmin_ms": 8.855899999616668
+   "kxadmin_ms": 11.440000002039596
   },
   {
    "method": "GET",
@@ -1011,13 +1011,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 11.123199999929057,
+   "kxmd_ms": 9.142800001427531,
    "kxmgr": 200,
-   "kxmgr_ms": 5.81880000027013,
+   "kxmgr_ms": 5.901700002141297,
    "kxsales1": 200,
-   "kxsales1_ms": 4.6796000005997485,
+   "kxsales1_ms": 6.726799998432398,
    "kxadmin": 200,
-   "kxadmin_ms": 4.2477000006329035
+   "kxadmin_ms": 5.873999994946644
   },
   {
    "method": "GET",
@@ -1030,13 +1030,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 5.365799999708543,
+   "kxmd_ms": 6.611599994357675,
    "kxmgr": 200,
-   "kxmgr_ms": 4.602700000759796,
+   "kxmgr_ms": 5.48930000513792,
    "kxsales1": 200,
-   "kxsales1_ms": 4.963500001395005,
+   "kxsales1_ms": 4.7734999970998615,
    "kxadmin": 200,
-   "kxadmin_ms": 5.102399998577312
+   "kxadmin_ms": 4.825800002436154
   },
   {
    "method": "GET",
@@ -1049,13 +1049,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 10.665899999366957,
+   "kxmd_ms": 7.557100005215034,
    "kxmgr": 200,
-   "kxmgr_ms": 3.867999999783933,
+   "kxmgr_ms": 4.444199992576614,
    "kxsales1": 200,
-   "kxsales1_ms": 4.183700000794488,
+   "kxsales1_ms": 4.695600000559352,
    "kxadmin": 200,
-   "kxadmin_ms": 4.284500000721891
+   "kxadmin_ms": 4.860100001678802
   },
   {
    "method": "PUT",
@@ -1068,13 +1068,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 44.58820000036212,
+   "kxmd_ms": 44.986599998082966,
    "kxmgr": 422,
-   "kxmgr_ms": 47.4290000001929,
+   "kxmgr_ms": 48.05929999565706,
    "kxsales1": 403,
-   "kxsales1_ms": 44.335700000374345,
+   "kxsales1_ms": 47.7309999987483,
    "kxadmin": 422,
-   "kxadmin_ms": 43.55519999990065
+   "kxadmin_ms": 48.52879999089055
   },
   {
    "method": "GET",
@@ -1087,13 +1087,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 26.559600000837236,
+   "kxmd_ms": 25.152900008833967,
    "kxmgr": 200,
-   "kxmgr_ms": 15.045600001030834,
+   "kxmgr_ms": 18.582600008812733,
    "kxsales1": 403,
-   "kxsales1_ms": 4.85359999947832,
+   "kxsales1_ms": 4.288600001018494,
    "kxadmin": 200,
-   "kxadmin_ms": 15.957700001308694
+   "kxadmin_ms": 15.188300007139333
   },
   {
    "method": "POST",
@@ -1106,13 +1106,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 45.63060000145924,
+   "kxmd_ms": 43.36539999349043,
    "kxmgr": 422,
-   "kxmgr_ms": 46.3476000004448,
+   "kxmgr_ms": 44.18719999375753,
    "kxsales1": 403,
-   "kxsales1_ms": 7.396000000881031,
+   "kxsales1_ms": 4.127899999730289,
    "kxadmin": 422,
-   "kxadmin_ms": 49.06889999983832
+   "kxadmin_ms": 47.389100000145845
   },
   {
    "method": "POST",
@@ -1125,13 +1125,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 4.590799999277806,
+   "kxmd_ms": 3.674999999930151,
    "kxmgr": 422,
-   "kxmgr_ms": 3.0220000007830095,
+   "kxmgr_ms": 3.793599986238405,
    "kxsales1": 403,
-   "kxsales1_ms": 3.1773999999131775,
+   "kxsales1_ms": 3.1085000082384795,
    "kxadmin": 422,
-   "kxadmin_ms": 3.619200000684941
+   "kxadmin_ms": 4.091300012078136
   },
   {
    "method": "GET",
@@ -1144,13 +1144,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 9.756999999808613,
+   "kxmd_ms": 7.470099997590296,
    "kxmgr": 200,
-   "kxmgr_ms": 4.694700000982266,
+   "kxmgr_ms": 5.355600005714223,
    "kxsales1": 403,
-   "kxsales1_ms": 2.8904999999213032,
+   "kxsales1_ms": 3.9899999974295497,
    "kxadmin": 403,
-   "kxadmin_ms": 3.174800000124378
+   "kxadmin_ms": 4.0855999977793545
   },
   {
    "method": "POST",
@@ -1163,13 +1163,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 79.56060000105936,
+   "kxmd_ms": 48.257400005240925,
    "kxmgr": 404,
-   "kxmgr_ms": 48.22749999948428,
+   "kxmgr_ms": 45.64789999858476,
    "kxsales1": 403,
-   "kxsales1_ms": 55.33189999914612,
+   "kxsales1_ms": 46.56629999226425,
    "kxadmin": 403,
-   "kxadmin_ms": 47.488099999100086
+   "kxadmin_ms": 49.03840000042692
   },
   {
    "method": "POST",
@@ -1182,13 +1182,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 51.81789999915054,
+   "kxmd_ms": 46.16109999187756,
    "kxmgr": 404,
-   "kxmgr_ms": 50.29130000002624,
+   "kxmgr_ms": 48.3947999891825,
    "kxsales1": 403,
-   "kxsales1_ms": 49.49320000014268,
+   "kxsales1_ms": 49.85770001076162,
    "kxadmin": 403,
-   "kxadmin_ms": 48.24969999936002
+   "kxadmin_ms": 44.5210999896517
   },
   {
    "method": "GET",
@@ -1201,13 +1201,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 9.491999999227119,
+   "kxmd_ms": 10.695599994505756,
    "kxmgr": 200,
-   "kxmgr_ms": 4.432399999132031,
+   "kxmgr_ms": 6.616099999519065,
    "kxsales1": 403,
-   "kxsales1_ms": 3.363899999385467,
+   "kxsales1_ms": 4.550099998596124,
    "kxadmin": 403,
-   "kxadmin_ms": 3.7212000006547896
+   "kxadmin_ms": 4.273899990948848
   },
   {
    "method": "GET",
@@ -1220,13 +1220,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 7.603199999721255,
+   "kxmd_ms": 8.171199995558709,
    "kxmgr": 200,
-   "kxmgr_ms": 5.022699999244651,
+   "kxmgr_ms": 6.175600006827153,
    "kxsales1": 403,
-   "kxsales1_ms": 3.2802000005176524,
+   "kxsales1_ms": 4.683999999542721,
    "kxadmin": 200,
-   "kxadmin_ms": 5.17779999972845
+   "kxadmin_ms": 6.375900004059076
   },
   {
    "method": "PUT",
@@ -1239,13 +1239,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 49.02430000038294,
+   "kxmd_ms": 45.318499993300065,
    "kxmgr": 422,
-   "kxmgr_ms": 49.2117000012513,
+   "kxmgr_ms": 51.38410000654403,
    "kxsales1": 403,
-   "kxsales1_ms": 47.664699999586446,
+   "kxsales1_ms": 47.77550000289921,
    "kxadmin": 422,
-   "kxadmin_ms": 49.30009999952745
+   "kxadmin_ms": 44.839399997727014
   },
   {
    "method": "PUT",
@@ -1258,13 +1258,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 46.75229999884323,
+   "kxmd_ms": 44.52720000699628,
    "kxmgr": 422,
-   "kxmgr_ms": 46.919800000978285,
+   "kxmgr_ms": 45.48050000448711,
    "kxsales1": 403,
-   "kxsales1_ms": 43.66029999982857,
+   "kxsales1_ms": 51.24870000872761,
    "kxadmin": 422,
-   "kxadmin_ms": 44.91990000133228
+   "kxadmin_ms": 52.288899998529814
   },
   {
    "method": "PUT",
@@ -1277,13 +1277,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 47.73390000082145,
+   "kxmd_ms": 45.05480000807438,
    "kxmgr": 422,
-   "kxmgr_ms": 44.47439999967173,
+   "kxmgr_ms": 47.563900006935,
    "kxsales1": 422,
-   "kxsales1_ms": 47.34920000009879,
+   "kxsales1_ms": 44.457099997089244,
    "kxadmin": 422,
-   "kxadmin_ms": 48.10230000111915
+   "kxadmin_ms": 47.67369999899529
   },
   {
    "method": "GET",
@@ -1296,13 +1296,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 15.779000001202803,
+   "kxmd_ms": 14.843800003291108,
    "kxmgr": 200,
-   "kxmgr_ms": 9.278900000936119,
+   "kxmgr_ms": 9.774699996341951,
    "kxsales1": 403,
-   "kxsales1_ms": 3.217699999368051,
+   "kxsales1_ms": 3.624399992986582,
    "kxadmin": 403,
-   "kxadmin_ms": 3.754100000151084
+   "kxadmin_ms": 4.204099997878075
   },
   {
    "method": "GET",
@@ -1315,13 +1315,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 6.9561999989673495,
+   "kxmd_ms": 3.260099998442456,
    "kxmgr": 200,
-   "kxmgr_ms": 3.332899999804795,
+   "kxmgr_ms": 3.646400000434369,
    "kxsales1": 403,
-   "kxsales1_ms": 3.3203000002686167,
+   "kxsales1_ms": 4.055000012158416,
    "kxadmin": 200,
-   "kxadmin_ms": 2.832600001056562
+   "kxadmin_ms": 3.3205000072484836
   },
   {
    "method": "PATCH",
@@ -1334,13 +1334,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 52.133700000922545,
+   "kxmd_ms": 47.04859999765176,
    "kxmgr": 200,
-   "kxmgr_ms": 50.7686000000831,
+   "kxmgr_ms": 48.703299995395355,
    "kxsales1": 403,
-   "kxsales1_ms": 48.70680000021821,
+   "kxsales1_ms": 45.13379999843892,
    "kxadmin": 200,
-   "kxadmin_ms": 50.285299999814015
+   "kxadmin_ms": 50.21190000115894
   },
   {
    "method": "PUT",
@@ -1353,13 +1353,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 70.88269999985641,
+   "kxmd_ms": 45.4059000039706,
    "kxmgr": 422,
-   "kxmgr_ms": 46.59979999996722,
+   "kxmgr_ms": 43.76919999776874,
    "kxsales1": 403,
-   "kxsales1_ms": 4.156299999522162,
+   "kxsales1_ms": 5.310699998517521,
    "kxadmin": 422,
-   "kxadmin_ms": 44.37099999995553
+   "kxadmin_ms": 46.45389999495819
   },
   {
    "method": "DELETE",
@@ -1372,13 +1372,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 5.630300000120769,
+   "kxmd_ms": 5.996299994876608,
    "kxmgr": 200,
-   "kxmgr_ms": 5.200699999477365,
+   "kxmgr_ms": 6.301499990513548,
    "kxsales1": 403,
-   "kxsales1_ms": 2.9667999988305382,
+   "kxsales1_ms": 4.022199995233677,
    "kxadmin": 200,
-   "kxadmin_ms": 4.715199998827302
+   "kxadmin_ms": 6.280399989918806
   },
   {
    "method": "GET",
@@ -1391,13 +1391,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 3.29770000098506,
+   "kxmd_ms": 3.654700005427003,
    "kxmgr": 200,
-   "kxmgr_ms": 3.105100000539096,
+   "kxmgr_ms": 3.9338999922620133,
    "kxsales1": 403,
-   "kxsales1_ms": 2.280599999721744,
+   "kxsales1_ms": 3.2811999990371987,
    "kxadmin": 200,
-   "kxadmin_ms": 2.3463999987143325
+   "kxadmin_ms": 4.031900010886602
   },
   {
    "method": "PUT",
@@ -1410,13 +1410,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 44.86440000073344,
+   "kxmd_ms": 44.76619999331888,
    "kxmgr": 403,
-   "kxmgr_ms": 48.80109999976412,
+   "kxmgr_ms": 47.677099995780736,
    "kxsales1": 403,
-   "kxsales1_ms": 47.29310000038822,
+   "kxsales1_ms": 48.13779999676626,
    "kxadmin": 422,
-   "kxadmin_ms": 48.11450000124751
+   "kxadmin_ms": 47.99679999996442
   },
   {
    "method": "GET",
@@ -1429,13 +1429,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 9.629999998651328,
+   "kxmd_ms": 17.01860000321176,
    "kxmgr": 200,
-   "kxmgr_ms": 6.980900001508417,
+   "kxmgr_ms": 7.184900008724071,
    "kxsales1": 200,
-   "kxsales1_ms": 8.03040000027977,
+   "kxsales1_ms": 9.430799997062422,
    "kxadmin": 200,
-   "kxadmin_ms": 5.537400000321213
+   "kxadmin_ms": 7.83100000990089
   },
   {
    "method": "GET",
@@ -1448,13 +1448,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 9.02210000094783,
+   "kxmd_ms": 7.9747999989194795,
    "kxmgr": 404,
-   "kxmgr_ms": 5.965400001514354,
+   "kxmgr_ms": 5.319099989719689,
    "kxsales1": 404,
-   "kxsales1_ms": 8.140899999489193,
+   "kxsales1_ms": 6.6042000107700005,
    "kxadmin": 404,
-   "kxadmin_ms": 6.052099999578786
+   "kxadmin_ms": 20.898500006296672
   },
   {
    "method": "PATCH",
@@ -1467,13 +1467,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 48.047599999335944,
+   "kxmd_ms": 47.57680000329856,
    "kxmgr": 404,
-   "kxmgr_ms": 45.65089999960037,
+   "kxmgr_ms": 50.38490000879392,
    "kxsales1": 404,
-   "kxsales1_ms": 49.83919999904174,
+   "kxsales1_ms": 48.61240000172984,
    "kxadmin": 404,
-   "kxadmin_ms": 46.69130000002042
+   "kxadmin_ms": 47.14129999047145
   },
   {
    "method": "GET",
@@ -1486,13 +1486,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 8.091900001090835,
+   "kxmd_ms": 7.3241000063717365,
    "kxmgr": 200,
-   "kxmgr_ms": 4.6598000008089,
+   "kxmgr_ms": 4.943400010233745,
    "kxsales1": 200,
-   "kxsales1_ms": 4.35039999865694,
+   "kxsales1_ms": 8.703400002559647,
    "kxadmin": 200,
-   "kxadmin_ms": 4.257399999914924
+   "kxadmin_ms": 5.2540000033332035
   },
   {
    "method": "POST",
@@ -1505,13 +1505,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 50.38760000024922,
+   "kxmd_ms": 44.83530001016334,
    "kxmgr": 422,
-   "kxmgr_ms": 49.29520000041521,
+   "kxmgr_ms": 47.865400003502145,
    "kxsales1": 422,
-   "kxsales1_ms": 50.79910000131349,
+   "kxsales1_ms": 44.10240000288468,
    "kxadmin": 422,
-   "kxadmin_ms": 49.593300000196905
+   "kxadmin_ms": 43.92019999795593
   },
   {
    "method": "PATCH",
@@ -1524,13 +1524,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 47.099100000195904,
+   "kxmd_ms": 46.811099993647076,
    "kxmgr": 422,
-   "kxmgr_ms": 47.12479999943753,
+   "kxmgr_ms": 48.368300005677156,
    "kxsales1": 422,
-   "kxsales1_ms": 51.661800000147196,
+   "kxsales1_ms": 51.20349999924656,
    "kxadmin": 422,
-   "kxadmin_ms": 47.86140000032901
+   "kxadmin_ms": 48.02410000411328
   },
   {
    "method": "GET",
@@ -1543,13 +1543,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 11.605100000451785,
+   "kxmd_ms": 5.829699992318638,
    "kxmgr": 200,
-   "kxmgr_ms": 10.307399999874178,
+   "kxmgr_ms": 4.505000004428439,
    "kxsales1": 200,
-   "kxsales1_ms": 7.663799999136245,
+   "kxsales1_ms": 5.177800005185418,
    "kxadmin": 200,
-   "kxadmin_ms": 7.905799999207375
+   "kxadmin_ms": 4.538199995295145
   },
   {
    "method": "GET",
@@ -1562,13 +1562,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 7.272099999681814,
+   "kxmd_ms": 6.705000007059425,
    "kxmgr": 404,
-   "kxmgr_ms": 6.271799999012728,
+   "kxmgr_ms": 5.328299987013452,
    "kxsales1": 404,
-   "kxsales1_ms": 6.227399999261252,
+   "kxsales1_ms": 5.036600006860681,
    "kxadmin": 404,
-   "kxadmin_ms": 5.832099999679485
+   "kxadmin_ms": 5.119199995533563
   },
   {
    "method": "PATCH",
@@ -1581,13 +1581,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 53.48460000095656,
+   "kxmd_ms": 46.62090000056196,
    "kxmgr": 404,
-   "kxmgr_ms": 49.078000000008615,
+   "kxmgr_ms": 48.07469999650493,
    "kxsales1": 403,
-   "kxsales1_ms": 53.704200001448044,
+   "kxsales1_ms": 46.055700004217215,
    "kxadmin": 403,
-   "kxadmin_ms": 52.2144999995362
+   "kxadmin_ms": 48.313499995856546
   },
   {
    "method": "GET",
@@ -1600,13 +1600,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 10.470699999132194,
+   "kxmd_ms": 7.324999998672865,
    "kxmgr": 200,
-   "kxmgr_ms": 4.950800001097377,
+   "kxmgr_ms": 5.128699995111674,
    "kxsales1": 200,
-   "kxsales1_ms": 6.6292000010435,
+   "kxsales1_ms": 6.664500004262663,
    "kxadmin": 200,
-   "kxadmin_ms": 5.086699999083066
+   "kxadmin_ms": 5.018700001528487
   },
   {
    "method": "GET",
@@ -1619,13 +1619,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 9.74809999934223,
+   "kxmd_ms": 7.016999996267259,
    "kxmgr": 200,
-   "kxmgr_ms": 5.430400000477675,
+   "kxmgr_ms": 4.8790000000735745,
    "kxsales1": 403,
-   "kxsales1_ms": 3.6436000009416603,
+   "kxsales1_ms": 3.8395000010496005,
    "kxadmin": 403,
-   "kxadmin_ms": 3.4826000010070857
+   "kxadmin_ms": 3.489599999738857
   },
   {
    "method": "POST",
@@ -1638,13 +1638,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 47.10929999964719,
+   "kxmd_ms": 44.744500002707355,
    "kxmgr": 422,
-   "kxmgr_ms": 43.93969999910041,
+   "kxmgr_ms": 51.76289999508299,
    "kxsales1": 403,
-   "kxsales1_ms": 44.18650000116031,
+   "kxsales1_ms": 44.00920000625774,
    "kxadmin": 403,
-   "kxadmin_ms": 44.260500000746106
+   "kxadmin_ms": 43.89430000446737
   },
   {
    "method": "GET",
@@ -1657,13 +1657,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 23.25589999963995,
+   "kxmd_ms": 16.891999999643303,
    "kxmgr": 200,
-   "kxmgr_ms": 9.528399999908288,
+   "kxmgr_ms": 9.98220000474248,
    "kxsales1": 200,
-   "kxsales1_ms": 9.284900001148344,
+   "kxsales1_ms": 9.886900006677024,
    "kxadmin": 200,
-   "kxadmin_ms": 9.59559999864723
+   "kxadmin_ms": 9.379399998579174
   },
   {
    "method": "GET",
@@ -1676,13 +1676,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 37.93080000104965,
+   "kxmd_ms": 45.03169999225065,
    "kxmgr": 200,
-   "kxmgr_ms": 25.407400000403868,
+   "kxmgr_ms": 25.577799999155104,
    "kxsales1": 403,
-   "kxsales1_ms": 3.998199999841745,
+   "kxsales1_ms": 4.065600005560555,
    "kxadmin": 403,
-   "kxadmin_ms": 2.833600001395098
+   "kxadmin_ms": 3.710799996042624
   },
   {
    "method": "GET",
@@ -1695,13 +1695,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 34.68020000036631,
+   "kxmd_ms": 24.70290000201203,
    "kxmgr": 403,
-   "kxmgr_ms": 3.884099998685997,
+   "kxmgr_ms": 3.947000004700385,
    "kxsales1": 403,
-   "kxsales1_ms": 3.4038000012515113,
+   "kxsales1_ms": 3.772200012463145,
    "kxadmin": 403,
-   "kxadmin_ms": 3.654899999673944
+   "kxadmin_ms": 3.7906000070506707
   },
   {
    "method": "GET",
@@ -1714,13 +1714,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 3.851299999951152,
+   "kxmd_ms": 3.560600001947023,
    "kxmgr": 422,
-   "kxmgr_ms": 3.634799999417737,
+   "kxmgr_ms": 3.439699998125434,
    "kxsales1": 422,
-   "kxsales1_ms": 3.330500001538894,
+   "kxsales1_ms": 3.660699992906302,
    "kxadmin": 422,
-   "kxadmin_ms": 3.2672000015736558
+   "kxadmin_ms": 3.6379999946802855
   },
   {
    "method": "GET",
@@ -1733,13 +1733,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 9.322699999756878,
+   "kxmd_ms": 7.308899992494844,
    "kxmgr": 200,
-   "kxmgr_ms": 5.434599999716738,
+   "kxmgr_ms": 5.8327000006102026,
    "kxsales1": 403,
-   "kxsales1_ms": 3.4931999998661922,
+   "kxsales1_ms": 3.6542999878292903,
    "kxadmin": 200,
-   "kxadmin_ms": 19.818799999484327
+   "kxadmin_ms": 5.963199990219437
   },
   {
    "method": "PUT",
@@ -1752,13 +1752,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 45.31619999943359,
+   "kxmd_ms": 44.85750000458211,
    "kxmgr": 422,
-   "kxmgr_ms": 49.774300001445226,
+   "kxmgr_ms": 48.17999999795575,
    "kxsales1": 403,
-   "kxsales1_ms": 46.01919999913662,
+   "kxsales1_ms": 51.61480000242591,
    "kxadmin": 403,
-   "kxadmin_ms": 49.16560000128811
+   "kxadmin_ms": 44.32790000282694
   },
   {
    "method": "POST",
@@ -1771,13 +1771,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 7.503099999667029,
+   "kxmd_ms": 4.391299997223541,
    "kxmgr": 404,
-   "kxmgr_ms": 5.098399999042158,
+   "kxmgr_ms": 3.7413999962154776,
    "kxsales1": 403,
-   "kxsales1_ms": 4.477700000279583,
+   "kxsales1_ms": 3.751299998839386,
    "kxadmin": 403,
-   "kxadmin_ms": 4.6598000008089
+   "kxadmin_ms": 3.6105999897699803
   },
   {
    "method": "GET",
@@ -1790,13 +1790,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 404,
-   "kxmd_ms": 3.763299999263836,
+   "kxmd_ms": 3.4744000004138798,
    "kxmgr": 404,
-   "kxmgr_ms": 3.153999999994994,
+   "kxmgr_ms": 3.3364999981131405,
    "kxsales1": 403,
-   "kxsales1_ms": 3.7070999987918185,
+   "kxsales1_ms": 3.3395999926142395,
    "kxadmin": 404,
-   "kxadmin_ms": 3.270499999416643
+   "kxadmin_ms": 3.7831999943591654
   },
   {
    "method": "POST",
@@ -1809,13 +1809,13 @@
    "forged_garbage": 400,
    "forged_expired_shape": 400,
    "kxmd": 400,
-   "kxmd_ms": 2.2027000013622455,
+   "kxmd_ms": 2.8400999872246757,
    "kxmgr": 400,
-   "kxmgr_ms": 2.3341000014625024,
+   "kxmgr_ms": 3.086500000790693,
    "kxsales1": 400,
-   "kxsales1_ms": 2.86959999903047,
+   "kxsales1_ms": 2.8944000077899545,
    "kxadmin": 400,
-   "kxadmin_ms": 2.3949999995238613
+   "kxadmin_ms": 3.2020999933592975
   },
   {
    "method": "POST",
@@ -1828,13 +1828,13 @@
    "forged_garbage": 201,
    "forged_expired_shape": 201,
    "kxmd": 201,
-   "kxmd_ms": 49.065500001233886,
+   "kxmd_ms": 48.72900000191294,
    "kxmgr": 201,
-   "kxmgr_ms": 47.60569999962172,
+   "kxmgr_ms": 47.22579999361187,
    "kxsales1": 201,
-   "kxsales1_ms": 53.07370000082301,
+   "kxsales1_ms": 48.04209999565501,
    "kxadmin": 201,
-   "kxadmin_ms": 52.41360000036366
+   "kxadmin_ms": 47.77789999207016
   },
   {
    "method": "POST",
@@ -1847,13 +1847,13 @@
    "forged_garbage": 422,
    "forged_expired_shape": 422,
    "kxmd": 422,
-   "kxmd_ms": 48.461200000019744,
+   "kxmd_ms": 48.01919999590609,
    "kxmgr": 422,
-   "kxmgr_ms": 53.442500000528526,
+   "kxmgr_ms": 43.97189999872353,
    "kxsales1": 422,
-   "kxsales1_ms": 52.18980000063311,
+   "kxsales1_ms": 48.04729999159463,
    "kxadmin": 422,
-   "kxadmin_ms": 50.691700000243145
+   "kxadmin_ms": 43.97889999381732
   },
   {
    "method": "POST",
@@ -1866,13 +1866,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 401,
-   "kxmd_ms": 3.5143999994033948,
+   "kxmd_ms": 2.3270999954547733,
    "kxmgr": 401,
-   "kxmgr_ms": 2.7621999997791136,
+   "kxmgr_ms": 2.383299986831844,
    "kxsales1": 401,
-   "kxsales1_ms": 2.7423999999882653,
+   "kxsales1_ms": 2.7454999944893643,
    "kxadmin": 401,
-   "kxadmin_ms": 2.4836000011418946
+   "kxadmin_ms": 2.5120000063907355
   },
   {
    "method": "POST",
@@ -1885,13 +1885,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 401,
-   "kxmd_ms": 43.61769999923126,
+   "kxmd_ms": 43.86619999422692,
    "kxmgr": 401,
-   "kxmgr_ms": 44.233900000108406,
+   "kxmgr_ms": 43.97189999872353,
    "kxsales1": 401,
-   "kxsales1_ms": 47.78880000048957,
+   "kxsales1_ms": 44.050399999832734,
    "kxadmin": 401,
-   "kxadmin_ms": 44.21510000065609
+   "kxadmin_ms": 43.95479999948293
   },
   {
    "method": "GET",
@@ -1904,13 +1904,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 52.167899999403744,
+   "kxmd_ms": 20.738399995025247,
    "kxmgr": 200,
-   "kxmgr_ms": 5.60820000100648,
+   "kxmgr_ms": 8.019400003831834,
    "kxsales1": 403,
-   "kxsales1_ms": 3.575099999579834,
+   "kxsales1_ms": 4.7441000060644,
    "kxadmin": 200,
-   "kxadmin_ms": 5.0498000000516186
+   "kxadmin_ms": 6.794500004616566
   },
   {
    "method": "PATCH",
@@ -1923,13 +1923,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 403,
-   "kxmd_ms": 47.062499999810825,
+   "kxmd_ms": 44.61599999922328,
    "kxmgr": 403,
-   "kxmgr_ms": 46.244799999840325,
+   "kxmgr_ms": 43.77150000073016,
    "kxsales1": 403,
-   "kxsales1_ms": 48.60790000020643,
+   "kxsales1_ms": 43.88049998669885,
    "kxadmin": 404,
-   "kxadmin_ms": 52.68950000026962
+   "kxadmin_ms": 47.15290000604
   },
   {
    "method": "GET",
@@ -1942,13 +1942,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 200,
-   "kxmd_ms": 9.102400001211208,
+   "kxmd_ms": 12.092500008293428,
    "kxmgr": 200,
-   "kxmgr_ms": 5.7585999984439695,
+   "kxmgr_ms": 7.071300002280623,
    "kxsales1": 403,
-   "kxsales1_ms": 3.4756999993987847,
+   "kxsales1_ms": 4.7227000031853095,
    "kxadmin": 200,
-   "kxadmin_ms": 5.572799998844857
+   "kxadmin_ms": 6.921699998201802
   },
   {
    "method": "PUT",
@@ -1961,13 +1961,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 50.79200000000128,
+   "kxmd_ms": 44.29379999055527,
    "kxmgr": 422,
-   "kxmgr_ms": 47.31730000094103,
+   "kxmgr_ms": 44.035400002030656,
    "kxsales1": 403,
-   "kxsales1_ms": 51.76440000104776,
+   "kxsales1_ms": 43.923700010054745,
    "kxadmin": 422,
-   "kxadmin_ms": 47.77959999955783
+   "kxadmin_ms": 44.31369999656454
   },
   {
    "method": "POST",
@@ -1980,13 +1980,13 @@
    "forged_garbage": 401,
    "forged_expired_shape": 401,
    "kxmd": 422,
-   "kxmd_ms": 48.39350000111153,
+   "kxmd_ms": 47.58149999543093,
    "kxmgr": 422,
-   "kxmgr_ms": 46.87740000008489,
+   "kxmgr_ms": 43.893399997614324,
    "kxsales1": 403,
-   "kxsales1_ms": 46.86009999932139,
+   "kxsales1_ms": 47.86740000417922,
    "kxadmin": 422,
-   "kxadmin_ms": 49.709799999618554
+   "kxadmin_ms": 49.26610000256915
   }
  ]
 }

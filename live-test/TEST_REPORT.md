@@ -1,6 +1,6 @@
 # Kairox Platform v1: Live Test, Security and Resource Report
 
-**Date:** 18 Nov 2026 · **Branch:** `v1-11nov-work-and-architecture-guide` (working tree, uncommitted changes included) · **Code changed:** none. Every test file lives in `live-test/`.
+**Date:** 18 Nov 2026 (round 2 re-test: 19 Nov) · **Branch:** `v1-11nov-work-and-architecture-guide` (working tree, uncommitted changes included) · **Code changed:** none. Every test file lives in `live-test/`.
 
 **What was tested:** the whole platform that exists today, run for real on this PC.
 
@@ -10,6 +10,8 @@
 - **The rest:** the full automated test suite, a Postman-style test of all 109 API operations, an external-pentest-style security probe, and load tests at 10, 30 and 50 concurrent users with resource sampling.
 
 **Update 19 Nov:** the defects below are now fixed on branch `fix/live-test-defects` and re-tested; see **§14** for what changed, the new test and load results, and what is still open.
+
+**Update 19 Nov, round 2:** security review M2–M8 / L1–L8, infra M1–M16, the monitoring gaps, the quote email polish, the quick-message merge, the code cleanup and the architecture restructuring are done, and the whole platform was re-tested on the final code (branch `arch/slices`). Results: **991 tests pass**; **43 / 43 security probes**; **31 / 31 business flows**; **0 server errors** in the API matrix and the Postman run; **≥ 98 % of WhatsApp replies within 60 s at 10–50 users**. Six problems were found during the re-test and fixed. See **§15**.
 
 **Not available yet, so tested against local fakes of the real vendor APIs:** Claude, WhatsApp (Meta), Telnyx calls, Amazon SES and Cloudflare R2 storage. The platform's own code paths ran; only the vendor answered from a fake.
 
@@ -535,6 +537,81 @@ About 1 % of requests failed on the test PC's side (dropped connections and 30 s
 
 ---
 
+## 15. Round 2 (19 Nov): fixes, restructuring and the full re-test
+
+The final code is on branch `arch/slices`. It contains every round-1 and round-2 fix (`fix/live-test-defects`), the restructuring of ADR-0001 and the fixes found during this re-test. Every test below ran on that code, in the same isolated `kxlive` stack as before.
+
+### 15.1 What changed in round 2
+
+| Area | Change |
+|---|---|
+| Security (review M2–M8, L1–L8) | **Logins and sessions**: the CRM origin is separated from the website (M2); sign-in rate limits and lock-outs per IP and per account (M3); a staff token ends with its sign-in session, the one-time password must be changed first, and sessions have an absolute end (L1, L6, L7). **Outputs**: spreadsheet formulas never reach an export (M4). **Website**: limited to 30 % of the daily AI budget, with global and per-IP limits (M6). **AI price guard**: catches prices written in words (M7). **Email**: mail whose sender fails SPF/DKIM/DMARC is kept and flagged, the AI stays silent, and the manager and salesperson are alerted (M8). **Requests**: body-size cap, salesperson scope on companies, Admin/IT off deals, Telnyx signature required, valid time zones (L2–L5, L8) |
+| Defects | D-8: circuit breaker on the knowledge-search embedding. The deal's salesperson updates the order status (SRS §5 step 14) |
+| Infrastructure (M1–M16) | Pinned CI actions, deploy by image digest, weekly image scan, container limits and least privilege, CrowdSec through a socket proxy, restore-tested backups, WAL monitoring, graceful shutdown, worker recycling, a locked-down PDF renderer |
+| Monitoring | Worker health sees a broken runtime; error logs carry their trace id; Beat telemetry |
+| Quote email and PDF | No "Hi Customer"; the PDF "To" block is filled; AI email replies are titled "Re: <subject>" in the buyer's thread |
+| Quick messages | WhatsApp and email messages that arrive within 8 seconds get one AI answer |
+| Performance and cleanup | 7 database indexes added and 1 duplicate dropped (`docs/DATABASE.md` §7); exports off the event loop; dead and duplicated code removed |
+| Architecture (ADR-0001) | **Phase 0**: `kx map` and `docs/FEATURE_MAP.md`, CODEOWNERS, PR template, ADRs. **Phases 1–2**: the CRM in 22 feature slices plus a public surface; 3 automation slices; 10 import contracts. Every move kept the OpenAPI byte-identical and the `kx map` output identical except for paths. Report: `docs/arch/REPORT.md` |
+
+### 15.2 Results on the final code
+
+| Check | Result |
+|---|---|
+| Full test suite (Linux image, own PostgreSQL) | **991 tests: 0 failed, 0 errors, 4 skipped** (they need a local `redis-server`). It passed on every one of the 25 slice commits and on each fix commit. |
+| ruff, ruff format, mypy --strict (267 files), import contracts | **All clean: 10 contracts kept** |
+| API matrix: 104 operations × no token / forged tokens / 4 roles | **0** reachable without a valid token; **0** server errors |
+| Security probes | **43 / 43 pass** (round 1: 33 / 44) |
+| Business flows F1–F6 with the real AI (Groq) | **31 / 31 pass** |
+| Real email to your Gmail (1 email) | **PASS**. Revised quote Q-2026-00002 v4 in USD; the manager approved the special price first. The email: titled "Quotation Q-2026-00002 from ARIFA PACKING & PACKAGING LLC", greets with "Hi," (no "Hi Customer"), PDF attached. The PDF's "To" block names you. The arithmetic: 20,000 × USD 0.0715 = 1,430.00 + 5 % VAT = **USD 1,501.50** |
+| M8 sender check, live | **PASS**. A real Gmail message, delivered through Stalwart as the MX hop does, is **trusted** (Stalwart: `dkim=pass` for gmail.com). A forged message claiming the same Gmail address from this PC is **not trusted** (`spf=softfail`, no DKIM). |
+| Tester's Postman collection, unattended (newman, folders 00 and 02–14) | **First run:** 1 real defect, a company with an unknown customer type answered 500 (fixed, §15.4). **Run on the final code:** 125 requests, **0 server errors**. The 45 failed assertions all come from running unattended: one role's token for every folder; no files to upload; ids that earlier steps leave empty; a deal that was not qualified first; the day's 20 website sessions per IP already used by the load test. A tester following the guide switches roles, uploads the files and goes in order. |
+
+### 15.3 Load test (production settings)
+
+Same method as §14.3: 8 minutes per level, the 3-second stand-in model, the send worker at 3 processes, the AI worker at 10 threads, and the recipient cap at 2 messages a minute. The quick-message merge (8 s) is now on.
+
+| Users | Buyer messages | Reply delivered within 60 s (round 1 after fixes → now) | p95 delivery | Never answered |
+|---|---|---|---|---|
+| 10 | 139 | 99 % → **98.6 %** | 31 s → **32 s** | **0** |
+| 30 | 415 | 99 % → **98.3 %** | 31 s → **34 s** | **0** |
+| 50 | 699 | 98 % → **99.4 %** | 33 s → **33 s** | **0** (9 before) |
+
+**The target is still met**: at least 95 % within 60 s at 30 users.
+
+- **CRM screens:** p95 ≤ 41 ms at every level.
+- **WhatsApp webhooks:** p95 ≤ 78 ms.
+- **Whole platform at 50 users:** 48 % of one CPU core, 2.9 GB of memory, up to 79 PostgreSQL connections.
+
+**The 331 "errors" at 50 users** are 429 answers to website chat: 10 % of all requests, all on that one endpoint. This is the new website limit (M6: 60 AI replies a minute for all visitors together) doing its job. 25 simulated visitors each writing about 4 messages a minute ask for about 100 replies a minute. Every other request at every level answered without an error.
+
+### 15.4 Found and fixed during this re-test
+
+Each fix has a test that fails without it, and the full suite was run on it.
+
+| Found by | Problem | Fix |
+|---|---|---|
+| Security probes | An admin unlock did not lift the lock-out at the staff member's own IP: they waited the full 15 minutes | Unlock also clears the account's per-IP lock-outs (`1ebe0dd`) |
+| Security probes | Anyone could keep a staff member out by spending the account's sign-in budget from other addresses (lock-out DoS through the per-account limit) | An IP where the account signed in during the last 30 days skips the per-account limit; the per-IP limits and the 5-attempt lock still apply (`520b375`) |
+| Security probes | Signing out without the browser cookie ended nothing: the access token kept working for up to 15 minutes. With the cookie, it still worked for 10 seconds | Logout also ends the session the access token names, and checks the database directly (`520b375`) |
+| Security probes (High) | A search containing a NUL character (`?q=%00`) reached PostgreSQL and answered 500 | NUL characters are refused with 400 before any route runs (`ed6b30d`) |
+| Security probes (Low) | No security headers; the API description was public everywhere | `nosniff`, no framing, no referrer, and a CSP on every answer; `/docs` and `/openapi.json` are off in production (`ed6b30d`) |
+| Postman run | Creating a company with a customer type outside the database's list answered 500 | The API accepts exactly the database's values and answers 422 otherwise (`5c23541`) |
+
+### 15.5 Still open
+
+- **Waiting for keys (step 13.3):** Claude, WhatsApp, Telnyx, SES. The harness is ready to re-run against them.
+- **TRN:** still the placeholder, as decided. Arifa provides it.
+- **Gemini standby:** needs a paid key (the free tier allows 20 requests a day).
+- **Decision for you: thread quote emails too?** A quote email has its own subject ("Quotation Q-… from …"), so it starts a new Gmail thread. AI replies already continue the buyer's thread. Sending quotes as "Re:" in the buyer's thread is a small change.
+- **Architecture:**
+  - fill the `@OWNER_*` handles in `.github/CODEOWNERS`;
+  - the Arifaa Auto team must update 19 removed import paths (list in `docs/arch/PROGRESS.md` §2.5).
+- **Deferred cleanup** (touches the money or approval paths, or conflicts with the restructure): review items §3.3, §3.4 (D5, D7), §3.5 (D11), §3.7 (D14, D15), §3.11, §3.12, §3.14, D16, D17.
+- **Repository hygiene:** two Office lock files (162 bytes each, holding Windows account names) were committed on 18 Nov. They are no longer tracked and `~$*` is ignored, but they remain in older commits.
+
+---
+
 ## Appendix A: Test harness (all in `live-test/`, nothing in platform source)
 
 | File | Purpose |
@@ -551,6 +628,9 @@ About 1 % of requests failed on the test PC's side (dropped connections and 30 s
 | `scripts/sec_probes.py` | 43 security probes |
 | `scripts/load_live.py`, `run_load_matrix.sh`, `delivery_lag.py`, `load_charts.py` | Load runs with resource sampling; the run matrix with queue drain; delivery lag from the DB; charts and tables |
 | `scripts/run_tests_linux.sh` | Full pytest in the Linux image |
+| `scripts/m8_check.py` | Round 2: a real Gmail message and a forged one through Stalwart, judged by the platform's M8 check |
+| `scripts/email_quote_check.py` | Round 2: one real quote email to Gmail, read back and checked (subject, greeting, PDF "To" block) |
+| `scripts/postman_run.py` | Round 2: the tester's Postman collection with newman (tokens from real MFA sign-ins; summary only in `results/postman_run.json`) |
 | `results/*` | Raw JSON, logs, reviews, sample quote PDFs |
 
 ## Appendix B: Data touched outside the test stack
@@ -559,4 +639,5 @@ About 1 % of requests failed on the test PC's side (dropped connections and 30 s
 - Developer DB `pack_automation.automation.scheduled_jobs` ids `01a1edaa-e2c5-764f-90d3-2fc18251c22e` (ingest_inbound_email, done) and `01a1edab-7e41-77a9-a550-eca8bb9d8e24` (handle_event, done).
 - Emails sent to muhammadhamthan660@gmail.com: 2 channel tests (the first bounced at Gmail), 1 AI auto-reply, 1 real quote with PDF.
 - Your 4 Gmail replies are stored in the test stack only (Stalwart and `kxlive` Postgres).
+- Round 2 (19 Nov): **1 email** to muhammadhamthan660@gmail.com: revised quotation Q-2026-00002 v4 (USD 1,501.50). The M8 check copied your newest Gmail message from the Hostinger inbox (read-only) to the local test mailbox `kxadmin` only.
 - Your `.env` now also holds `KX_MAIL_USER` / `KX_MAIL_PASSWORD` (git-ignored).

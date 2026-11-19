@@ -1064,3 +1064,56 @@ rows + texts not yet translated + matching words).
   loop; the servers run Linux.)
 * `pack.env.example`: `KX_PLATFORM_PLAN=free` (client decision), FX and Gemini standby notes, ops alert address.
 * **815 passed, 0 failed**; ruff, mypy --strict (196 files), import-linter clean.
+
+## 19 Nov. Round 2: security and infra fixes, quote polish, message merge, cleanup, restructuring, re-test
+
+Client decisions of 19 Nov: M6 website ≤ 30 % of the daily AI budget; M7 layered price guard; M8 unverified mail
+kept, flagged and silent (no auto opt-out, no auto-link, manager and salesperson alerted); TRN stays a placeholder.
+
+* **Security review M2–M8, L1–L8** (`fix/live-test-defects`):
+  - M2: CORS split, credentials only for the CRM; the website reaches only `/v1/public/*`.
+  - M3: sign-in limits per IP and per account, the per account + IP lock and an account-wide backstop.
+  - M4: no spreadsheet formulas in exports.
+  - M6: website AI sub-cap and global / IP limits.
+  - M7: numbers written in words are caught by the price guard.
+  - M8: SPF / DKIM / DMARC from Stalwart's `Authentication-Results`.
+  - L1: access tokens end with their sign-in session.
+  - L2: body-size cap.
+  - L3: salesperson company scope.
+  - L4: Admin / IT off deals; exports limited to products.
+  - L5: Telnyx signature required.
+  - L6: quiet reset timing.
+  - L7: one-time password enforced.
+  - L8: valid time zones and language tags.
+* **Defects and infra:**
+  - D-8: circuit breaker on the query embedding.
+  - The deal's salesperson updates the order status (SRS §5 step 14).
+  - Infra review M1–M16: CI pinning and digests, image scan, stack limits, CrowdSec socket proxy, backups, WAL-G, graceful shutdown, worker recycling, the PDF renderer's CSP.
+  - Monitoring gaps: worker health, trace ids on errors, Beat telemetry.
+* **Buyer-facing:**
+  - Quote email / PDF: no "Hi Customer", a filled "To" block, AI replies titled "Re: <subject>".
+  - Quick WhatsApp / email messages within 8 s get one AI answer.
+* **Cleanup:**
+  - 7 indexes added and 1 duplicate dropped (`crm_0016`, `automation_0010`, `agents_0005`; `docs/DATABASE.md` §7).
+  - Exports and workbook parsing moved off the event loop.
+  - Dead code and duplicated blocks removed; `get_or_404`; shared role aliases.
+* **Architecture (ADR-0001, branches `arch/phase0-tooling` and `arch/slices`):**
+  - `kx map` and `docs/FEATURE_MAP.md` (CI), CODEOWNERS, PR template, ADRs.
+  - CRM in 22 feature slices plus a public surface (`kx/crm/__init__.py`); 3 automation slices.
+  - 10 import contracts, with baselines that may only shrink.
+  - OpenAPI byte-identical and `kx map` path-only on every move.
+  - Details: `docs/arch/REPORT.md`, `docs/arch/PROGRESS.md`.
+* **Re-test** (`live-test/TEST_REPORT.md` §15):
+  - 991 tests pass.
+  - API matrix: 0 reachable without a token, 0 server errors.
+  - Security probes: 43 / 43. Business flows with the real AI: 31 / 31.
+  - Live checks pass: M8, and one real quote email to Gmail.
+  - Load at 10 / 30 / 50 users: ≥ 98 % of WhatsApp replies within 60 s, 0 unanswered.
+  - Six problems found and fixed:
+    - an admin unlock now also lifts the per-IP lock;
+    - a known IP skips the per-account sign-in limit (lock-out DoS);
+    - logout ends the token's session at once;
+    - a NUL character now gets 400 instead of 500;
+    - security headers on every answer; no API docs in production;
+    - a company's customer type now gets 422 instead of 500.
+* **Tester pack** (branch `docs/tester-pack`): Postman collection and environments generated from the code (117 operations, 20 negative tests); the Word guide `docs/testing/TESTER_HELPER.docx`.

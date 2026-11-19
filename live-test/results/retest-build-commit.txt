@@ -1,0 +1,1 @@
+ad55b2f chore: stop tracking two Office lock files and ignore ~$* files
