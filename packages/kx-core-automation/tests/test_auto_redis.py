@@ -8,8 +8,8 @@ from collections.abc import AsyncIterator
 import pytest
 from redis.asyncio import Redis
 
-from kx.automation.killswitch import KillSwitch
-from kx.automation.ratelimit import Bucket, TokenBucketLimiter
+from kx.automation.outbound.killswitch import KillSwitch
+from kx.automation.outbound.ratelimit import Bucket, TokenBucketLimiter
 
 
 @pytest.fixture

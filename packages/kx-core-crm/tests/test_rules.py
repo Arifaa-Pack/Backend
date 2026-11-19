@@ -19,7 +19,8 @@ from kx.core.contracts import CounterVerdict, CounterVerdictKind, DealStage
 from kx.core.errors import RuleViolation
 from kx.core.identity import priced_content_sha256 as content_sha256
 from kx.core.identity import sha256_hex
-from kx.crm.pdf import (
+from kx.crm._shared.settings import parse_settings
+from kx.crm.quotes.pdf import (
     DocLine,
     Letterhead,
     QuoteDocument,
@@ -38,7 +39,6 @@ from kx.crm.rules import (
     round_verdict,
     staleness,
 )
-from kx.crm.services.settings import parse_settings
 
 S = DealStage
 NOW = datetime(2026, 11, 4, 10, tzinfo=UTC)
@@ -233,7 +233,7 @@ def test_export_cells_never_carry_a_formula(lead: str) -> None:
     """M4: CSV text cells that start like a formula get a `'`; XLSX text cells are explicit strings."""
     from openpyxl import Workbook  # type: ignore[import-untyped]
 
-    from kx.crm.api.reports import csv_cell, xlsx_cell
+    from kx.crm.reports.router import csv_cell, xlsx_cell
 
     hostile = lead + "cmd|' /C calc'!A0"
     assert csv_cell(hostile) == "'" + hostile

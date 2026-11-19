@@ -21,12 +21,17 @@ from automation_fakes import (
 )
 from sqlalchemy import select, text
 
-from kx.automation.channels import ChannelError
-from kx.automation.channels.email import parse_inbound
-from kx.automation.inbound import record_email
+from kx.automation._shared.channels import ChannelError
+from kx.automation._shared.settings import AutomationSettings
+from kx.automation.email.channel import parse_inbound
+from kx.automation.inbound.service import record_email
 from kx.automation.models import OutboundMessage
-from kx.automation.outbound import OutboundService, TransientDeliveryError, content_sha256, reply_subject
-from kx.automation.settings import AutomationSettings
+from kx.automation.outbound.service import (
+    OutboundService,
+    TransientDeliveryError,
+    content_sha256,
+    reply_subject,
+)
 from kx.core.contracts import OutboundKind, OutboundRequest
 from kx.core.errors import RuleViolation
 from kx.core.identity import recipient_hash

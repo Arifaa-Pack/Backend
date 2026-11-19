@@ -19,14 +19,14 @@ from arifaa_pack.bodylimit import BodyLimit
 from arifaa_pack.config import AppSettings
 from arifaa_pack.container import public_buckets, staff_auth
 from arifaa_pack.cors import SplitCors
-from kx.automation.settings import AutomationSettings
+from kx.automation._shared.settings import AutomationSettings
 from kx.core.contracts import ContactPatch
 from kx.core.errors import RuleViolation
 from kx.core.settings import AuthSettings, RateLimit
 from kx.core.timewindow import language_tag, valid_timezone
-from kx.crm.api.records import ContactEditIn
-from kx.crm.services.price_lists import check_xlsx
-from kx.crm.throttle import MemoryThrottle
+from kx.crm.auth.throttle import MemoryThrottle
+from kx.crm.pricing.price_list_service import check_xlsx
+from kx.crm.records.router import ContactEditIn
 
 CRM, WWW, EVIL = "https://crm.arifapack.com", "https://www.arifapack.com", "https://evil.example"
 

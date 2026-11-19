@@ -14,7 +14,7 @@ import pytest
 from fastapi import FastAPI
 from sqlalchemy import text
 
-from kx.automation.cms import build_router, signature
+from kx.automation.cms.service import build_router, signature
 from kx.core import events as ev
 from kx.core.errors import install_problem_handlers
 from kx.core.settings import LogicalDb

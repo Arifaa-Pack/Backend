@@ -7,7 +7,7 @@ import uuid
 from hypothesis import given
 from hypothesis import strategies as st
 
-from kx.crm.services.assignment import BuyerFacts, Candidate, available, choose, next_in_turn, rule_pool
+from kx.crm.assignment.service import BuyerFacts, Candidate, available, choose, next_in_turn, rule_pool
 
 SARA = Candidate(
     uuid.UUID(int=1), frozenset({"en", "ar"}), frozenset({"AE", "SA"}), frozenset({"ALU"}), seq=5

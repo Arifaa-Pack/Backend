@@ -10,8 +10,9 @@ import httpx
 import pytest
 from pydantic import SecretStr
 
-from kx.automation.channels import ChannelError
-from kx.automation.channels.email import (
+from kx.automation._shared.channels import ChannelError
+from kx.automation._shared.settings import SesSettings, StalwartSettings
+from kx.automation.email.channel import (
     Attachment,
     EmailSender,
     build_mime,
@@ -19,9 +20,8 @@ from kx.automation.channels.email import (
     parse_inbound,
     strip_quoted,
 )
-from kx.automation.channels.feedback import candidate_ids, parse_feedback
-from kx.automation.channels.stalwart import JmapClient
-from kx.automation.settings import SesSettings, StalwartSettings
+from kx.automation.email.feedback import candidate_ids, parse_feedback
+from kx.automation.email.stalwart import JmapClient
 
 PDF = Attachment("Q-1045.pdf", "application/pdf", b"%PDF-1.7 quote")
 
@@ -313,7 +313,7 @@ async def test_stalwart_v1_submission_cap_is_pruned_and_the_same_email_resubmitt
     and submits the Email already in Sent again (never a second copy). Deleting does not cancel delivery."""
     import json
 
-    from kx.automation.channels.stalwart import StalwartSender
+    from kx.automation.email.stalwart import StalwartSender
 
     calls: list[str] = []
     state = {"full": True}

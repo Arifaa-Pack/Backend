@@ -15,7 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import pytest
 from test_quote_document import DOC
 
-from kx.crm.pdf import PDF_CSP, ChromiumEngine, QuoteRenderer, _locked
+from kx.crm.quotes.pdf import PDF_CSP, ChromiumEngine, QuoteRenderer, _locked
 
 CHROMIUM = os.environ.get("KX_APP_CHROMIUM_PATH") or shutil.which("chromium") or ""
 needs_chromium = pytest.mark.skipif(not os.path.exists(CHROMIUM), reason="Chromium not installed here")

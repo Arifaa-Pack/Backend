@@ -13,11 +13,11 @@ import jwt
 import pytest
 from fastapi import FastAPI
 
-from kx.agents.models import ModelRouter
+from kx.agents.llm.service import ModelRouter
 from kx.agents.orm import Visitor
-from kx.agents.service import AgentService
+from kx.agents.runtime.service import AgentService
 from kx.agents.testing import FakeCrmGateway, ScriptedChatModel, make_deal
-from kx.agents.website import LiveKitConfig, WebsiteDeps, build_router
+from kx.agents.website.router import LiveKitConfig, WebsiteDeps, build_router
 from kx.core.contracts import ContactPatch
 from kx.core.errors import install_problem_handlers
 from kx.core.settings import LogicalDb

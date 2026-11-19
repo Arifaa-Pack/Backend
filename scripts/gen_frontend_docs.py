@@ -24,7 +24,7 @@ from kx.core.auth import Role
 from kx.core.errors import install_problem_handlers
 from kx.crm.api import build_router as crm_router
 from kx.crm.deps import CrmDeps
-from kx.crm.pdf import Letterhead
+from kx.crm.quotes.pdf import Letterhead
 
 HERE = pathlib.Path(__file__).resolve().parent
 HEADS = HERE / "frontend_heads"

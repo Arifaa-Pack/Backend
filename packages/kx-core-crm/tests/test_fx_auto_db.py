@@ -15,8 +15,8 @@ from sqlalchemy import delete, select
 from kx.core import events as ev
 from kx.core.settings import LogicalDb
 from kx.crm import models as m
-from kx.crm.services import fx
-from kx.crm.services.pricing import fx_with_date
+from kx.crm.pricing import fx
+from kx.crm.pricing.service import fx_with_date
 
 pytestmark = pytest.mark.db
 DAY = date(2031, 3, 3)  # far from other tests' rates

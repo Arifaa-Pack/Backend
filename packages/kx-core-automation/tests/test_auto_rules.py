@@ -10,10 +10,10 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from kx.automation.contact_hours import WEEK, cap_conflict, next_followup_slot
-from kx.automation.outbound import content_sha256, render_template
-from kx.automation.scraping import ScrapeError, extract, parse_price
-from kx.automation.settings import AutomationSettings, PriceSourceConfig
+from kx.automation._shared.settings import AutomationSettings, PriceSourceConfig
+from kx.automation.outbound.contact_hours import WEEK, cap_conflict, next_followup_slot
+from kx.automation.outbound.service import content_sha256, render_template
+from kx.automation.scraping.service import ScrapeError, extract, parse_price
 from kx.core.errors import RuleViolation
 from kx.core.identity import sha256_hex
 

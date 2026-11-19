@@ -13,8 +13,8 @@ from kx.core import events as ev
 from kx.core.errors import RuleViolation
 from kx.core.settings import LogicalDb
 from kx.crm import models as m
-from kx.crm.services import company
-from kx.crm.services.journal import Actor
+from kx.crm._shared.journal import Actor
+from kx.crm.company import service as company
 
 pytestmark = pytest.mark.db
 ACTOR = Actor("user", str(MGR_ID), MGR_ID)

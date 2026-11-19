@@ -16,9 +16,9 @@ from test_won_lost_db import agreed_deal
 from kx.core.auth import Role
 from kx.core.db import Databases
 from kx.core.settings import LogicalDb
+from kx.crm._shared.journal import Actor
 from kx.crm.deps import CrmDeps
-from kx.crm.services import orders
-from kx.crm.services.journal import Actor
+from kx.crm.orders import service as orders
 
 pytestmark = [pytest.mark.db, pytest.mark.usefixtures("price_list")]
 

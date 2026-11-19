@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 from sqlalchemy import text
 
-from kx.automation.alerts import LadderTicket
+from kx.automation.alerts.service import LadderTicket
 from kx.automation.jobs import DELIVER, FOLLOWUP, LADDER, JobScheduler
 from kx.core.db import Databases
 from kx.core.event_payloads import DealNextActionSet, QuoteSubmitted, StaffContact

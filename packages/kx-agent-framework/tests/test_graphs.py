@@ -6,12 +6,12 @@ from langchain_core.messages import HumanMessage, ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
-from kx.agents.context import AgentContext
 from kx.agents.graphs.conversation import build_conversation_agent, final_reply
 from kx.agents.graphs.deal import BuyerAsk, build_deal_graph
 from kx.agents.graphs.quotation import build_quotation_graph
-from kx.agents.models import ModelSet
-from kx.agents.registry import AgentRegistry, DefaultPromptStore
+from kx.agents.llm.service import ModelSet
+from kx.agents.roles.registry import AgentRegistry, DefaultPromptStore
+from kx.agents.runtime.context import AgentContext
 from kx.agents.testing import FakeCrmGateway, ScriptedChatModel, make_deal, tool_call
 from kx.core.contracts import AiRole, CounterVerdict, CounterVerdictKind, DealContext, DealStage
 from kx.core.price_guard import check_prices

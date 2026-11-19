@@ -21,10 +21,11 @@ from kx.core.db import Databases
 from kx.core.money import display
 from kx.core.settings import LogicalDb
 from kx.crm import models as m
+from kx.crm.deals import service as deals
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import CrmGatewayImpl
-from kx.crm.services import deals, quotes
-from kx.crm.services.pricing import PricingNeeded, QuantityOutsideTiers, current_tiers, current_tiers_many
+from kx.crm.pricing.service import PricingNeeded, QuantityOutsideTiers, current_tiers, current_tiers_many
+from kx.crm.quotes import service as quotes
 
 pytestmark = [pytest.mark.db, pytest.mark.usefixtures("price_list")]
 CRM = LogicalDb.CRM
@@ -130,7 +131,7 @@ async def test_quotes_the_ai_may_not_price(
     databases: Databases, deps: CrmDeps, qty: int, spec: dict[str, object] | None, error: type[Exception]
 ) -> None:
     """The pricing service refuses; the gateway turns it into work for the salesperson (§10, D8, D12)."""
-    from kx.crm.services.journal import Actor
+    from kx.crm._shared.journal import Actor
 
     gw = CrmGatewayImpl(databases, deps)
     deal_id = await list_deal(gw, qty=qty, spec=spec)

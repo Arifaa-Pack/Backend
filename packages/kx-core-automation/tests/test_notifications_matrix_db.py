@@ -15,8 +15,8 @@ from typing import Any
 import pytest
 from test_auto_db import MANAGER, SALES, Clock, RecordingSender, build
 
-from kx.automation.alerts import PauseAlerts, VoiceAlerts
-from kx.automation.settings import AutomationSettings
+from kx.automation._shared.settings import AutomationSettings
+from kx.automation.alerts.service import PauseAlerts, VoiceAlerts
 from kx.core import events as ev
 from kx.core.contracts import OutboundKind
 from kx.core.event_payloads import (

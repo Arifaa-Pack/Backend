@@ -9,8 +9,8 @@ from typing import Any
 import pytest
 from starlette.requests import Request
 
-from kx.agents.registry import AgentRegistry, ModelTier
-from kx.agents.website import _ip
+from kx.agents.roles.registry import AgentRegistry, ModelTier
+from kx.agents.website.router import _ip
 from kx.core.contracts import AiRole
 
 ROOT = Path(__file__).resolve().parents[2]

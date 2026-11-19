@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from kx.agents.knowledge import KnowledgeBase
+from kx.agents.knowledge.service import KnowledgeBase
 from kx.agents.testing import HashEmbedder
 from kx.core.fallback import CircuitBreaker
 

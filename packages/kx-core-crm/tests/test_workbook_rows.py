@@ -9,7 +9,7 @@ from typing import Any
 
 from openpyxl import Workbook  # type: ignore[import-untyped]
 
-from kx.crm.services import workbook as wbk
+from kx.crm.catalogue import workbook as wbk
 
 D = Decimal
 NOW = wbk.Snapshot(

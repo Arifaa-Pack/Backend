@@ -18,11 +18,11 @@ from kx.core.errors import Forbidden, RuleViolation
 from kx.core.event_payloads import ConversationSummaryUpdated, make_event
 from kx.core.settings import LogicalDb
 from kx.crm import jobs as crm_jobs
+from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import CrmGatewayImpl
+from kx.crm.handover import service as handover
 from kx.crm.models import Deal, TimelineEvent
-from kx.crm.services import deals as deal_svc
-from kx.crm.services import handover
 
 pytestmark = pytest.mark.db
 SARA = Principal(str(SALES_ID), SALES_ID, Role.SALES, mfa=True, is_human=True)

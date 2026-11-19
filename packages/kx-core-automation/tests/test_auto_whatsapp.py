@@ -10,15 +10,15 @@ import pytest
 import respx
 from tenacity import wait_none
 
-from kx.automation.channels import ChannelError, HttpRetry
-from kx.automation.channels.whatsapp import (
+from kx.automation._shared.channels import ChannelError, HttpRetry
+from kx.automation._shared.settings import WhatsAppSettings
+from kx.automation.whatsapp.channel import (
     DocumentRef,
     WhatsAppClient,
     parse_webhook,
     verify_challenge,
     verify_signature,
 )
-from kx.automation.settings import WhatsAppSettings
 from kx.core.identity import hmac_sha256_hex
 
 SECRET = "app-secret"

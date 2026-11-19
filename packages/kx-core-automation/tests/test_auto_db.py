@@ -16,12 +16,13 @@ from tenacity import wait_none
 from test_auto_email import RAW_REPLY
 
 from kx.automation import jobs
-from kx.automation.alerts import ApprovalLadder, LadderTicket, PauseAlerts, VoiceAlerts
-from kx.automation.channels import HttpRetry
-from kx.automation.handlers import EventHandlers, FollowUps
+from kx.automation._shared.channels import HttpRetry
+from kx.automation._shared.settings import AutomationSettings, PriceSourceConfig
+from kx.automation.alerts.service import ApprovalLadder, LadderTicket, PauseAlerts, VoiceAlerts
+from kx.automation.followups.service import FollowUps
+from kx.automation.handlers import EventHandlers
 from kx.automation.models import Base
-from kx.automation.scraping import PriceScraper
-from kx.automation.settings import AutomationSettings, PriceSourceConfig
+from kx.automation.scraping.service import PriceScraper
 from kx.core import events as ev
 from kx.core.contracts import OutboundRequest
 from kx.core.errors import RuleViolation

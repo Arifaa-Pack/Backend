@@ -17,11 +17,11 @@ from kx.core.contracts import AiRole, ContactPatch, RequirementPatch
 from kx.core.event_payloads import DealQualified, MessageStatus, make_event
 from kx.core.settings import LogicalDb
 from kx.crm import models as m
+from kx.crm.contacts.phone import next_status
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import CrmGatewayImpl
 from kx.crm.jobs import HANDLERS, CrmRuntime, dispatch
-from kx.crm.pdf import SummaryDocument, SummaryLine, summary_caption
-from kx.crm.services.phone import next_status
+from kx.crm.quotes.pdf import SummaryDocument, SummaryLine, summary_caption
 
 CRM = LogicalDb.CRM
 
@@ -45,7 +45,7 @@ def test_phone_status_moves_forward_only(current: str, signal: Any, expected: st
 
 
 def test_the_summary_caption_is_service_wording_without_prices() -> None:
-    from kx.crm.pdf import Letterhead
+    from kx.crm.quotes.pdf import Letterhead
 
     doc = SummaryDocument(
         reference="D-1",

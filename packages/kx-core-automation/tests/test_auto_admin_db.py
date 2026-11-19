@@ -10,7 +10,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from kx.automation.admin_api import build_router
+from kx.automation.admin.router import build_router
 from kx.core.auth import Principal, Role, current_principal
 from kx.core.errors import install_problem_handlers
 

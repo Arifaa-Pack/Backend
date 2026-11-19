@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from decimal import Decimal as D
 
-from kx.crm.services.price_lists import parse_rows
+from kx.crm.pricing.price_list_service import parse_rows
 
 SKUS = {"ALC-750-L", "ALU-750"}
 

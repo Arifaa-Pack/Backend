@@ -11,8 +11,8 @@ import pytest
 from sqlalchemy import select, text
 
 from arifaa_pack.adapters import ThreadBurst
-from kx.automation.channels.email import parse_inbound
-from kx.automation.inbound import record_email
+from kx.automation.email.channel import parse_inbound
+from kx.automation.inbound.service import record_email
 from kx.automation.models import InboundMessage, Thread
 from kx.core.settings import LogicalDb
 

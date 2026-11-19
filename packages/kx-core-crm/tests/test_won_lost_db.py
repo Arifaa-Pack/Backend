@@ -19,11 +19,13 @@ from kx.core.db import Databases
 from kx.core.errors import RuleViolation
 from kx.core.settings import LogicalDb
 from kx.crm import models as m
+from kx.crm._shared.journal import Actor
+from kx.crm.deals import lost_proposals
+from kx.crm.deals import service as deals
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import CrmGatewayImpl
+from kx.crm.orders import service as orders
 from kx.crm.rules import LOST_REASONS, lost_proposal_due
-from kx.crm.services import deals, lost_proposals, orders
-from kx.crm.services.journal import Actor
 
 pytestmark = [pytest.mark.db, pytest.mark.usefixtures("price_list")]
 CRM = LogicalDb.CRM
@@ -138,7 +140,8 @@ async def test_lost_closes_open_approvals_change_requests_and_unused_grants(
     from test_flow_db import MGR, decide
 
     from kx.core.errors import Conflict
-    from kx.crm.services import approvals, quotes
+    from kx.crm.approvals import service as approvals
+    from kx.crm.quotes import service as quotes
 
     pending = await sara_deal(databases, deps)  # quote waiting for the salesperson's approval
     await raise_delivery(databases, deps, pending)

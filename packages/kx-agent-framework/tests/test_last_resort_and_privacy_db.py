@@ -15,11 +15,11 @@ import pytest
 from sqlalchemy import select
 
 from kx.agents.handlers import AgentHandlers, ReplyAddress
-from kx.agents.knowledge import KnowledgeBase
-from kx.agents.memory import TurnStore
-from kx.agents.models import ModelRouter
+from kx.agents.knowledge.service import KnowledgeBase
+from kx.agents.llm.service import ModelRouter
+from kx.agents.memory.service import TurnStore
 from kx.agents.orm import AgentRun, Conversation, GuardEvent, KnowledgeGap
-from kx.agents.service import AgentService
+from kx.agents.runtime.service import AgentService
 from kx.agents.testing import FakeCrmGateway, HashEmbedder, ScriptedChatModel, make_deal
 from kx.core import events as ev
 from kx.core.contracts import DealStage, OutboundRequest

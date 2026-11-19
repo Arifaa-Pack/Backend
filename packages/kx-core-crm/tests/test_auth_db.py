@@ -25,12 +25,13 @@ from kx.core.auth import TokenIssuer
 from kx.core.errors import install_problem_handlers
 from kx.core.passwords import SeedBox, totp_now
 from kx.core.settings import AuthSettings, LogicalDb, RateLimit, get_settings
-from kx.crm.api import build_router, session_guard
+from kx.crm._shared.journal import Actor
+from kx.crm.api import build_router
+from kx.crm.auth import service as svc
+from kx.crm.auth import session_guard
+from kx.crm.auth.throttle import MemoryThrottle
 from kx.crm.deps import CrmDeps
 from kx.crm.models import AuditEvent, OutboxEvent, StaffCredential
-from kx.crm.services import auth as svc
-from kx.crm.services.journal import Actor
-from kx.crm.throttle import MemoryThrottle
 
 pytestmark = pytest.mark.db
 

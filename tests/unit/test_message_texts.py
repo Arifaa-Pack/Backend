@@ -7,7 +7,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from kx.agents.registry import DefaultPromptStore, Phrase
+from kx.agents.roles.registry import DefaultPromptStore, Phrase
 from kx.core.texts import CATALOG, TEXTS, Texts, check_edit
 
 
@@ -80,7 +80,7 @@ def test_staff_alert_and_summary_texts_come_from_the_catalogue() -> None:
     import uuid
     from datetime import UTC, datetime
 
-    from kx.automation.alerts import LadderTicket
+    from kx.automation.alerts.service import LadderTicket
     from kx.core.event_payloads import StaffContact
 
     TEXTS.replace({("staff.change_request_title", "en"): "Change request ({type}) on {deal}"})

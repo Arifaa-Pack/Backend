@@ -7,10 +7,10 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from kx.automation.alerts import LadderTicket
-from kx.automation.channels.email import Attachment
-from kx.automation.channels.whatsapp import DocumentRef
-from kx.automation.ratelimit import Bucket, Decision
+from kx.automation.alerts.service import LadderTicket
+from kx.automation.email.channel import Attachment
+from kx.automation.outbound.ratelimit import Bucket, Decision
+from kx.automation.whatsapp.channel import DocumentRef
 from kx.core.event_payloads import DealNextActionSet, NegotiationPaused
 
 # Tuesday 3 Nov 2026, 10:00 Dubai: inside both the alert and the follow-up windows.

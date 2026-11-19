@@ -6,7 +6,7 @@ from decimal import Decimal
 
 import pytest
 
-from kx.agents.runs import call_cost
+from kx.agents.runtime.runs import call_cost
 from kx.core.fallback import AllVendorsFailed, CircuitBreaker, FallbackChain
 
 

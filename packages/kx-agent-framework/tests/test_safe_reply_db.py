@@ -14,8 +14,8 @@ from langchain_core.messages import BaseMessage
 from langchain_core.outputs import ChatResult
 from pydantic import PrivateAttr
 
-from kx.agents.models import ModelRouter
-from kx.agents.service import AgentService, InboundTurn
+from kx.agents.llm.service import ModelRouter
+from kx.agents.runtime.service import AgentService, InboundTurn
 from kx.agents.testing import FakeCrmGateway, ScriptedChatModel, make_deal
 from kx.core.contracts import DealStage
 

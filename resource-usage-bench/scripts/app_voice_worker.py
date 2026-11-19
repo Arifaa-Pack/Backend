@@ -25,7 +25,7 @@ from livekit.agents import WorkerOptions, cli
 from livekit.plugins import openai, silero
 
 from arifaa_pack.container import build
-from kx.agents.voice import VoiceRoute, make_livekit_entrypoint
+from kx.agents.voice.service import VoiceRoute, make_livekit_entrypoint
 
 SPEECH = os.environ.get("SPEECH_URL", "http://host.docker.internal:8100/v1")
 PLACEHOLDER_LLM_URL = os.environ.get("PLACEHOLDER_LLM_URL", "http://fakes:9000/v1")
@@ -43,23 +43,34 @@ def _session_with_placeholder_llm() -> None:
     original = lk.AgentSession.__init__
 
     def init(self: Any, *args: Any, **kwargs: Any) -> None:
-        kwargs.setdefault("llm", openai.LLM(base_url=PLACEHOLDER_LLM_URL, api_key="bench",
-                                            model="placeholder-never-called"))
+        kwargs.setdefault(
+            "llm", openai.LLM(base_url=PLACEHOLDER_LLM_URL, api_key="bench", model="placeholder-never-called")
+        )
         original(self, *args, **kwargs)
 
     lk.AgentSession.__init__ = init  # type: ignore[method-assign]
 
 
 _session_with_placeholder_llm()  # at import: every job process imports this module
-PIPER_VOICES = {"en", "ar", "hi", "zh"}  # Piper has no Tamil voice: Tamil calls fall back to the English voice
+PIPER_VOICES = {
+    "en",
+    "ar",
+    "hi",
+    "zh",
+}  # Piper has no Tamil voice: Tamil calls fall back to the English voice
 
 
 class FreePlugins:
     """kx.agents.voice.VoicePlugins with free, self-hosted engines."""
 
     def stt(self, route: VoiceRoute) -> Any:
-        return openai.STT(base_url=SPEECH, api_key="bench", model="whisper-turbo", language=route.language,
-                          use_realtime=False)
+        return openai.STT(
+            base_url=SPEECH,
+            api_key="bench",
+            model="whisper-turbo",
+            language=route.language,
+            use_realtime=False,
+        )
 
     def tts(self, route: VoiceRoute) -> Any:
         voice = route.language if route.language in PIPER_VOICES else "en"
@@ -82,7 +93,9 @@ async def entry(ctx: Any) -> None:
         stack = AsyncExitStack()
         c = await stack.enter_async_context(build())
         minutes = partial(c.spend.add, "voice_minutes")  # D34 daily voice-minute cap
-        _STATE.update(stack=stack, fn=make_livekit_entrypoint(c.agent_service, FreePlugins(), on_minutes=minutes))
+        _STATE.update(
+            stack=stack, fn=make_livekit_entrypoint(c.agent_service, FreePlugins(), on_minutes=minutes)
+        )
     await _STATE["fn"](ctx)
 
 
