@@ -43,7 +43,8 @@ from kx.crm.models import (
     TimelineEvent,
     User,
 )
-from kx.crm.services import access, negotiation, quotes
+from kx.crm.negotiation import service as negotiation
+from kx.crm.services import access, quotes
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.journal import Actor
 
