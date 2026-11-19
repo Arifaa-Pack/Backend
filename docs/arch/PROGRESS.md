@@ -652,3 +652,26 @@ The three feature modules (`outbound.py`, `inbound.py`, `optout.py`) are byte-id
   (routers; service-side modules) and the ORM rule is a separate `forbidden` contract. The `forbidden` contract on
   `*.models` names the ORM modules explicitly because `kx.agents.models` is the LLM model router, not ORM
   (`CURRENT_STATE.md` §4).
+- **Full suite (2.4):** `a74eace`: tests=982, failures=0, errors=0, skipped=4, exit=0 → COMPLETED.
+
+## 2.5 shims removed where nothing imports them — TESTING
+
+- **Done:** every alias shim's old path searched (AST imports and string references, in `packages/`, `apps/`,
+  `tests/`, `scripts/`, `services/`, `infra/`, `docs/`). Removed the 19 that no file uses:
+  - `kx.crm.api.admin`, `.assignment`, `.auth`, `.catalogue_workbook`, `.change_requests`, `.context`,
+    `.deal_actions`, `.deals`, `.operations`, `.pagination`, `.quotes`, `.schemas`, `.users`;
+  - `kx.crm.services.consent`, `.dashboards`, `.grants`, `.retention`, `.staff`, `.summary`.
+  **The Arifaa Auto team must switch these imports to the new paths** (table in `docs/arch/CRM_SLICES.md`).
+- **Kept (still imported):** 31 shims: 26 used by tests, `kx.crm.throttle` (tests), the five automation helpers
+  (tests), and `kx.crm.api.company`, `.records`, `.screens`, `.texts`, which the pinned OpenAPI `__module__`
+  names point at (removing them would also need a component-name decision).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 423 files already formatted
+  - mypy: Success: no issues found in 266 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 22.22s =============================
+  - full suite: run on this commit; result logged in the final entry
