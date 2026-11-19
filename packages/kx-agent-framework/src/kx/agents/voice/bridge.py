@@ -26,7 +26,7 @@ import json
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Final, Literal, Protocol
+from typing import Any, Final, Protocol
 
 from pydantic import ValidationError
 
@@ -53,20 +53,10 @@ class TurnOutcome(Protocol):
     def language(self) -> str: ...
 
 
-class VisitTurn(Protocol):
-    """`WebsiteTurns.turn`: one turn of the visit, with its site actions."""
-
-    async def __call__(
-        self,
-        session_id: uuid.UUID,
-        deal_id: uuid.UUID,
-        text: str,
-        *,
-        language: str | None,
-        context: SiteContext | None,
-        channel: Literal["web_chat", "web_voice"] = "web_chat",
-        emit: Emit | None = None,
-    ) -> TurnOutcome: ...
+# `WebsiteTurns.turn(session_id, deal_id, text, *, language, context, channel, emit)`: one turn of the visit,
+# with its site actions. A plain callable type, not a Protocol: a Protocol with only `__call__` is matched by
+# every class (`kx map` lists ports by structure).
+VisitTurn = Callable[..., Awaitable[TurnOutcome]]
 
 
 class VisitHooks(Protocol):

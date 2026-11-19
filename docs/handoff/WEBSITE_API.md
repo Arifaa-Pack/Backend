@@ -202,6 +202,7 @@ to add, in order of value:
 | 6 | No contact card, no consent ticks | the `ask_contact` action and `POST /sessions/{id}/contact` |
 | 7 | No `events` | `product_dwell`, `enquiry_add`, `idle`, `page_view` (§3 item 6) |
 | 8 | Content is read from `catalogue.json`, `site.ts`, `clients.json` | `GET /v1/content/*` with revalidation (`CMS_API.md`) |
+| 9 | `showProduct()` keeps the previous search (`?q=30 cm`): behind the opened product the grid reads "No match" | clear `q` (and the family filter) when the assistant opens a product |
 
 ---
 
