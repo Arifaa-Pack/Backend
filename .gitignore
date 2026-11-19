@@ -16,3 +16,5 @@ infra/server/stacks/secrets/
 **/userlist.txt
 dist/
 build/
+# Office lock files (they hold the Windows account name)
+~$*
