@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core import events as ev
 from kx.core.event_payloads import QuoteApproved, QuoteNotDelivered, QuoteResendRequested
 from kx.core.identity import priced_content_sha256, sha256_hex
+from kx.crm.company import service as company_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import (
     Approval,
@@ -35,7 +36,6 @@ from kx.crm.models import (
     User,
 )
 from kx.crm.pdf import DocLine, QuoteDocument, SalesContact, pdf_key, quote_message
-from kx.crm.services import company as company_svc
 from kx.crm.services import deals as deal_svc
 from kx.crm.services import phone, staff
 from kx.crm.services.grants import GrantPolicy, SendChannel, issue_grant, recipient

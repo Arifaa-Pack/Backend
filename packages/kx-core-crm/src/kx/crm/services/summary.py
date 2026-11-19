@@ -20,10 +20,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core import events as ev
 from kx.core.event_payloads import RequirementSummary
 from kx.core.identity import phone_kind, sha256_hex
+from kx.crm.company import service as company_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Company, Contact, Deal, DealRequirement, Product
 from kx.crm.pdf import SummaryDocument, SummaryLine, summary_caption, summary_key, summary_phrase
-from kx.crm.services import company as company_svc
 from kx.crm.services import deals as deal_svc
 from kx.crm.services import phone
 from kx.crm.services.issuing import local_today

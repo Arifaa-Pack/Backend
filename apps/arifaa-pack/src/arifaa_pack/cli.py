@@ -134,8 +134,8 @@ def _first_run(args: argparse.Namespace) -> None:
     from arifaa_pack.migrations import status  # noqa: PLC0415
     from kx.core.platform import summary  # noqa: PLC0415
     from kx.core.settings import get_settings  # noqa: PLC0415
+    from kx.crm.company import service as company  # noqa: PLC0415
     from kx.crm.models import User  # noqa: PLC0415
-    from kx.crm.services import company  # noqa: PLC0415
     from kx.crm.services.auth import create_user  # noqa: PLC0415
     from kx.crm.services.journal import Actor  # noqa: PLC0415
 

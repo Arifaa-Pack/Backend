@@ -153,10 +153,10 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/companies` | `kx.crm.api.records:router.<locals>.companies` | `kx.crm.api.deals:visible_to`<br>`kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
 | POST | `/v1/companies` | `kx.crm.api.records:router.<locals>.create_company` | `kx.crm.services.journal:record` |
 | PATCH | `/v1/companies/{company_id}` | `kx.crm.api.records:router.<locals>.edit_company` | `kx.crm.api.deals:visible_to`<br>`kx.crm.services.journal:record` |
-| GET | `/v1/company` | `kx.crm.api.company:router.<locals>.show` | `kx.crm.services.company:letterhead` |
-| PATCH | `/v1/company` | `kx.crm.api.company:router.<locals>.edit` | `kx.crm.services.company:letterhead`<br>`kx.crm.services.company:update` |
-| DELETE | `/v1/company/logo` | `kx.crm.api.company:router.<locals>.remove_logo` | `kx.crm.services.company:letterhead`<br>`kx.crm.services.company:update` |
-| PUT | `/v1/company/logo` | `kx.crm.api.company:router.<locals>.upload_logo` | `kx.crm.services.company:letterhead`<br>`kx.crm.services.company:logo_data_uri`<br>`kx.crm.services.company:update` |
+| GET | `/v1/company` | `kx.crm.company.router:router.<locals>.show` | `kx.crm.company.service:letterhead` |
+| PATCH | `/v1/company` | `kx.crm.company.router:router.<locals>.edit` | `kx.crm.company.service:letterhead`<br>`kx.crm.company.service:update` |
+| DELETE | `/v1/company/logo` | `kx.crm.company.router:router.<locals>.remove_logo` | `kx.crm.company.service:letterhead`<br>`kx.crm.company.service:update` |
+| PUT | `/v1/company/logo` | `kx.crm.company.router:router.<locals>.upload_logo` | `kx.crm.company.service:letterhead`<br>`kx.crm.company.service:logo_data_uri`<br>`kx.crm.company.service:update` |
 | GET | `/v1/contacts` | `kx.crm.api.records:router.<locals>.contacts` | `kx.crm.api.deals:visible_to`<br>`kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
 | GET | `/v1/contacts/{contact_id}` | `kx.crm.api.records:router.<locals>.contact` | `kx.crm.api.deals:visible_to` |
 | PATCH | `/v1/contacts/{contact_id}` | `kx.crm.api.records:router.<locals>.edit_contact` | `kx.crm.api.deals:visible_to`<br>`kx.crm.services.journal:record` |

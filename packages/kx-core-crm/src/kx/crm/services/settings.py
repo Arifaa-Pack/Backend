@@ -23,8 +23,8 @@ from kx.core.db import get_or_404
 from kx.core.errors import RuleViolation
 from kx.core.event_payloads import SettingsChanged
 from kx.core.timewindow import Window
+from kx.crm.company.service import CompanyProfile
 from kx.crm.models import FeatureFlag, Setting, SettingHistory
-from kx.crm.services.company import CompanyProfile
 from kx.crm.services.journal import Actor, Emit, record
 
 

@@ -16,7 +16,6 @@ from kx.crm.api import (
     auth,
     catalogue_workbook,
     change_requests,
-    company,
     deal_actions,
     deals,
     operations,
@@ -28,6 +27,7 @@ from kx.crm.api import (
 )
 from kx.crm.api.context import ApiContext
 from kx.crm.api.session_guard import SessionGuard
+from kx.crm.company import router as company
 from kx.crm.deps import CrmDeps
 from kx.crm.texts import router as texts
 

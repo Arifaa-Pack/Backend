@@ -24,11 +24,11 @@ from kx.core.auth import Principal
 from kx.core.contracts import OutboundKind, OutboundRequest
 from kx.core.errors import RuleViolation, Unavailable
 from kx.core.price_guard import check_prices
+from kx.crm.company import service as company_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import build_context
 from kx.crm.models import Deal, User
 from kx.crm.services import access, issuing
-from kx.crm.services import company as company_svc
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.grants import SendChannel, recipient, recipient_on
 from kx.crm.services.journal import Actor, Timeline, record
