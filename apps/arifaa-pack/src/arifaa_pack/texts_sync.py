@@ -25,7 +25,7 @@ from kx.core.jobs import Job
 from kx.core.logging import get_logger
 from kx.core.settings import LogicalDb
 from kx.core.texts import CATALOG, TEXTS, TRANSLATED, check_edit
-from kx.crm.texts import service as crm_texts
+from kx.crm import load_text_edits, save_text_translation
 
 log = get_logger(__name__)
 REFRESH_SECONDS: Final = 30.0
@@ -48,7 +48,7 @@ _SYSTEM: Final = (
 
 async def refresh(dbs: Databases) -> int:
     async with dbs.transaction(LogicalDb.CRM) as s:
-        edits = await crm_texts.load_edits(s)
+        edits = await load_text_edits(s)
     TEXTS.replace(edits)
     return len(edits)
 
@@ -87,7 +87,7 @@ async def translate_text(models: ModelRouter, dbs: Databases, job: Job) -> None:
         if text is None:
             continue
         async with dbs.transaction(LogicalDb.CRM) as s:
-            if await crm_texts.save_translation(
+            if await save_text_translation(
                 s, p.key, language, text, en_version=p.en_version, now=datetime.now(UTC)
             ):
                 saved.append(language)

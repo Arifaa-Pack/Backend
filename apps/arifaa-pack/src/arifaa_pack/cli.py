@@ -101,8 +101,7 @@ def _create_user(args: argparse.Namespace) -> None:
     import asyncio  # noqa: PLC0415
 
     from arifaa_pack.container import build  # noqa: PLC0415
-    from kx.crm._shared.journal import Actor  # noqa: PLC0415
-    from kx.crm.auth.service import create_user  # noqa: PLC0415
+    from kx.crm import Actor, create_user  # noqa: PLC0415
 
     async def run() -> None:
         async with build() as c, c.databases.transaction(LogicalDb.CRM) as s:
@@ -134,10 +133,8 @@ def _first_run(args: argparse.Namespace) -> None:
     from arifaa_pack.migrations import status  # noqa: PLC0415
     from kx.core.platform import summary  # noqa: PLC0415
     from kx.core.settings import get_settings  # noqa: PLC0415
-    from kx.crm._shared.journal import Actor  # noqa: PLC0415
-    from kx.crm.auth.service import create_user  # noqa: PLC0415
-    from kx.crm.company import service as company  # noqa: PLC0415
-    from kx.crm.models import User  # noqa: PLC0415
+    from kx.crm import Actor, company_letterhead, create_user  # noqa: PLC0415
+    from kx.crm.models import User  # noqa: PLC0415  (ADR-0001 rule-3 baseline)
 
     print("1. databases")
     behind = []
@@ -171,7 +168,7 @@ def _first_run(args: argparse.Namespace) -> None:
                 print(f"   {role:<6} {user.email}: created, one-time password: {password}")
             print("3. letterhead printed on quotes")
             async with c.databases.transaction(LogicalDb.CRM) as s:
-                lh = await company.letterhead(s, c.crm_deps)
+                lh = await company_letterhead(s, c.crm_deps)
             for field in ("name", "address", "trn", "phone", "email"):
                 value = getattr(lh, field)
                 flag = (

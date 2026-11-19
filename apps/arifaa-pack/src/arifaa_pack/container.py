@@ -89,20 +89,22 @@ from kx.core.platform import Field, Modes, order, resolved
 from kx.core.retention import prune_batches
 from kx.core.settings import AuthSettings, CoreSettings, Environment, LogicalDb, get_settings
 from kx.core.spend import SpendCaps, SpendMeter
-from kx.crm import jobs as crm_jobs
-from kx.crm._shared.settings import SettingsService
-from kx.crm.deps import CrmDeps
-from kx.crm.gateway import ApprovalStatusReaderImpl, CrmGatewayImpl, GrantConsumerImpl
-from kx.crm.models import Product
-from kx.crm.quotes.pdf import (
+from kx.crm import (
+    ApprovalStatusReaderImpl,
     ChromiumEngine,
+    CrmDeps,
+    CrmGatewayImpl,
+    GrantConsumerImpl,
     Letterhead,
     PdfEngine,
     QuoteRenderer,
     S3PdfUploader,
+    SettingsService,
     WeasyPrintEngine,
+    retention_rules,
 )
-from kx.crm.retention import service as crm_retention
+from kx.crm import jobs as crm_jobs
+from kx.crm.models import Product  # ADR-0001 rule-3 baseline: cms_product_draft writes cms_product_id here
 
 EventFn = Callable[[Event], Awaitable[Any]]
 Periodic = Callable[[datetime], Awaitable[Any]]
@@ -310,7 +312,7 @@ def _periodic(d: _PeriodicDeps) -> dict[str, Periodic]:
         r = d.core.retention
         out: dict[str, int] = {}
         for db, rules in (
-            (LogicalDb.CRM, crm_retention.plumbing_rules(r)),
+            (LogicalDb.CRM, retention_rules(r)),
             (LogicalDb.AUTOMATION, automation_retention.plumbing_rules(r)),
         ):
             for rule in rules:

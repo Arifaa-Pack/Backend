@@ -23,8 +23,8 @@ from kx.automation.webhooks import build_router as webhook_router
 from kx.core.errors import Unavailable, install_problem_handlers
 from kx.core.logging import configure_logging
 from kx.core.settings import get_settings
-from kx.crm.api import build_router as crm_router
-from kx.crm.auth.session_guard import SessionGuard
+from kx.crm import SessionGuard
+from kx.crm import build_router as crm_router
 
 
 def create_app() -> FastAPI:

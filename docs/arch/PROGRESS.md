@@ -507,3 +507,40 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 21.66s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `quotes` @ `99040c5`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-quotes`, COMPLETED
+
+## 1.23 public surface `kx/crm/__init__.py` — TESTING
+
+- **Previous slice's full suite:** `_shared` @ `d7d60e0`: tests=982, failures=0, errors=0, skipped=4, exit=0 →
+  tagged `arch-slice/crm-_shared`, COMPLETED. **All 22 CRM slices are COMPLETED.**
+- **Done:** `kx/crm/__init__.py` names what the app uses, with an explicit `__all__` (21 names: the wiring
+  classes, `jobs`, `build_router`, `SessionGuard`, `MemoryThrottle`, the quote-PDF engines, `Actor`,
+  `create_user`, `company_letterhead`, `retention_rules`, `load_text_edits`, `save_text_translation`). Resolved
+  lazily (PEP 562 `__getattr__`) so importing one CRM module does not import the whole package; the same names
+  are imported under `TYPE_CHECKING` so mypy sees the real types. The app (`adapters.py`, `api.py`, `cli.py`,
+  `container.py`, `texts_sync.py`) now imports only `kx.crm`, except the two ORM classes below.
+- **Rule-3 baseline (app → ORM), marked in the code:** `container.py` `from kx.crm.models import Product`
+  (`cms_product_draft` writes `cms_product_id`), `cli.py` `from kx.crm.models import User` (`first-run` checks the
+  MD / admin exist). Re-exporting them from the surface would only hide the rule-3 import; moving the two queries
+  into the CRM is a logic change, so they stay as the recorded baseline for Phase 2's `forbidden` contract.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 436 files already formatted
+  - mypy: Success: no issues found in 280 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: identical after renames except one explained entry (see Deviations)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 23.12s =============================
+  - full suite: run on this commit; result logged in the next entry
+- **Deviations:** three functions are exported under package-level names (`company_letterhead` for
+  `company.service.letterhead`, `retention_rules` for `retention.service.plumbing_rules`, `load_text_edits` /
+  `save_text_translation` for `texts.service.load_edits` / `save_translation`): bare `letterhead` or `load_edits`
+  would be unclear at package level, and the modules themselves cannot be exported as `company` / `texts` /
+  `retention` because those are the slice packages' names. **`kx map` diff:** one entry fewer in the calls of the
+  `app.retention` job: `kx.crm.retention.service:run_retention` is gone. It was a false positive: `kx map` resolves
+  every name in a function body against every module in its scope, and the job calls
+  `agents_retention.run_retention`; while the CRM retention module was in the container's namespace, the same
+  name matched it too. The job never called the CRM's `run_retention` (it calls `plumbing_rules`). Everything
+  else is identical after the renames. This commit's map is the baseline for Phase 2.
+- **Found, not fixed:** `arifaa_pack/featuremap.py:234` `calls()` can report a function that is not called when
+  another module in scope has an attribute of the same name (the case above).
