@@ -662,9 +662,10 @@ The three feature modules (`outbound.py`, `inbound.py`, `optout.py`) are byte-id
     `.deal_actions`, `.deals`, `.operations`, `.pagination`, `.quotes`, `.schemas`, `.users`;
   - `kx.crm.services.consent`, `.dashboards`, `.grants`, `.retention`, `.staff`, `.summary`.
   **The Arifaa Auto team must switch these imports to the new paths** (table in `docs/arch/CRM_SLICES.md`).
-- **Kept (still imported):** 31 shims: 26 used by tests, `kx.crm.throttle` (tests), the five automation helpers
-  (tests), and `kx.crm.api.company`, `.records`, `.screens`, `.texts`, which the pinned OpenAPI `__module__`
-  names point at (removing them would also need a component-name decision).
+- **Kept (still imported):** 38 shims: the 25 `kx.crm.services.*` ones, `kx.crm.api.reports`,
+  `kx.crm.api.session_guard`, `kx.crm.pdf`, `kx.crm.throttle` and the five automation helpers (all used by
+  tests), and `kx.crm.api.company`, `.records`, `.screens`, `.texts`, which the pinned OpenAPI `__module__` names
+  point at (removing those would also need a component-name decision).
 - **Gates:**
   - ruff check: All checks passed!
   - ruff format: 423 files already formatted
