@@ -31,7 +31,7 @@ from kx.agents.graphs.quotation import build_quotation_graph
 from kx.agents.guard import PriceSecondOpinion, clip_for_channel, looks_like_injection
 from kx.agents.knowledge import KnowledgeSearch
 from kx.agents.language import reply_language
-from kx.agents.memory import TurnStore
+from kx.agents.memory.service import TurnStore
 from kx.agents.models import ModelRouter
 from kx.agents.orchestrator import Route, route
 from kx.agents.registry import (

@@ -71,7 +71,7 @@ def setup_checkpointer(dsn: str | None = None) -> None:
     cannot carry."""
     import asyncio  # noqa: PLC0415
 
-    from kx.agents.memory import open_checkpointer  # noqa: PLC0415 - the app may import every package
+    from kx.agents.memory.service import open_checkpointer  # noqa: PLC0415 - the app may import every package
 
     async def run() -> None:
         async with open_checkpointer(dsn or migration_dsn(LogicalDb.AGENTS), max_size=1, setup=True):

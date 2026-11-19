@@ -46,7 +46,7 @@ from arifaa_pack.telemetry import heartbeat
 from kx.agents import retention as agents_retention
 from kx.agents.handlers import AgentHandlers
 from kx.agents.knowledge import KnowledgeBase, KnowledgeIndexer
-from kx.agents.memory import open_checkpointer
+from kx.agents.memory.service import open_checkpointer
 from kx.agents.models import (
     AnthropicApiProvider,
     GeminiApiProvider,

@@ -957,4 +957,19 @@ so the old import path keeps working; every name of the moved module is checked 
   - OpenAPI diff: empty
   - unit: ============================ 131 passed in 26.44s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
-- **Previous slice's full suite:** `auto-surface` @ `d5a5e1e`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-auto-surface`, COMPLETED
+- **Previous slice's full suite:** `automation public surface` @ `d5a5e1e`: errors=0, failures=0, skipped=4, tests=992, exit=0 → no tag (not a slice), COMPLETED
+
+## 2b.16 slice `memory` — TESTING (COMPLETED when tagged `arch-slice/agents-memory`)
+
+- **Moved:** `memory.py` → `memory/service.py`; `memory/__init__.py` re-exports it (51 of 51 names; old LangGraph checkpoints that name a class by its old module path still resolve); 4 imports rewritten (incl. `arifaa_pack/migrations`). Also corrects the log line of 2b.15 (no tag for the automation public surface).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 459 files already formatted
+  - mypy: Success: no issues found in 297 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 20.99s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `tracing` @ `195b3d6`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-tracing`, COMPLETED

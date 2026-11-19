@@ -20,7 +20,7 @@ from sqlalchemy import text
 
 from kx.agents.knowledge import KnowledgeIndexer
 from kx.agents.language import reply_language
-from kx.agents.memory import TurnStore
+from kx.agents.memory.service import TurnStore
 from kx.agents.orm import SCHEMA
 from kx.agents.registry import Phrase
 from kx.agents.service import AgentService, Deliver, InboundTurn
