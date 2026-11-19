@@ -36,6 +36,7 @@ from kx.crm.services import access, staff
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.issuing import lines_of
 from kx.crm.services.journal import Actor, Emit, Timeline, record
+from kx.crm.services.quotes import latest_version
 
 OPEN: Final = ("open", "in_progress")
 _ISSUED: Final = ("approved", "sent")
@@ -70,20 +71,9 @@ def fill_current(
 
 
 async def _quote_version(session: AsyncSession, deal_id: uuid.UUID) -> QuoteVersion | None:
-    """The version the buyer is looking at: the latest issued one, else the latest draft."""
-    for statuses in (_ISSUED, None):
-        stmt = (
-            select(QuoteVersion)
-            .join(Quote, Quote.id == QuoteVersion.quote_id)
-            .where(Quote.deal_id == deal_id)
-            .order_by(QuoteVersion.version_no.desc())
-            .limit(1)
-        )
-        if statuses:
-            stmt = stmt.where(QuoteVersion.status.in_(statuses))
-        if (v := (await session.execute(stmt)).scalar_one_or_none()) is not None:
-            return v
-    return None
+    """The version the buyer is looking at: the latest issued one, else the latest draft (review D6: the
+    same query as quotes.latest_version, which it now uses)."""
+    return await latest_version(session, deal_id, _ISSUED) or await latest_version(session, deal_id)
 
 
 async def raise_change_request(

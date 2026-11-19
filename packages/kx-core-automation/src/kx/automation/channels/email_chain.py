@@ -10,25 +10,12 @@ delivery job keeps its retry / give-up rules (and the CRM's own fallbacks take o
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Mapping, Sequence
-from typing import Any, Protocol
+from typing import Any
 
-from kx.automation.channels import ChannelError
-from kx.automation.channels.email import Attachment
+from kx.automation.channels import ChannelError, EmailTransport
 from kx.core.fallback import AllVendorsFailed, FallbackChain
 
-
-class EmailVendor(Protocol):
-    async def send(
-        self,
-        *,
-        to_address: str,
-        subject: str,
-        body: str,
-        attachment: Attachment | None = None,
-        in_reply_to: str | None = None,
-        list_unsubscribe: str | None = None,
-        from_name: str | None = None,
-    ) -> str: ...
+EmailVendor = EmailTransport  # review D1: the one email Protocol lives in kx.automation.channels
 
 
 class EmailChain:

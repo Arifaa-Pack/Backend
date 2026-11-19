@@ -239,17 +239,7 @@ def router(ctx: ApiContext) -> APIRouter:
     async def revise_quote(deal_id: uuid.UUID, body: QuoteEditsIn, s: Session, p: Staff) -> QuoteVersionOut:
         """§11.3 Edit then approve: a new version; below the minimum goes to the manager first (D3)."""
         await access.check_edit(s, p, await deal_svc.get_deal(s, deal_id))
-        edits = quotes.QuoteEdits(
-            lines=tuple(quotes.LineEdit(e.line_no, e.unit_price, e.quantity) for e in body.lines),
-            delivery_time_text=body.delivery_time_text,
-            delivery_place=body.delivery_place,
-            incoterm=body.incoterm,
-            payment_terms_text=body.payment_terms_text,
-            buyer_note=body.buyer_note,
-            cover_note=body.cover_note,
-            note=body.note,
-            currency=body.currency,
-        )
+        edits = body.to_edits(note=body.note)
         return QuoteVersionOut.model_validate(
             await quotes.revise_quote(s, deps, deal_id, edits, Actor.user(p))
         )

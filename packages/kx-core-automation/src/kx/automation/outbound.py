@@ -32,7 +32,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.automation.channels import ChannelError
+from kx.automation.channels import ChannelError, EmailTransport
 from kx.automation.channels.email import Attachment
 from kx.automation.channels.whatsapp import DocumentRef
 from kx.automation.contact_hours import WEEK, next_followup_slot
@@ -103,20 +103,6 @@ class WhatsAppTransport(Protocol):
     ) -> str: ...
     async def send_document(self, to_e164: str, document: DocumentRef, caption: str | None = None) -> str: ...
     async def upload_media(self, data: bytes, mime_type: str, filename: str) -> str: ...
-
-
-class EmailTransport(Protocol):
-    async def send(
-        self,
-        *,
-        to_address: str,
-        subject: str,
-        body: str,
-        attachment: Attachment | None = None,
-        in_reply_to: str | None = None,
-        list_unsubscribe: str | None = None,
-        from_name: str | None = None,
-    ) -> str: ...
 
 
 class TransientDeliveryError(Exception):

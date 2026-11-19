@@ -69,17 +69,7 @@ def router(ctx: ApiContext) -> APIRouter:
         if cr is None:
             raise NotFound(f"change request {cr_id} not found")
         await access.check_edit(s, p, await deal_svc.get_deal(s, cr.deal_id))
-        edits = quotes.QuoteEdits(
-            lines=tuple(quotes.LineEdit(e.line_no, e.unit_price, e.quantity) for e in body.lines),
-            delivery_time_text=body.delivery_time_text,
-            delivery_place=body.delivery_place,
-            incoterm=body.incoterm,
-            payment_terms_text=body.payment_terms_text,
-            buyer_note=body.buyer_note,
-            cover_note=body.cover_note,
-            note=body.note or f"Change request ({cr.type})",
-            currency=body.currency,
-        )
+        edits = body.to_edits(note=body.note or f"Change request ({cr.type})")
         version = await quotes.revise_quote(s, deps, cr.deal_id, edits, Actor.user(p))
         await change_requests.link_revision(s, deps, cr_id, version.id, p)
         return QuoteVersionOut.model_validate(version)

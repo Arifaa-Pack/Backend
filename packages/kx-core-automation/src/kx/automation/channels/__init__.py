@@ -8,11 +8,14 @@ request itself is wrong; repeating it would only repeat the error, so it fails a
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 import httpx
 from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential_jitter
 from tenacity.wait import wait_base
+
+if TYPE_CHECKING:  # channels.email imports ChannelError from here: no runtime cycle
+    from kx.automation.channels.email import Attachment
 
 
 class ChannelError(Exception):
@@ -33,6 +36,22 @@ class ChannelError(Exception):
 
 def _channel_error(provider: str, detail: str, retryable: bool, status: int | None) -> ChannelError:
     return ChannelError(provider, detail, retryable=retryable, status=status)
+
+
+class EmailTransport(Protocol):
+    """Anything that sends one email (SES API, Stalwart JMAP, the vendor chain); returns the provider's id."""
+
+    async def send(
+        self,
+        *,
+        to_address: str,
+        subject: str,
+        body: str,
+        attachment: Attachment | None = None,
+        in_reply_to: str | None = None,
+        list_unsubscribe: str | None = None,
+        from_name: str | None = None,
+    ) -> str: ...
 
 
 def is_transient(exc: BaseException) -> bool:

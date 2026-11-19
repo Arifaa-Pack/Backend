@@ -5,12 +5,15 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from kx.core.contracts import DealStage
 from kx.crm.rules import LostReason
+
+if TYPE_CHECKING:
+    from kx.crm.services.quotes import QuoteEdits
 
 
 class _Out(BaseModel):
@@ -269,6 +272,22 @@ class QuoteEditsIn(BaseModel):
     buyer_note: str | None = Field(default=None, max_length=500)  # e.g. "Updated: delivery in 5 working days"
     cover_note: str | None = Field(default=None, max_length=500)
     currency: str | None = Field(default=None, pattern="^[A-Za-z]{3}$")  # the buyer asked for e.g. USD
+
+    def to_edits(self, note: str | None) -> QuoteEdits:
+        """The service's QuoteEdits (review D8: the revise and change-request routes built it twice)."""
+        from kx.crm.services.quotes import LineEdit, QuoteEdits  # noqa: PLC0415 - schemas stay import-light
+
+        return QuoteEdits(
+            lines=tuple(LineEdit(e.line_no, e.unit_price, e.quantity) for e in self.lines),
+            delivery_time_text=self.delivery_time_text,
+            delivery_place=self.delivery_place,
+            incoterm=self.incoterm,
+            payment_terms_text=self.payment_terms_text,
+            buyer_note=self.buyer_note,
+            cover_note=self.cover_note,
+            note=note,
+            currency=self.currency,
+        )
 
 
 class ChangeRequestOut(_Out):
