@@ -1,7 +1,7 @@
-// Builds docs/testing/TESTER_HELPER.docx (the QA tester's guide).
+// Builds docs/handoff/TESTER_HELPER.docx (the QA tester's guide).
 //
-//   python scripts/gen_tester_pack.py        # first: refreshes endpoints.json + the Postman files
-//   node docs/testing/build_guide.js         # then: this script (needs the `docx` npm package, see README.md)
+//   python scripts/gen_handoff.py            // first: refreshes endpoints.json + the Postman files
+//   node docs/handoff/build/build_tester_guide.js   # then: this script (needs the `docx` npm package, see README.md)
 //
 // The endpoint reference (Appendix A) and the variable list (Appendix B) are read from endpoints.json and the
 // local environment file, so they always match the collection. Everything else is written here by hand from
@@ -15,7 +15,7 @@ const {
   WidthType,
 } = require("docx");
 
-const HERE = __dirname;
+const HERE = path.join(__dirname, "..");  // docs/handoff
 const EP = JSON.parse(fs.readFileSync(path.join(HERE, "endpoints.json"), "utf8"));
 const ENV = JSON.parse(fs.readFileSync(path.join(HERE, "postman", "Kairox-local.postman_environment.json"), "utf8"));
 const OUT = path.join(HERE, "TESTER_HELPER.docx");
@@ -105,8 +105,8 @@ add(
   P("First client: Arifa Packing & Packaging LLC (Arifaa Pack), Ajman, UAE."),
   gap(),
   table(["Item", "Value"], [
-    ["Pack", "`docs/testing/` in the platform repository"],
-    ["Generated", today + " from the code (`scripts/gen_tester_pack.py` + `docs/testing/build_guide.js`)"],
+    ["Pack", "`docs/handoff/` in the platform repository"],
+    ["Generated", today + " from the code (`scripts/gen_handoff.py` + `docs/handoff/build/build_tester_guide.js`)"],
     ["Routes covered", EP.routes.length + " API routes + 20 negative tests"],
     ["Targets", "Local live-test stack on the developer's PC, or the staging server"],
   ], [2400, W - 2400]),

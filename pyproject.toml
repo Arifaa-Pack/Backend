@@ -75,7 +75,7 @@ python_version = "3.14"
 strict = true
 namespace_packages = true
 explicit_package_bases = true
-mypy_path = "packages/kx-core-db/src:packages/kx-core-crm/src:packages/kx-core-automation/src:packages/kx-agent-framework/src:apps/arifaa-pack/src"
+mypy_path = "scripts:packages/kx-core-db/src:packages/kx-core-crm/src:packages/kx-core-automation/src:packages/kx-agent-framework/src:apps/arifaa-pack/src"
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]

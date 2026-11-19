@@ -72,7 +72,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Step 1: email + password.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "01 Staff sign-in and MFA",
@@ -84,7 +85,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Step 2 with the authenticator app: `mfa=true` (needed for approvals, price edits, settings).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "01 Staff sign-in and MFA",
@@ -96,7 +98,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Fallback second step: a 6-digit code to the staff member's work address (valid 10 minutes).",
-      "expected_status": 204
+      "expected_status": 204,
+      "package": "CRM"
     },
     {
       "folder": "01 Staff sign-in and MFA",
@@ -108,7 +111,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Step 2 with the email code: signed in with `mfa=false` (no approvals until TOTP is used).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "01 Staff sign-in and MFA",
@@ -120,7 +124,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "A new access token.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "01 Staff sign-in and MFA",
@@ -132,7 +137,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "End this session: the refresh token (cookie) and the session the access token names are revoked and the cookie cleared.",
-      "expected_status": 204
+      "expected_status": 204,
+      "package": "CRM"
     },
     {
       "folder": "01 Staff sign-in and MFA",
@@ -144,7 +150,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "The signed-in staff member (name, role, languages, alert channels) for the screen header.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "01 Staff sign-in and MFA",
@@ -156,7 +163,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "A new authenticator seed for the signed-in user (active only after /totp/confirm).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "01 Staff sign-in and MFA",
@@ -168,7 +176,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "The first code from the app switches TOTP on.",
-      "expected_status": 204
+      "expected_status": 204,
+      "package": "CRM"
     },
     {
       "folder": "01 Staff sign-in and MFA",
@@ -180,7 +189,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Change the password (ends every other session).",
-      "expected_status": 204
+      "expected_status": 204,
+      "package": "CRM"
     },
     {
       "folder": "01 Staff sign-in and MFA",
@@ -192,7 +202,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Recovery: a code to the work address.",
-      "expected_status": 202
+      "expected_status": 202,
+      "package": "CRM"
     },
     {
       "folder": "01 Staff sign-in and MFA",
@@ -204,7 +215,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Recovery step 2: the emailed code + a new password (min 12 characters); every session ends.",
-      "expected_status": 204
+      "expected_status": 204,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -220,7 +232,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.11 users and roles: every staff member with MFA enrolment and lock state.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -235,7 +248,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Admin (MFA): a new staff user; the one-time password in the answer is shown once.",
-      "expected_status": 201
+      "expected_status": 201,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -250,7 +264,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Admin (MFA): role, active flag, phone, languages / countries / categories for assignment (§9), alert channels.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -265,7 +280,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "A lost authenticator: sessions end; the person signs in with an email code and enrols again.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -280,7 +296,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Admin (MFA): lift a lock-out after too many wrong passwords or codes.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -297,7 +314,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.3 deals board: by stage, with filters for salesperson, country, product and value (the current quote's total in AED).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -314,7 +332,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.4 deal page: buyer, company, requirement, stage, AI state, AI summary (§7A.2), opt-out.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -331,7 +350,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.4 full timeline: every message, call transcript, stage change and AI action (newest first).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -348,7 +368,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.4 quote versions, newest first (the screen compares two side by side).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -365,7 +386,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Ask the backend to build the quote from the price list (§11.1).",
-      "expected_status": 201
+      "expected_status": 201,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -382,7 +404,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Move the deal to another stage (rules in §5; LOST needs a reason).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -399,7 +422,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§11.3 Edit then approve: a new version; below the minimum goes to the manager first (D3).",
-      "expected_status": 201
+      "expected_status": 201,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -414,7 +438,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Manager/MD takes over (AI off) or hands the conversation back (AI on).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -429,7 +454,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "§12 below-minimum alert, manager (MFA): set an approved special price (may be below the range, D3); it becomes a price the AI may state, and `resume_ai` hands the chat back to the AI.",
-      "expected_status": 204
+      "expected_status": 204,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -444,7 +470,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "§7A.1 / D24: the manager (or MD) reopens a LOST deal to the stage it was lost from; the AI stays paused until a person resumes it.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -461,7 +488,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§14 practical notes: record that the salesperson shared a personal contact with the buyer.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -478,7 +506,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§14 / D21: reply to the buyer on the same channel and company number, signed with the salesperson's name.",
-      "expected_status": 202
+      "expected_status": 202,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -495,7 +524,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§14: click-to-call through the company number.",
-      "expected_status": 202
+      "expected_status": 202,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -512,7 +542,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§8.1 step 4: the salesperson records a stop (and the buyer's own reason, if given) after a conversation the buyer started.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "06 Payment, won and orders",
@@ -528,7 +559,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "§15.1 / D20: the salesperson (human, MFA) confirms the advance; every detail is optional.",
-      "expected_status": 201
+      "expected_status": 201,
+      "package": "CRM"
     },
     {
       "folder": "06 Payment, won and orders",
@@ -544,7 +576,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "§15.2: WON (mandatory) with an optional expected re-order date; the order record is created.",
-      "expected_status": 201
+      "expected_status": 201,
+      "package": "CRM"
     },
     {
       "folder": "06 Payment, won and orders",
@@ -560,7 +593,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§15.3 order tracking: in production -> ready -> shipped -> delivered (the buyer is told if configured).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -575,7 +609,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§9.4: the manager or MD reassigns; both salespersons are notified, pending items follow.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -589,7 +624,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§3: the MD takes the deal over; the salesperson is read-only until hand-back.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -603,7 +639,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "End an MD or manager takeover: the salesperson can edit and approve again (§3).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -620,7 +657,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "D8 / §23 scenario 5: a quote priced by hand by the salesperson, then approved as usual.",
-      "expected_status": 201
+      "expected_status": 201,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -637,7 +675,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§11.3 quote approval screen: one quote version with its lines, terms, delivery and totals.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -651,7 +690,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Cost build-up of each line: MD only (T3).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -666,7 +706,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Manager / MD: approvals open (with SLA deadlines, §16) or decided.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -682,7 +723,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Human + MFA only.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -699,7 +741,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Open cards with SLA timers, oldest due first.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -716,7 +759,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§13 change request card: what the buyer asked (their words), current vs requested values, SLA.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -733,7 +777,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Take the change request (starts work; the SLA keeps running).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -750,7 +795,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "\"Revise quote\": a new version with the edits; approving it resolves the card (§13.3-4).",
-      "expected_status": 201
+      "expected_status": 201,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -767,7 +813,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Close the change request as done (a revised quote was sent or the answer given).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "05 Quotes, approvals and change requests",
@@ -784,7 +831,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Decline the change request with a reason the buyer is told.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -801,7 +849,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.2: approvals, change requests, below-minimum alerts, buyer messages on handed-over deals.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -818,7 +867,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.7 price list: the quantity tiers of one product (list price and minimum per tier).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -834,7 +884,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Manager (MFA): add a quantity tier (every change is logged, §3).",
-      "expected_status": 201
+      "expected_status": 201,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -850,7 +901,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Manager (MFA): change a tier's prices or quantities (logged with old and new value).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -866,7 +918,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Manager (MFA): delete a tier (logged).",
-      "expected_status": 204
+      "expected_status": 204,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -882,7 +935,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Body: the .xlsx file (columns sku, min_qty, max_qty, list_price, min_price, currency).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -899,7 +953,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Download the price list as Excel (the same layout the import accepts).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -916,7 +971,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.7 change history of one product: its CRM-owned fields and its price tiers, newest first.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -933,7 +989,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.7 change history of the whole price list (tier edits and Excel imports), newest first.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -950,7 +1007,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.8 stock table: quantity on hand per product or material.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -966,7 +1024,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Manager or admin: set the quantity on hand of a product or material (logged).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -982,7 +1041,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Download the current catalogue (products, price tiers, categories, how-to sheet).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -998,7 +1058,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Body: the .xlsx file.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -1014,7 +1075,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Body: the SAME .xlsx file as the preview; `token` from the preview.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -1029,7 +1091,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Material price proposals (from the v2 scraper or staff) waiting for the manager's decision.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -1044,7 +1107,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Manager (MFA): accept a proposed material rate (may be corrected); it becomes the current rate.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -1059,7 +1123,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Manager (MFA): reject a proposed material rate.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -1074,7 +1139,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "How old each material's approved rate is (stale rates block pricing).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1090,7 +1156,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.11 business settings (timers, follow-up days, VAT, Incoterm, validity, hours, opt-out rules ...).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1106,7 +1173,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Manager / admin (MFA): change one business setting (validated; logged).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1122,7 +1190,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Manager / admin (MFA): switch a feature on or off (v2 features stay off in v1, D14).",
-      "expected_status": 204
+      "expected_status": 204,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1139,7 +1208,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§9.3: away / holiday with a backup (the manager, an admin, or the user themself).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "07 Dashboards and exports",
@@ -1154,7 +1224,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Compact pipeline summary: deals by stage, open pipeline value, approvals pending / overdue, open tasks.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1170,7 +1241,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "The company details printed on quotes and summaries, and what staff have set.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1186,7 +1258,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Admin / MD / manager (MFA): change details; live on new quotes within 30 seconds.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1202,7 +1275,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Body: the PNG or JPEG file itself (`Content-Type: image/png` or `image/jpeg`), max 200 KB.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1218,7 +1292,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Remove the logo from quotes.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1234,7 +1309,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "D35 kill switch: the current level and what it stops.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1249,7 +1325,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Admin or MD (MFA): set the kill-switch level (off, marketing, calls, text_only, hold); logged.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -1266,7 +1343,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Search by name, email or phone digits.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -1283,7 +1361,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.6 one contact (a salesperson only for contacts of their own deals).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -1300,7 +1379,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Edit name, designation, company, preferred channel, language, time zone (phone / email change through the deal).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -1317,7 +1397,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.6 companies: search by name, newest first.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -1334,7 +1415,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Create a company record.",
-      "expected_status": 201
+      "expected_status": 201,
+      "package": "CRM"
     },
     {
       "folder": "03 Contacts, companies and deals",
@@ -1351,7 +1433,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Edit a company record (logged); a salesperson only a company they may see (L3).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -1368,7 +1451,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.7 product catalogue with the CRM-owned fields (MOQ, lead time, quotable) and CMS sync state.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -1385,7 +1469,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "One product with its specification (from the CMS) and CRM-owned fields.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -1400,7 +1485,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Manager (MFA): MOQ for quoting, default delivery time, quotable/active (D22: CRM-owned fields).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "06 Payment, won and orders",
@@ -1417,7 +1503,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.9 orders (a salesperson: their own deals), newest first.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -1432,7 +1519,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "The latest rate per currency (the one quotes use).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "04 Products, stock and price list",
@@ -1447,7 +1535,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "D38 \"the manager can override\": a manual rate for a day (it replaces that day's rate).",
-      "expected_status": 201
+      "expected_status": 201,
+      "package": "CRM"
     },
     {
       "folder": "07 Dashboards and exports",
@@ -1464,7 +1553,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§21 salesperson: my open deals by stage, items waiting for me, response times, sent and won.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "07 Dashboards and exports",
@@ -1479,7 +1569,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§21 manager: everyone's board, below-minimum requests, change requests by type, SLA breaches, price-list changes, plus opt-outs and the buyers' own reasons (§8.1).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "07 Dashboards and exports",
@@ -1493,7 +1584,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§21 MD: pipeline by stage, win rate, average discount from list, deals by country / category / channel, top buyers, takeover queue.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "07 Dashboards and exports",
@@ -1510,7 +1602,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.12: a list as CSV or XLSX (a salesperson exports only their own deals and orders; Admin / IT only the product list, L4: §3 gives it users, settings and the catalogue, not customer data).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1526,7 +1619,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Every editable text: the English in use, the built-in English, its placeholders and the state of each language.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1541,7 +1635,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Manager / MD (MFA): new English text, live within 30 seconds; buyer and AI texts are then translated by the AI.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1556,7 +1651,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Manager / MD (MFA): back to the built-in wording in every language (the history keeps the edits).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1572,7 +1668,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "Every change of one text, newest first: who, when, old and new text (the MD's view).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "02 Users and admin settings",
@@ -1587,7 +1684,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Manager / MD (MFA): queue AI translations for every text without one (built-in texts included).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "09 Buyer simulation - WhatsApp",
@@ -1599,7 +1697,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Whatsapp Verify",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Automation"
     },
     {
       "folder": "09 Buyer simulation - WhatsApp",
@@ -1611,7 +1710,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Whatsapp Events",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Automation"
     },
     {
       "folder": "13 Telnyx call webhooks",
@@ -1623,7 +1723,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Telnyx Gather",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Automation"
     },
     {
       "folder": "13 Telnyx call webhooks",
@@ -1635,7 +1736,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Telnyx Status",
-      "expected_status": 204
+      "expected_status": 204,
+      "package": "Automation"
     },
     {
       "folder": "12 Unsubscribe link",
@@ -1647,7 +1749,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "The page behind the link: one button, an optional reason (a GET changes nothing).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Automation"
     },
     {
       "folder": "12 Unsubscribe link",
@@ -1659,7 +1762,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Stops every channel at once (§8.1 step 2) and records the optional reason (step 4).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Automation"
     },
     {
       "folder": "11 CMS publish webhook",
@@ -1671,7 +1775,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Cms Published",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Automation"
     },
     {
       "folder": "10 Buyer simulation - Website chat",
@@ -1683,7 +1788,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "§6 step 1: start a website conversation (Turnstile-checked).",
-      "expected_status": 201
+      "expected_status": 201,
+      "package": "Website"
     },
     {
       "folder": "10 Buyer simulation - Website chat",
@@ -1695,7 +1801,8 @@
       "mfa_required": false,
       "auth": "website_session",
       "purpose": "One chat turn (§6 steps 2-6) through the same agents, guard and router as WhatsApp.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Website"
     },
     {
       "folder": "10 Buyer simulation - Website chat",
@@ -1707,7 +1814,8 @@
       "mfa_required": false,
       "auth": "website_session",
       "purpose": "A LiveKit room token for live voice (participant metadata: deal_ref, language).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Website"
     },
     {
       "folder": "10 Buyer simulation - Website chat",
@@ -1719,7 +1827,8 @@
       "mfa_required": false,
       "auth": "website_session",
       "purpose": "§6 step 7: the visitor typed their phone or email; a returning buyer is recognised now, never before.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Website"
     },
     {
       "folder": "08 Channels admin",
@@ -1735,7 +1844,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.11 company WhatsApp numbers and email addresses, with the countries each number serves.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Automation"
     },
     {
       "folder": "08 Channels admin",
@@ -1749,7 +1859,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Regional routing for WhatsApp numbers: which countries a number serves, the default number.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Automation"
     },
     {
       "folder": "08 Channels admin",
@@ -1765,7 +1876,8 @@
       "mfa_required": false,
       "auth": "staff",
       "purpose": "§20.11 message templates and Meta's approval state, every version (the history), newest first; `live` marks the version being sent.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Automation"
     },
     {
       "folder": "08 Channels admin",
@@ -1781,7 +1893,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Add or change a template.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Automation"
     },
     {
       "folder": "08 Channels admin",
@@ -1797,7 +1910,8 @@
       "mfa_required": true,
       "auth": "staff",
       "purpose": "Record Meta's decision on a WhatsApp template version.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "Automation"
     },
     {
       "folder": "00 Health and keys",
@@ -1809,7 +1923,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "Liveness: the API process answers.",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "00 Health and keys",
@@ -1821,7 +1936,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "D46: UptimeRobot checks this from outside; 503 = Beat, the broker or the workers stopped (or the oldest due job is waiting too long).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     },
     {
       "folder": "00 Health and keys",
@@ -1833,7 +1949,8 @@
       "mfa_required": false,
       "auth": "none",
       "purpose": "The public key that verifies staff access tokens (RS256, D26).",
-      "expected_status": 200
+      "expected_status": 200,
+      "package": "CRM"
     }
   ]
 }

@@ -16,7 +16,7 @@ Companion files in this folder:
 
 ```bash
 # any OpenAPI mock server works; for example Prism:
-npx @stoplight/prism-cli mock docs/frontend/openapi-crm.json --port 4010
+npx @stoplight/prism-cli mock docs/handoff/openapi/openapi-crm.json --port 4010
 # then point the app at http://localhost:4010 (the paths below start with /v1)
 ```
 
@@ -127,6 +127,15 @@ Rules the screens must respect:
 Public key for verifying tokens elsewhere: `GET /.well-known/jwks.json`.
 
 ---
+
+### Working in Postman (no re-login every 15 minutes)
+
+Import `docs/handoff/postman/Kairox-CRM-quickstart.postman_collection.json`, set `base_url`, `email` and `password` in the
+collection variables, then sign in **once**: "1 Sign in", then "2a Send email code" + "2b Verify email code"
+(code into `mfa_code`), or "2c Authenticator code" (needed for approvals). From then on a collection
+pre-request script renews the 15-minute access token automatically before any request that needs it (it sends
+the refresh token in the body, which non-browser clients may do, and keeps the rotated one). Sign in again only
+when the session ends: 12 hours after sign-in, or after "Sign out" / a password change.
 
 ## 4. Conventions
 
@@ -310,6 +319,32 @@ Material price proposals (from the v2 scraper or staff) waiting for the manager'
 
 **Response 200:** `Page_RateOut_`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "items": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "material_code": "<material_code>",
+      "rate_per_unit": "<rate_per_unit>",
+      "currency": "AED",
+      "source": "<source>",
+      "source_url": "<source_url>",
+      "change_pct": "<change_pct>",
+      "status": "<status>",
+      "proposed_at": "2026-12-15T09:00:00+04:00",
+      "decided_at": "2026-12-15T09:00:00+04:00",
+      "note": "<note>"
+    }
+  ],
+  "next_cursor": "<next_cursor>"
+}
+```
+
+</details>
+
+
 ---
 
 #### `POST /v1/price-proposals/{rate_id}/approve`
@@ -331,7 +366,39 @@ Manager (MFA): accept a proposed material rate (may be corrected); it becomes th
 | `rate_per_unit` | number or string or null | no |  |
 | `note` | string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "rate_per_unit": 1,
+  "note": "<note>"
+}
+```
+
+</details>
+
 **Response 200:** `RateOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "material_code": "<material_code>",
+  "rate_per_unit": "<rate_per_unit>",
+  "currency": "AED",
+  "source": "<source>",
+  "source_url": "<source_url>",
+  "change_pct": "<change_pct>",
+  "status": "<status>",
+  "proposed_at": "2026-12-15T09:00:00+04:00",
+  "decided_at": "2026-12-15T09:00:00+04:00",
+  "note": "<note>"
+}
+```
+
+</details>
+
 
 ---
 
@@ -354,7 +421,39 @@ Manager (MFA): reject a proposed material rate.
 | `rate_per_unit` | number or string or null | no |  |
 | `note` | string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "rate_per_unit": 1,
+  "note": "<note>"
+}
+```
+
+</details>
+
 **Response 200:** `RateOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "material_code": "<material_code>",
+  "rate_per_unit": "<rate_per_unit>",
+  "currency": "AED",
+  "source": "<source>",
+  "source_url": "<source_url>",
+  "change_pct": "<change_pct>",
+  "status": "<status>",
+  "proposed_at": "2026-12-15T09:00:00+04:00",
+  "decided_at": "2026-12-15T09:00:00+04:00",
+  "note": "<note>"
+}
+```
+
+</details>
+
 
 ---
 
@@ -366,6 +465,21 @@ How old each material's approved rate is (stale rates block pricing).
 
 **Response 200:** list of `FreshnessOut`
 
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "material_code": "<material_code>",
+    "days_since_approval": 1,
+    "level": "ok"
+  }
+]
+```
+
+</details>
+
+
 ---
 
 #### `GET /v1/settings`
@@ -375,6 +489,22 @@ How old each material's approved rate is (stale rates block pricing).
 **Who:** admin, manager, md
 
 **Response 200:** list of `SettingOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "key": "<key>",
+    "value": "<value>",
+    "description": "<description>",
+    "updated_at": "2026-12-15T09:00:00+04:00"
+  }
+]
+```
+
+</details>
+
 
 ---
 
@@ -396,7 +526,31 @@ Manager / admin (MFA): change one business setting (validated; logged).
 |---|---|---|---|
 | `value` | any | yes |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "value": "<value>"
+}
+```
+
+</details>
+
 **Response 200:** `SettingOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "key": "<key>",
+  "value": "<value>",
+  "description": "<description>",
+  "updated_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -417,6 +571,16 @@ Manager / admin (MFA): switch a feature on or off (v2 features stay off in v1, D
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `enabled` | boolean | yes |  |
+
+<details><summary>Example request</summary>
+
+```json
+{
+  "enabled": false
+}
+```
+
+</details>
 
 **Response 204:** (no body)
 
@@ -441,7 +605,46 @@ Manager / admin (MFA): switch a feature on or off (v2 features stay off in v1, D
 | `is_away` | boolean | yes |  |
 | `backup_user_id` | string (uuid) or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "is_away": false,
+  "backup_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+}
+```
+
+</details>
+
 **Response 200:** `UserOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "full_name": "<full_name>",
+  "role": "<role>",
+  "is_active": false,
+  "is_away": false,
+  "backup_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "languages": [
+    "en"
+  ],
+  "countries": [
+    "<countries>"
+  ],
+  "category_codes": [
+    "<category_codes>"
+  ],
+  "alert_channels": [
+    "<alert_channels>"
+  ]
+}
+```
+
+</details>
+
 
 ---
 
@@ -453,6 +656,29 @@ Compact pipeline summary: deals by stage, open pipeline value, approvals pending
 
 **Response 200:** `DashboardSummary`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "deals_by_stage": {},
+  "open_pipeline_aed": "<open_pipeline_aed>",
+  "approvals_pending": 1,
+  "approvals_overdue": 1,
+  "open_tasks": 1,
+  "ai_paused_deals": 1,
+  "materials": [
+    {
+      "material_code": "<material_code>",
+      "days_since_approval": 1,
+      "level": "ok"
+    }
+  ]
+}
+```
+
+</details>
+
+
 ---
 
 #### `GET /v1/admin/kill-switch`
@@ -462,6 +688,21 @@ D35 kill switch: the current level and what it stops.
 **Who:** admin, manager, md
 
 **Response 200:** `KillSwitchOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "level": "off",
+  "marketing_stopped": false,
+  "calls_stopped": false,
+  "voice_stopped": false,
+  "all_held": false
+}
+```
+
+</details>
+
 
 ---
 
@@ -477,7 +718,32 @@ Admin or MD (MFA): set the kill-switch level (off, marketing, calls, text_only, 
 |---|---|---|---|
 | `level` | `off` \| `marketing` \| `calls` \| `text_only` \| `hold` | yes |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "level": "off"
+}
+```
+
+</details>
+
 **Response 200:** `KillSwitchOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "level": "off",
+  "marketing_stopped": false,
+  "calls_stopped": false,
+  "voice_stopped": false,
+  "all_held": false
+}
+```
+
+</details>
+
 
 ---
 
@@ -490,6 +756,31 @@ Admin or MD (MFA): set the kill-switch level (off, marketing, calls, text_only, 
 **Who:** admin, manager, md
 
 **Response 200:** list of `ChannelAccountOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "channel": "<channel>",
+    "provider": "<provider>",
+    "display_name": "<display_name>",
+    "address": "<address>",
+    "purpose": "<purpose>",
+    "status": "<status>",
+    "region": "<region>",
+    "countries": [
+      "<countries>"
+    ],
+    "is_default": false,
+    "created_at": "2026-12-15T09:00:00+04:00"
+  }
+]
+```
+
+</details>
+
 
 ---
 
@@ -515,7 +806,46 @@ Regional routing for WhatsApp numbers: which countries a number serves, the defa
 | `is_default` | boolean or null | no |  |
 | `status` | `active` \| `disabled` or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "display_name": "<display_name>",
+  "region": "<region>",
+  "countries": [
+    "<countries>"
+  ],
+  "is_default": false,
+  "status": "active"
+}
+```
+
+</details>
+
 **Response 200:** `ChannelAccountOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "channel": "<channel>",
+  "provider": "<provider>",
+  "display_name": "<display_name>",
+  "address": "<address>",
+  "purpose": "<purpose>",
+  "status": "<status>",
+  "region": "<region>",
+  "countries": [
+    "<countries>"
+  ],
+  "is_default": false,
+  "created_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -532,6 +862,35 @@ Regional routing for WhatsApp numbers: which countries a number serves, the defa
 | `current_only` | query | boolean | no | default `false` |
 
 **Response 200:** list of `TemplateOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "channel": "<channel>",
+    "name": "Aisha Khan",
+    "language": "en",
+    "category": "<category>",
+    "provider_status": "<provider_status>",
+    "subject": "<subject>",
+    "body": "<body>",
+    "variables": [
+      "<variables>"
+    ],
+    "version": 1,
+    "provider_name": "<provider_name>",
+    "live": false,
+    "created_by": "<created_by>",
+    "created_at": "2026-12-15T09:00:00+04:00",
+    "updated_at": "2026-12-15T09:00:00+04:00"
+  }
+]
+```
+
+</details>
+
 
 ---
 
@@ -553,7 +912,52 @@ Add or change a template. Editing the live (approved) WhatsApp version creates a
 | `body` | string | yes | min length 1; max length 4000 |
 | `variables` | list of string | no | max items 20 |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "channel": "whatsapp",
+  "name": "Aisha Khan",
+  "language": "en",
+  "category": "utility",
+  "subject": "<subject>",
+  "body": "<body>",
+  "variables": [
+    "<variables>"
+  ]
+}
+```
+
+</details>
+
 **Response 200:** `TemplateOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "channel": "<channel>",
+  "name": "Aisha Khan",
+  "language": "en",
+  "category": "<category>",
+  "provider_status": "<provider_status>",
+  "subject": "<subject>",
+  "body": "<body>",
+  "variables": [
+    "<variables>"
+  ],
+  "version": 1,
+  "provider_name": "<provider_name>",
+  "live": false,
+  "created_by": "<created_by>",
+  "created_at": "2026-12-15T09:00:00+04:00",
+  "updated_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -575,7 +979,44 @@ Record Meta's decision on a WhatsApp template version. Approving it makes it the
 |---|---|---|---|
 | `provider_status` | `draft` \| `submitted` \| `approved` \| `rejected` \| `paused` \| `superseded` | yes |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "provider_status": "draft"
+}
+```
+
+</details>
+
 **Response 200:** `TemplateOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "channel": "<channel>",
+  "name": "Aisha Khan",
+  "language": "en",
+  "category": "<category>",
+  "provider_status": "<provider_status>",
+  "subject": "<subject>",
+  "body": "<body>",
+  "variables": [
+    "<variables>"
+  ],
+  "version": 1,
+  "provider_name": "<provider_name>",
+  "live": false,
+  "created_by": "<created_by>",
+  "created_at": "2026-12-15T09:00:00+04:00",
+  "updated_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -594,7 +1035,34 @@ Step 1: email + password. Answers the second steps on offer (TOTP first; email c
 | `email` | string | yes | min length 3; max length 320 |
 | `password` | string | yes | min length 1; max length 256 |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "email": "qa.buyer@example.com",
+  "password": "<password>"
+}
+```
+
+</details>
+
 **Response 200:** `ChallengeOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "challenge_token": "<challenge_token>",
+  "methods": [
+    "totp"
+  ],
+  "totp_enrolled": false,
+  "expires_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -611,7 +1079,58 @@ Step 2 with the authenticator app: `mfa=true` (needed for approvals, price edits
 | `challenge_token` | string | yes | min length 10; max length 200 |
 | `code` | string | yes | min length 6; max length 10 |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "challenge_token": "<challenge_token>",
+  "code": "<code>"
+}
+```
+
+</details>
+
 **Response 200:** `TokenOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "access_token": "<access_token>",
+  "token_type": "Bearer",
+  "expires_in": 1,
+  "mfa": false,
+  "amr": [
+    "<amr>"
+  ],
+  "must_change_password": false,
+  "totp_enrolled": false,
+  "user": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "email": "qa.buyer@example.com",
+    "full_name": "<full_name>",
+    "role": "<role>",
+    "phone_e164": "+971500000001",
+    "is_active": false,
+    "is_away": false,
+    "languages": [
+      "en"
+    ],
+    "countries": [
+      "<countries>"
+    ],
+    "category_codes": [
+      "<category_codes>"
+    ],
+    "alert_channels": [
+      "<alert_channels>"
+    ]
+  }
+}
+```
+
+</details>
+
 
 ---
 
@@ -626,6 +1145,16 @@ Fallback second step: a 6-digit code to the staff member's work address (valid 1
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `challenge_token` | string | yes | min length 10; max length 200 |
+
+<details><summary>Example request</summary>
+
+```json
+{
+  "challenge_token": "<challenge_token>"
+}
+```
+
+</details>
 
 **Response 204:** (no body)
 
@@ -644,7 +1173,58 @@ Step 2 with the email code: signed in with `mfa=false` (no approvals until TOTP 
 | `challenge_token` | string | yes | min length 10; max length 200 |
 | `code` | string | yes | min length 6; max length 10 |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "challenge_token": "<challenge_token>",
+  "code": "<code>"
+}
+```
+
+</details>
+
 **Response 200:** `TokenOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "access_token": "<access_token>",
+  "token_type": "Bearer",
+  "expires_in": 1,
+  "mfa": false,
+  "amr": [
+    "<amr>"
+  ],
+  "must_change_password": false,
+  "totp_enrolled": false,
+  "user": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "email": "qa.buyer@example.com",
+    "full_name": "<full_name>",
+    "role": "<role>",
+    "phone_e164": "+971500000001",
+    "is_active": false,
+    "is_away": false,
+    "languages": [
+      "en"
+    ],
+    "countries": [
+      "<countries>"
+    ],
+    "category_codes": [
+      "<category_codes>"
+    ],
+    "alert_channels": [
+      "<alert_channels>"
+    ]
+  }
+}
+```
+
+</details>
+
 
 ---
 
@@ -662,7 +1242,57 @@ A new access token. The refresh token rotates; a reused old one ends all the use
 
 **Request body** (`application/json`): `RefreshIn` or null
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "refresh_token": "<refresh_token>"
+}
+```
+
+</details>
+
 **Response 200:** `TokenOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "access_token": "<access_token>",
+  "token_type": "Bearer",
+  "expires_in": 1,
+  "mfa": false,
+  "amr": [
+    "<amr>"
+  ],
+  "must_change_password": false,
+  "totp_enrolled": false,
+  "user": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "email": "qa.buyer@example.com",
+    "full_name": "<full_name>",
+    "role": "<role>",
+    "phone_e164": "+971500000001",
+    "is_active": false,
+    "is_away": false,
+    "languages": [
+      "en"
+    ],
+    "countries": [
+      "<countries>"
+    ],
+    "category_codes": [
+      "<category_codes>"
+    ],
+    "alert_channels": [
+      "<alert_channels>"
+    ]
+  }
+}
+```
+
+</details>
+
 
 ---
 
@@ -690,6 +1320,35 @@ The signed-in staff member (name, role, languages, alert channels) for the scree
 
 **Response 200:** `StaffUserOut`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "email": "qa.buyer@example.com",
+  "full_name": "<full_name>",
+  "role": "<role>",
+  "phone_e164": "+971500000001",
+  "is_active": false,
+  "is_away": false,
+  "languages": [
+    "en"
+  ],
+  "countries": [
+    "<countries>"
+  ],
+  "category_codes": [
+    "<category_codes>"
+  ],
+  "alert_channels": [
+    "<alert_channels>"
+  ]
+}
+```
+
+</details>
+
+
 ---
 
 #### `POST /v1/auth/totp/enrol`
@@ -699,6 +1358,18 @@ A new authenticator seed for the signed-in user (active only after /totp/confirm
 **Who:** any signed-in staff
 
 **Response 200:** `TotpEnrolOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "secret": "<secret>",
+  "otpauth_uri": "<otpauth_uri>"
+}
+```
+
+</details>
+
 
 ---
 
@@ -713,6 +1384,16 @@ The first code from the app switches TOTP on. Sign in again to get an MFA sessio
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `code` | string | yes | min length 6; max length 10 |
+
+<details><summary>Example request</summary>
+
+```json
+{
+  "code": "<code>"
+}
+```
+
+</details>
 
 **Response 204:** (no body)
 
@@ -731,6 +1412,17 @@ Change the password (ends every other session).
 | `current_password` | string | yes | min length 1; max length 256 |
 | `new_password` | string | yes | min length 12; max length 256 |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "current_password": "<current_password>",
+  "new_password": "<new_password>"
+}
+```
+
+</details>
+
 **Response 204:** (no body)
 
 ---
@@ -746,6 +1438,16 @@ Recovery: a code to the work address. Always 202 (nobody learns which addresses 
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `email` | string | yes | min length 3; max length 320 |
+
+<details><summary>Example request</summary>
+
+```json
+{
+  "email": "qa.buyer@example.com"
+}
+```
+
+</details>
 
 **Response 202:** (no body)
 
@@ -765,6 +1467,18 @@ Recovery step 2: the emailed code + a new password (min 12 characters); every se
 | `code` | string | yes | min length 6; max length 10 |
 | `new_password` | string | yes | min length 12; max length 256 |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "email": "qa.buyer@example.com",
+  "code": "<code>",
+  "new_password": "<new_password>"
+}
+```
+
+</details>
+
 **Response 204:** (no body)
 
 ---
@@ -776,6 +1490,7 @@ The public key that verifies staff access tokens (RS256, D26).
 **Who:** public
 
 **Response 200:** object
+
 
 ---
 
@@ -797,6 +1512,35 @@ Open cards with SLA timers, oldest due first. A salesperson sees the cards of th
 
 **Response 200:** list of `ChangeRequestOut`
 
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "deal_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "quote_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "type": "<type>",
+    "buyer_text": "<buyer_text>",
+    "buyer_text_en": "<buyer_text_en>",
+    "fields": [
+      {}
+    ],
+    "ai_notes": "<ai_notes>",
+    "status": "<status>",
+    "assigned_to": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "sla_due_at": "2026-12-15T09:00:00+04:00",
+    "escalated_at": "2026-12-15T09:00:00+04:00",
+    "resolved_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "decline_reason": "<decline_reason>",
+    "created_at": "2026-12-15T09:00:00+04:00"
+  }
+]
+```
+
+</details>
+
+
 ---
 
 #### `GET /v1/change-requests/{cr_id}`
@@ -813,6 +1557,33 @@ Open cards with SLA timers, oldest due first. A salesperson sees the cards of th
 
 **Response 200:** `ChangeRequestOut`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "deal_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "quote_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "type": "<type>",
+  "buyer_text": "<buyer_text>",
+  "buyer_text_en": "<buyer_text_en>",
+  "fields": [
+    {}
+  ],
+  "ai_notes": "<ai_notes>",
+  "status": "<status>",
+  "assigned_to": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "sla_due_at": "2026-12-15T09:00:00+04:00",
+  "escalated_at": "2026-12-15T09:00:00+04:00",
+  "resolved_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "decline_reason": "<decline_reason>",
+  "created_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
+
 ---
 
 #### `POST /v1/change-requests/{cr_id}/start`
@@ -828,6 +1599,33 @@ Take the change request (starts work; the SLA keeps running).
 | `cr_id` | path | string (uuid) | yes |  |
 
 **Response 200:** `ChangeRequestOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "deal_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "quote_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "type": "<type>",
+  "buyer_text": "<buyer_text>",
+  "buyer_text_en": "<buyer_text_en>",
+  "fields": [
+    {}
+  ],
+  "ai_notes": "<ai_notes>",
+  "status": "<status>",
+  "assigned_to": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "sla_due_at": "2026-12-15T09:00:00+04:00",
+  "escalated_at": "2026-12-15T09:00:00+04:00",
+  "resolved_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "decline_reason": "<decline_reason>",
+  "created_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -857,7 +1655,63 @@ Take the change request (starts work; the SLA keeps running).
 | `cover_note` | string or null | no |  |
 | `currency` | string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "lines": [],
+  "delivery_time_text": "<delivery_time_text>",
+  "delivery_place": "<delivery_place>",
+  "incoterm": "EXW",
+  "payment_terms_text": "<payment_terms_text>",
+  "note": "<note>",
+  "buyer_note": "<buyer_note>",
+  "cover_note": "<cover_note>",
+  "currency": "AED"
+}
+```
+
+</details>
+
 **Response 201:** `QuoteVersionOut`
+
+<details><summary>Example response 201</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "quote_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "version_no": 1,
+  "kind": "<kind>",
+  "status": "<status>",
+  "currency": "AED",
+  "subtotal": "<subtotal>",
+  "vat_rate": "<vat_rate>",
+  "vat_amount": "<vat_amount>",
+  "total": "<total>",
+  "total_aed": "<total_aed>",
+  "incoterm": "<incoterm>",
+  "validity_days": 1,
+  "valid_until": "2026-12-15",
+  "clauses": [
+    "<clauses>"
+  ],
+  "approver_summary": "<approver_summary>",
+  "delivery_time_text": "<delivery_time_text>",
+  "delivery_place": "<delivery_place>",
+  "payment_terms_text": "<payment_terms_text>",
+  "fx_rate": "<fx_rate>",
+  "fx_rate_date": "2026-12-15",
+  "cover_note": "<cover_note>",
+  "change_summary": "<change_summary>",
+  "pdf_s3_key": "<pdf_s3_key>",
+  "created_at": "2026-12-15T09:00:00+04:00",
+  "lines": []
+}
+```
+
+</details>
+
 
 ---
 
@@ -879,7 +1733,44 @@ Close the change request as done (a revised quote was sent or the answer given).
 |---|---|---|---|
 | `version_id` | string (uuid) | yes |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+}
+```
+
+</details>
+
 **Response 200:** `ChangeRequestOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "deal_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "quote_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "type": "<type>",
+  "buyer_text": "<buyer_text>",
+  "buyer_text_en": "<buyer_text_en>",
+  "fields": [
+    {}
+  ],
+  "ai_notes": "<ai_notes>",
+  "status": "<status>",
+  "assigned_to": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "sla_due_at": "2026-12-15T09:00:00+04:00",
+  "escalated_at": "2026-12-15T09:00:00+04:00",
+  "resolved_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "decline_reason": "<decline_reason>",
+  "created_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -901,7 +1792,44 @@ Decline the change request with a reason the buyer is told.
 |---|---|---|---|
 | `reason` | string | yes | min length 1; max length 1000 |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "reason": "<reason>"
+}
+```
+
+</details>
+
 **Response 200:** `ChangeRequestOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "deal_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "quote_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "type": "<type>",
+  "buyer_text": "<buyer_text>",
+  "buyer_text_en": "<buyer_text_en>",
+  "fields": [
+    {}
+  ],
+  "ai_notes": "<ai_notes>",
+  "status": "<status>",
+  "assigned_to": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "sla_due_at": "2026-12-15T09:00:00+04:00",
+  "escalated_at": "2026-12-15T09:00:00+04:00",
+  "resolved_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "decline_reason": "<decline_reason>",
+  "created_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -914,6 +1842,19 @@ The company details printed on quotes and summaries, and what staff have set.
 **Who:** admin, md, manager
 
 **Response 200:** `CompanyOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "saved": {},
+  "printed": {},
+  "has_logo": false
+}
+```
+
+</details>
+
 
 ---
 
@@ -934,7 +1875,40 @@ Admin / MD / manager (MFA): change details; live on new quotes within 30 seconds
 | `email` | string or null | no |  |
 | `bank` | `BankIn` or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "name": "Aisha Khan",
+  "address": "<address>",
+  "trn": "<trn>",
+  "phone": "+971500000001",
+  "email": "qa.buyer@example.com",
+  "bank": {
+    "account_name": "<account_name>",
+    "bank_name": "<bank_name>",
+    "iban": "<iban>",
+    "swift": "<swift>"
+  }
+}
+```
+
+</details>
+
 **Response 200:** `CompanyOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "saved": {},
+  "printed": {},
+  "has_logo": false
+}
+```
+
+</details>
+
 
 ---
 
@@ -946,6 +1920,19 @@ Body: the PNG or JPEG file itself (`Content-Type: image/png` or `image/jpeg`), m
 
 **Response 200:** `CompanyOut`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "saved": {},
+  "printed": {},
+  "has_logo": false
+}
+```
+
+</details>
+
+
 ---
 
 #### `DELETE /v1/company/logo`
@@ -955,6 +1942,19 @@ Remove the logo from quotes.
 **Who:** admin, md, manager (signed in with the authenticator app: `mfa=true`)
 
 **Response 200:** `CompanyOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "saved": {},
+  "printed": {},
+  "has_logo": false
+}
+```
+
+</details>
+
 
 ---
 
@@ -976,6 +1976,23 @@ Remove the logo from quotes.
 
 **Response 200:** `SalespersonBoard`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "name": "Aisha Khan",
+  "open_deals_by_stage": {},
+  "waiting_for_me": 1,
+  "avg_response_minutes": 1,
+  "quotes_sent": 1,
+  "deals_won": 1
+}
+```
+
+</details>
+
+
 ---
 
 #### `GET /v1/dashboards/manager`
@@ -993,6 +2010,35 @@ Remove the logo from quotes.
 
 **Response 200:** `ManagerBoard`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "period_from": "2026-12-15",
+  "period_to": "2026-12-15",
+  "salespeople": [
+    {
+      "user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "name": "Aisha Khan",
+      "open_deals_by_stage": {},
+      "waiting_for_me": 1,
+      "avg_response_minutes": 1,
+      "quotes_sent": 1,
+      "deals_won": 1
+    }
+  ],
+  "below_minimum_requests": 1,
+  "change_requests_by_type": {},
+  "sla_breaches": 1,
+  "price_list_changes": 1,
+  "opted_out": 1,
+  "opt_out_reasons": {}
+}
+```
+
+</details>
+
+
 ---
 
 #### `GET /v1/dashboards/md`
@@ -1009,6 +2055,30 @@ Remove the logo from quotes.
 | `period_to` | query | string (date) or null | no |  |
 
 **Response 200:** `MdBoard`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "period_from": "2026-12-15",
+  "period_to": "2026-12-15",
+  "pipeline_aed_by_stage": {},
+  "win_rate": 1,
+  "avg_discount_from_list": 1,
+  "deals_by_country": {},
+  "deals_by_category": {},
+  "deals_by_channel": {},
+  "top_buyers": [
+    {}
+  ],
+  "takeover_queue": [
+    "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+  ]
+}
+```
+
+</details>
+
 
 ---
 
@@ -1056,6 +2126,34 @@ Remove the logo from quotes.
 
 **Response 200:** `Page_DealSummary_`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "items": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "number": "<number>",
+      "stage": "NEW",
+      "ai_enabled": false,
+      "ai_paused_reason": "<ai_paused_reason>",
+      "currency": "AED",
+      "concessions_used": 1,
+      "next_action_at": "2026-12-15T09:00:00+04:00",
+      "owner_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "taken_over_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "opted_out_at": "2026-12-15T09:00:00+04:00",
+      "version": 1,
+      "updated_at": "2026-12-15T09:00:00+04:00"
+    }
+  ],
+  "next_cursor": "<next_cursor>"
+}
+```
+
+</details>
+
+
 ---
 
 #### `GET /v1/deals/{deal_id}`
@@ -1071,6 +2169,64 @@ Remove the logo from quotes.
 | `deal_id` | path | string (uuid) | yes |  |
 
 **Response 200:** `DealDetail`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "number": "<number>",
+  "stage": "NEW",
+  "ai_enabled": false,
+  "ai_paused_reason": "<ai_paused_reason>",
+  "currency": "AED",
+  "concessions_used": 1,
+  "next_action_at": "2026-12-15T09:00:00+04:00",
+  "owner_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "taken_over_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "opted_out_at": "2026-12-15T09:00:00+04:00",
+  "version": 1,
+  "updated_at": "2026-12-15T09:00:00+04:00",
+  "contact": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "full_name": "<full_name>",
+    "phone_e164": "+971500000001",
+    "whatsapp_e164": "<whatsapp_e164>",
+    "email": "qa.buyer@example.com",
+    "preferred_channel": "<preferred_channel>",
+    "language": "en",
+    "timezone": "<timezone>",
+    "phone_status": "unknown",
+    "phone_status_at": "2026-12-15T09:00:00+04:00",
+    "whatsapp_profile_name": "<whatsapp_profile_name>",
+    "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+  },
+  "requirements": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_text": "<product_text>",
+      "spec": {},
+      "quantity": "<quantity>",
+      "unit": "<unit>",
+      "delivery_country": "AE",
+      "delivery_city": "<delivery_city>",
+      "needed_by": "2026-12-15"
+    }
+  ],
+  "missing_fields": [
+    "<missing_fields>"
+  ],
+  "lost_reason": "<lost_reason>",
+  "lost_note": "<lost_note>",
+  "ai_summary": "<ai_summary>",
+  "ai_summary_at": "2026-12-15T09:00:00+04:00",
+  "personal_contact_shared_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1090,6 +2246,29 @@ Remove the logo from quotes.
 
 **Response 200:** `Page_TimelineOut_`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "kind": "<kind>",
+      "channel": "<channel>",
+      "direction": "<direction>",
+      "summary": "<summary>",
+      "actor_type": "<actor_type>",
+      "actor_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "at": "2026-12-15T09:00:00+04:00"
+    }
+  ],
+  "next_cursor": "<next_cursor>"
+}
+```
+
+</details>
+
+
 ---
 
 #### `GET /v1/deals/{deal_id}/quotes`
@@ -1106,6 +2285,46 @@ Remove the logo from quotes.
 
 **Response 200:** list of `QuoteVersionOut`
 
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "quote_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "version_no": 1,
+    "kind": "<kind>",
+    "status": "<status>",
+    "currency": "AED",
+    "subtotal": "<subtotal>",
+    "vat_rate": "<vat_rate>",
+    "vat_amount": "<vat_amount>",
+    "total": "<total>",
+    "total_aed": "<total_aed>",
+    "incoterm": "<incoterm>",
+    "validity_days": 1,
+    "valid_until": "2026-12-15",
+    "clauses": [
+      "<clauses>"
+    ],
+    "approver_summary": "<approver_summary>",
+    "delivery_time_text": "<delivery_time_text>",
+    "delivery_place": "<delivery_place>",
+    "payment_terms_text": "<payment_terms_text>",
+    "fx_rate": "<fx_rate>",
+    "fx_rate_date": "2026-12-15",
+    "cover_note": "<cover_note>",
+    "change_summary": "<change_summary>",
+    "pdf_s3_key": "<pdf_s3_key>",
+    "created_at": "2026-12-15T09:00:00+04:00",
+    "lines": []
+  }
+]
+```
+
+</details>
+
+
 ---
 
 #### `POST /v1/deals/{deal_id}/quotes`
@@ -1121,6 +2340,44 @@ Ask the backend to build the quote from the price list (§11.1). The AI never pr
 | `deal_id` | path | string (uuid) | yes |  |
 
 **Response 201:** `QuoteVersionOut`
+
+<details><summary>Example response 201</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "quote_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "version_no": 1,
+  "kind": "<kind>",
+  "status": "<status>",
+  "currency": "AED",
+  "subtotal": "<subtotal>",
+  "vat_rate": "<vat_rate>",
+  "vat_amount": "<vat_amount>",
+  "total": "<total>",
+  "total_aed": "<total_aed>",
+  "incoterm": "<incoterm>",
+  "validity_days": 1,
+  "valid_until": "2026-12-15",
+  "clauses": [
+    "<clauses>"
+  ],
+  "approver_summary": "<approver_summary>",
+  "delivery_time_text": "<delivery_time_text>",
+  "delivery_place": "<delivery_place>",
+  "payment_terms_text": "<payment_terms_text>",
+  "fx_rate": "<fx_rate>",
+  "fx_rate_date": "2026-12-15",
+  "cover_note": "<cover_note>",
+  "change_summary": "<change_summary>",
+  "pdf_s3_key": "<pdf_s3_key>",
+  "created_at": "2026-12-15T09:00:00+04:00",
+  "lines": []
+}
+```
+
+</details>
+
 
 ---
 
@@ -1146,7 +2403,79 @@ Move the deal to another stage (rules in §5; LOST needs a reason). `expected_ve
 | `lost_reason` | `price_too_high` \| `delivery_not_suitable` \| `bought_competitor` \| `product_unavailable` \| `no_response_postponed` \| `budget` \| `duplicate` \| `other` \| `opted_out` or null | no |  |
 | `lost_note` | string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "to": "NEW",
+  "expected_version": 1,
+  "reason": "<reason>",
+  "lost_reason": "price_too_high",
+  "lost_note": "<lost_note>"
+}
+```
+
+</details>
+
 **Response 200:** `DealDetail`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "number": "<number>",
+  "stage": "NEW",
+  "ai_enabled": false,
+  "ai_paused_reason": "<ai_paused_reason>",
+  "currency": "AED",
+  "concessions_used": 1,
+  "next_action_at": "2026-12-15T09:00:00+04:00",
+  "owner_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "taken_over_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "opted_out_at": "2026-12-15T09:00:00+04:00",
+  "version": 1,
+  "updated_at": "2026-12-15T09:00:00+04:00",
+  "contact": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "full_name": "<full_name>",
+    "phone_e164": "+971500000001",
+    "whatsapp_e164": "<whatsapp_e164>",
+    "email": "qa.buyer@example.com",
+    "preferred_channel": "<preferred_channel>",
+    "language": "en",
+    "timezone": "<timezone>",
+    "phone_status": "unknown",
+    "phone_status_at": "2026-12-15T09:00:00+04:00",
+    "whatsapp_profile_name": "<whatsapp_profile_name>",
+    "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+  },
+  "requirements": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_text": "<product_text>",
+      "spec": {},
+      "quantity": "<quantity>",
+      "unit": "<unit>",
+      "delivery_country": "AE",
+      "delivery_city": "<delivery_city>",
+      "needed_by": "2026-12-15"
+    }
+  ],
+  "missing_fields": [
+    "<missing_fields>"
+  ],
+  "lost_reason": "<lost_reason>",
+  "lost_note": "<lost_note>",
+  "ai_summary": "<ai_summary>",
+  "ai_summary_at": "2026-12-15T09:00:00+04:00",
+  "personal_contact_shared_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1176,7 +2505,63 @@ Move the deal to another stage (rules in §5; LOST needs a reason). `expected_ve
 | `cover_note` | string or null | no |  |
 | `currency` | string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "lines": [],
+  "delivery_time_text": "<delivery_time_text>",
+  "delivery_place": "<delivery_place>",
+  "incoterm": "EXW",
+  "payment_terms_text": "<payment_terms_text>",
+  "note": "<note>",
+  "buyer_note": "<buyer_note>",
+  "cover_note": "<cover_note>",
+  "currency": "AED"
+}
+```
+
+</details>
+
 **Response 201:** `QuoteVersionOut`
+
+<details><summary>Example response 201</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "quote_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "version_no": 1,
+  "kind": "<kind>",
+  "status": "<status>",
+  "currency": "AED",
+  "subtotal": "<subtotal>",
+  "vat_rate": "<vat_rate>",
+  "vat_amount": "<vat_amount>",
+  "total": "<total>",
+  "total_aed": "<total_aed>",
+  "incoterm": "<incoterm>",
+  "validity_days": 1,
+  "valid_until": "2026-12-15",
+  "clauses": [
+    "<clauses>"
+  ],
+  "approver_summary": "<approver_summary>",
+  "delivery_time_text": "<delivery_time_text>",
+  "delivery_place": "<delivery_place>",
+  "payment_terms_text": "<payment_terms_text>",
+  "fx_rate": "<fx_rate>",
+  "fx_rate_date": "2026-12-15",
+  "cover_note": "<cover_note>",
+  "change_summary": "<change_summary>",
+  "pdf_s3_key": "<pdf_s3_key>",
+  "created_at": "2026-12-15T09:00:00+04:00",
+  "lines": []
+}
+```
+
+</details>
+
 
 ---
 
@@ -1199,7 +2584,76 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 | `enabled` | boolean | yes |  |
 | `reason` | `human_takeover` \| `md_takeover` \| `opt_out` \| `exception` | no | default `"human_takeover"` |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "enabled": false,
+  "reason": "human_takeover"
+}
+```
+
+</details>
+
 **Response 200:** `DealDetail`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "number": "<number>",
+  "stage": "NEW",
+  "ai_enabled": false,
+  "ai_paused_reason": "<ai_paused_reason>",
+  "currency": "AED",
+  "concessions_used": 1,
+  "next_action_at": "2026-12-15T09:00:00+04:00",
+  "owner_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "taken_over_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "opted_out_at": "2026-12-15T09:00:00+04:00",
+  "version": 1,
+  "updated_at": "2026-12-15T09:00:00+04:00",
+  "contact": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "full_name": "<full_name>",
+    "phone_e164": "+971500000001",
+    "whatsapp_e164": "<whatsapp_e164>",
+    "email": "qa.buyer@example.com",
+    "preferred_channel": "<preferred_channel>",
+    "language": "en",
+    "timezone": "<timezone>",
+    "phone_status": "unknown",
+    "phone_status_at": "2026-12-15T09:00:00+04:00",
+    "whatsapp_profile_name": "<whatsapp_profile_name>",
+    "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+  },
+  "requirements": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_text": "<product_text>",
+      "spec": {},
+      "quantity": "<quantity>",
+      "unit": "<unit>",
+      "delivery_country": "AE",
+      "delivery_city": "<delivery_city>",
+      "needed_by": "2026-12-15"
+    }
+  ],
+  "missing_fields": [
+    "<missing_fields>"
+  ],
+  "lost_reason": "<lost_reason>",
+  "lost_note": "<lost_note>",
+  "ai_summary": "<ai_summary>",
+  "ai_summary_at": "2026-12-15T09:00:00+04:00",
+  "personal_contact_shared_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1221,6 +2675,17 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 |---|---|---|---|
 | `unit_price` | number or string | yes |  |
 | `resume_ai` | boolean | no | default `true` |
+
+<details><summary>Example request</summary>
+
+```json
+{
+  "unit_price": 1,
+  "resume_ai": true
+}
+```
+
+</details>
 
 **Response 204:** (no body)
 
@@ -1244,7 +2709,75 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 |---|---|---|---|
 | `reason` | string | yes | min length 1; max length 500 |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "reason": "<reason>"
+}
+```
+
+</details>
+
 **Response 200:** `DealDetail`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "number": "<number>",
+  "stage": "NEW",
+  "ai_enabled": false,
+  "ai_paused_reason": "<ai_paused_reason>",
+  "currency": "AED",
+  "concessions_used": 1,
+  "next_action_at": "2026-12-15T09:00:00+04:00",
+  "owner_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "taken_over_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "opted_out_at": "2026-12-15T09:00:00+04:00",
+  "version": 1,
+  "updated_at": "2026-12-15T09:00:00+04:00",
+  "contact": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "full_name": "<full_name>",
+    "phone_e164": "+971500000001",
+    "whatsapp_e164": "<whatsapp_e164>",
+    "email": "qa.buyer@example.com",
+    "preferred_channel": "<preferred_channel>",
+    "language": "en",
+    "timezone": "<timezone>",
+    "phone_status": "unknown",
+    "phone_status_at": "2026-12-15T09:00:00+04:00",
+    "whatsapp_profile_name": "<whatsapp_profile_name>",
+    "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+  },
+  "requirements": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_text": "<product_text>",
+      "spec": {},
+      "quantity": "<quantity>",
+      "unit": "<unit>",
+      "delivery_country": "AE",
+      "delivery_city": "<delivery_city>",
+      "needed_by": "2026-12-15"
+    }
+  ],
+  "missing_fields": [
+    "<missing_fields>"
+  ],
+  "lost_reason": "<lost_reason>",
+  "lost_note": "<lost_note>",
+  "ai_summary": "<ai_summary>",
+  "ai_summary_at": "2026-12-15T09:00:00+04:00",
+  "personal_contact_shared_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1261,6 +2794,64 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 | `deal_id` | path | string (uuid) | yes |  |
 
 **Response 200:** `DealDetail`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "number": "<number>",
+  "stage": "NEW",
+  "ai_enabled": false,
+  "ai_paused_reason": "<ai_paused_reason>",
+  "currency": "AED",
+  "concessions_used": 1,
+  "next_action_at": "2026-12-15T09:00:00+04:00",
+  "owner_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "taken_over_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "opted_out_at": "2026-12-15T09:00:00+04:00",
+  "version": 1,
+  "updated_at": "2026-12-15T09:00:00+04:00",
+  "contact": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "full_name": "<full_name>",
+    "phone_e164": "+971500000001",
+    "whatsapp_e164": "<whatsapp_e164>",
+    "email": "qa.buyer@example.com",
+    "preferred_channel": "<preferred_channel>",
+    "language": "en",
+    "timezone": "<timezone>",
+    "phone_status": "unknown",
+    "phone_status_at": "2026-12-15T09:00:00+04:00",
+    "whatsapp_profile_name": "<whatsapp_profile_name>",
+    "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+  },
+  "requirements": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_text": "<product_text>",
+      "spec": {},
+      "quantity": "<quantity>",
+      "unit": "<unit>",
+      "delivery_country": "AE",
+      "delivery_city": "<delivery_city>",
+      "needed_by": "2026-12-15"
+    }
+  ],
+  "missing_fields": [
+    "<missing_fields>"
+  ],
+  "lost_reason": "<lost_reason>",
+  "lost_note": "<lost_note>",
+  "ai_summary": "<ai_summary>",
+  "ai_summary_at": "2026-12-15T09:00:00+04:00",
+  "personal_contact_shared_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1285,7 +2876,31 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 | `channel` | `whatsapp` \| `email` or null | no |  |
 | `reopen_template` | boolean | no | default `false` |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "text": "",
+  "client_key": "<client_key>",
+  "channel": "whatsapp",
+  "reopen_template": false
+}
+```
+
+</details>
+
 **Response 202:** `StaffMessageOut`
+
+<details><summary>Example response 202</summary>
+
+```json
+{
+  "message_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1307,7 +2922,28 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 |---|---|---|---|
 | `client_key` | string | yes | min length 8; max length 80 |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "client_key": "<client_key>"
+}
+```
+
+</details>
+
 **Response 202:** `CallOut`
+
+<details><summary>Example response 202</summary>
+
+```json
+{
+  "call_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1331,7 +2967,77 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 | `words` | string | yes | what the buyer said, as close as possible min length 1; max length 2000 |
 | `reason` | string or null | no | only a reason the buyer gave |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "scope": "all",
+  "words": "<words>",
+  "reason": "<reason>"
+}
+```
+
+</details>
+
 **Response 200:** `DealDetail`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "number": "<number>",
+  "stage": "NEW",
+  "ai_enabled": false,
+  "ai_paused_reason": "<ai_paused_reason>",
+  "currency": "AED",
+  "concessions_used": 1,
+  "next_action_at": "2026-12-15T09:00:00+04:00",
+  "owner_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "taken_over_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "opted_out_at": "2026-12-15T09:00:00+04:00",
+  "version": 1,
+  "updated_at": "2026-12-15T09:00:00+04:00",
+  "contact": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "full_name": "<full_name>",
+    "phone_e164": "+971500000001",
+    "whatsapp_e164": "<whatsapp_e164>",
+    "email": "qa.buyer@example.com",
+    "preferred_channel": "<preferred_channel>",
+    "language": "en",
+    "timezone": "<timezone>",
+    "phone_status": "unknown",
+    "phone_status_at": "2026-12-15T09:00:00+04:00",
+    "whatsapp_profile_name": "<whatsapp_profile_name>",
+    "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+  },
+  "requirements": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_text": "<product_text>",
+      "spec": {},
+      "quantity": "<quantity>",
+      "unit": "<unit>",
+      "delivery_country": "AE",
+      "delivery_city": "<delivery_city>",
+      "needed_by": "2026-12-15"
+    }
+  ],
+  "missing_fields": [
+    "<missing_fields>"
+  ],
+  "lost_reason": "<lost_reason>",
+  "lost_note": "<lost_note>",
+  "ai_summary": "<ai_summary>",
+  "ai_summary_at": "2026-12-15T09:00:00+04:00",
+  "personal_contact_shared_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1359,7 +3065,40 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 | `note` | string or null | no |  |
 | `proof_s3_key` | string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "amount": 1,
+  "currency": "AED",
+  "method": "<method>",
+  "reference": "<reference>",
+  "paid_on": "2026-12-15",
+  "note": "<note>",
+  "proof_s3_key": "<proof_s3_key>"
+}
+```
+
+</details>
+
 **Response 201:** `PaymentOut`
+
+<details><summary>Example response 201</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "deal_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "amount": "<amount>",
+  "currency": "AED",
+  "method": "<method>",
+  "reference": "<reference>",
+  "paid_on": "2026-12-15"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1381,7 +3120,33 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 |---|---|---|---|
 | `expected_reorder_date` | string (date) or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "expected_reorder_date": "2026-12-15"
+}
+```
+
+</details>
+
 **Response 201:** `OrderOut`
+
+<details><summary>Example response 201</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "number": "<number>",
+  "deal_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "status": "<status>",
+  "final_quote_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "expected_reorder_date": "2026-12-15"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1405,7 +3170,35 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 | `on_date` | string (date) or null | no |  |
 | `tracking_ref` | string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "status": "ready",
+  "on_date": "2026-12-15",
+  "tracking_ref": "<tracking_ref>"
+}
+```
+
+</details>
+
 **Response 200:** `OrderOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "number": "<number>",
+  "deal_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "status": "<status>",
+  "final_quote_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "expected_reorder_date": "2026-12-15"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1427,7 +3220,75 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 |---|---|---|---|
 | `user_id` | string (uuid) | yes |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+}
+```
+
+</details>
+
 **Response 200:** `DealDetail`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "number": "<number>",
+  "stage": "NEW",
+  "ai_enabled": false,
+  "ai_paused_reason": "<ai_paused_reason>",
+  "currency": "AED",
+  "concessions_used": 1,
+  "next_action_at": "2026-12-15T09:00:00+04:00",
+  "owner_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "taken_over_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "opted_out_at": "2026-12-15T09:00:00+04:00",
+  "version": 1,
+  "updated_at": "2026-12-15T09:00:00+04:00",
+  "contact": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "full_name": "<full_name>",
+    "phone_e164": "+971500000001",
+    "whatsapp_e164": "<whatsapp_e164>",
+    "email": "qa.buyer@example.com",
+    "preferred_channel": "<preferred_channel>",
+    "language": "en",
+    "timezone": "<timezone>",
+    "phone_status": "unknown",
+    "phone_status_at": "2026-12-15T09:00:00+04:00",
+    "whatsapp_profile_name": "<whatsapp_profile_name>",
+    "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+  },
+  "requirements": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_text": "<product_text>",
+      "spec": {},
+      "quantity": "<quantity>",
+      "unit": "<unit>",
+      "delivery_country": "AE",
+      "delivery_city": "<delivery_city>",
+      "needed_by": "2026-12-15"
+    }
+  ],
+  "missing_fields": [
+    "<missing_fields>"
+  ],
+  "lost_reason": "<lost_reason>",
+  "lost_note": "<lost_note>",
+  "ai_summary": "<ai_summary>",
+  "ai_summary_at": "2026-12-15T09:00:00+04:00",
+  "personal_contact_shared_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1445,6 +3306,64 @@ Manager/MD takes over (AI off) or hands the conversation back (AI on).
 
 **Response 200:** `DealDetail`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "number": "<number>",
+  "stage": "NEW",
+  "ai_enabled": false,
+  "ai_paused_reason": "<ai_paused_reason>",
+  "currency": "AED",
+  "concessions_used": 1,
+  "next_action_at": "2026-12-15T09:00:00+04:00",
+  "owner_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "taken_over_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "opted_out_at": "2026-12-15T09:00:00+04:00",
+  "version": 1,
+  "updated_at": "2026-12-15T09:00:00+04:00",
+  "contact": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "full_name": "<full_name>",
+    "phone_e164": "+971500000001",
+    "whatsapp_e164": "<whatsapp_e164>",
+    "email": "qa.buyer@example.com",
+    "preferred_channel": "<preferred_channel>",
+    "language": "en",
+    "timezone": "<timezone>",
+    "phone_status": "unknown",
+    "phone_status_at": "2026-12-15T09:00:00+04:00",
+    "whatsapp_profile_name": "<whatsapp_profile_name>",
+    "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+  },
+  "requirements": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_text": "<product_text>",
+      "spec": {},
+      "quantity": "<quantity>",
+      "unit": "<unit>",
+      "delivery_country": "AE",
+      "delivery_city": "<delivery_city>",
+      "needed_by": "2026-12-15"
+    }
+  ],
+  "missing_fields": [
+    "<missing_fields>"
+  ],
+  "lost_reason": "<lost_reason>",
+  "lost_note": "<lost_note>",
+  "ai_summary": "<ai_summary>",
+  "ai_summary_at": "2026-12-15T09:00:00+04:00",
+  "personal_contact_shared_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
+
 ---
 
 #### `POST /v1/deals/{deal_id}/handback`
@@ -1460,6 +3379,64 @@ End an MD or manager takeover: the salesperson can edit and approve again (§3).
 | `deal_id` | path | string (uuid) | yes |  |
 
 **Response 200:** `DealDetail`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "number": "<number>",
+  "stage": "NEW",
+  "ai_enabled": false,
+  "ai_paused_reason": "<ai_paused_reason>",
+  "currency": "AED",
+  "concessions_used": 1,
+  "next_action_at": "2026-12-15T09:00:00+04:00",
+  "owner_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "taken_over_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "opted_out_at": "2026-12-15T09:00:00+04:00",
+  "version": 1,
+  "updated_at": "2026-12-15T09:00:00+04:00",
+  "contact": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "full_name": "<full_name>",
+    "phone_e164": "+971500000001",
+    "whatsapp_e164": "<whatsapp_e164>",
+    "email": "qa.buyer@example.com",
+    "preferred_channel": "<preferred_channel>",
+    "language": "en",
+    "timezone": "<timezone>",
+    "phone_status": "unknown",
+    "phone_status_at": "2026-12-15T09:00:00+04:00",
+    "whatsapp_profile_name": "<whatsapp_profile_name>",
+    "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+  },
+  "requirements": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "product_text": "<product_text>",
+      "spec": {},
+      "quantity": "<quantity>",
+      "unit": "<unit>",
+      "delivery_country": "AE",
+      "delivery_city": "<delivery_city>",
+      "needed_by": "2026-12-15"
+    }
+  ],
+  "missing_fields": [
+    "<missing_fields>"
+  ],
+  "lost_reason": "<lost_reason>",
+  "lost_note": "<lost_note>",
+  "ai_summary": "<ai_summary>",
+  "ai_summary_at": "2026-12-15T09:00:00+04:00",
+  "personal_contact_shared_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1483,7 +3460,65 @@ D8 / §23 scenario 5: a quote priced by hand by the salesperson, then approved a
 | `delivery_time_text` | string or null | no |  |
 | `buyer_note` | string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "lines": [
+    {
+      "description": "<description>",
+      "quantity": 50000,
+      "unit_price": 1,
+      "unit": "pcs",
+      "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+    }
+  ],
+  "delivery_time_text": "<delivery_time_text>",
+  "buyer_note": "<buyer_note>"
+}
+```
+
+</details>
+
 **Response 201:** `QuoteVersionOut`
+
+<details><summary>Example response 201</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "quote_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "version_no": 1,
+  "kind": "<kind>",
+  "status": "<status>",
+  "currency": "AED",
+  "subtotal": "<subtotal>",
+  "vat_rate": "<vat_rate>",
+  "vat_amount": "<vat_amount>",
+  "total": "<total>",
+  "total_aed": "<total_aed>",
+  "incoterm": "<incoterm>",
+  "validity_days": 1,
+  "valid_until": "2026-12-15",
+  "clauses": [
+    "<clauses>"
+  ],
+  "approver_summary": "<approver_summary>",
+  "delivery_time_text": "<delivery_time_text>",
+  "delivery_place": "<delivery_place>",
+  "payment_terms_text": "<payment_terms_text>",
+  "fx_rate": "<fx_rate>",
+  "fx_rate_date": "2026-12-15",
+  "cover_note": "<cover_note>",
+  "change_summary": "<change_summary>",
+  "pdf_s3_key": "<pdf_s3_key>",
+  "created_at": "2026-12-15T09:00:00+04:00",
+  "lines": []
+}
+```
+
+</details>
+
 
 ---
 
@@ -1503,6 +3538,26 @@ D8 / §23 scenario 5: a quote priced by hand by the salesperson, then approved a
 
 **Response 200:** list of `InboxItemOut`
 
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "kind": "<kind>",
+    "ref_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "deal_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "deal_number": "<deal_number>",
+    "title": "Aluminium Container & Lid",
+    "due_at": "2026-12-15T09:00:00+04:00",
+    "created_at": "2026-12-15T09:00:00+04:00",
+    "overdue": false
+  }
+]
+```
+
+</details>
+
+
 ---
 
 ### message texts
@@ -1514,6 +3569,36 @@ Every editable text: the English in use, the built-in English, its placeholders 
 **Who:** manager, md, admin
 
 **Response 200:** list of `TextOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "key": "<key>",
+    "group": "<group>",
+    "note": "<note>",
+    "placeholders": [
+      "<placeholders>"
+    ],
+    "builtin_en": "<builtin_en>",
+    "en": "<en>",
+    "en_version": 1,
+    "updated_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "updated_at": "2026-12-15T09:00:00+04:00",
+    "languages": [
+      {
+        "language": "en",
+        "status": "<status>",
+        "text": null
+      }
+    ]
+  }
+]
+```
+
+</details>
+
 
 ---
 
@@ -1535,7 +3620,45 @@ Manager / MD (MFA): new English text, live within 30 seconds; buyer and AI texts
 |---|---|---|---|
 | `text` | string | yes | min length 1; max length 2000 |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "text": "Do you have 8325 containers with lids? I need 20,000 a month in Dubai."
+}
+```
+
+</details>
+
 **Response 200:** `TextOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "key": "<key>",
+  "group": "<group>",
+  "note": "<note>",
+  "placeholders": [
+    "<placeholders>"
+  ],
+  "builtin_en": "<builtin_en>",
+  "en": "<en>",
+  "en_version": 1,
+  "updated_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "updated_at": "2026-12-15T09:00:00+04:00",
+  "languages": [
+    {
+      "language": "en",
+      "status": "<status>",
+      "text": "Do you have 8325 containers with lids? I need 20,000 a month in Dubai."
+    }
+  ]
+}
+```
+
+</details>
+
 
 ---
 
@@ -1552,6 +3675,34 @@ Manager / MD (MFA): back to the built-in wording in every language (the history 
 | `key` | path | string | yes |  |
 
 **Response 200:** `TextOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "key": "<key>",
+  "group": "<group>",
+  "note": "<note>",
+  "placeholders": [
+    "<placeholders>"
+  ],
+  "builtin_en": "<builtin_en>",
+  "en": "<en>",
+  "en_version": 1,
+  "updated_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "updated_at": "2026-12-15T09:00:00+04:00",
+  "languages": [
+    {
+      "language": "en",
+      "status": "<status>",
+      "text": "Do you have 8325 containers with lids? I need 20,000 a month in Dubai."
+    }
+  ]
+}
+```
+
+</details>
+
 
 ---
 
@@ -1570,6 +3721,24 @@ Every change of one text, newest first: who, when, old and new text (the MD's vi
 
 **Response 200:** list of `kx__crm__api__texts__ChangeOut`
 
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "at": "2026-12-15T09:00:00+04:00",
+    "actor_type": "<actor_type>",
+    "actor_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "action": "<action>",
+    "before": {},
+    "after": {}
+  }
+]
+```
+
+</details>
+
+
 ---
 
 #### `POST /v1/texts/translate-missing`
@@ -1579,6 +3748,17 @@ Manager / MD (MFA): queue AI translations for every text without one (built-in t
 **Who:** manager, md (signed in with the authenticator app: `mfa=true`)
 
 **Response 200:** `QueuedOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "queued": 1
+}
+```
+
+</details>
+
 
 ---
 
@@ -1597,6 +3777,26 @@ Manager / MD (MFA): queue AI translations for every text without one (built-in t
 | `product_id` | path | string (uuid) | yes |  |
 
 **Response 200:** list of `PriceTierOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "min_qty": "<min_qty>",
+    "max_qty": "<max_qty>",
+    "list_price": "<list_price>",
+    "min_price": "<min_price>",
+    "currency": "AED",
+    "valid_from": "2026-12-15T09:00:00+04:00"
+  }
+]
+```
+
+</details>
+
 
 ---
 
@@ -1622,7 +3822,39 @@ Manager (MFA): add a quantity tier (every change is logged, §3).
 | `min_price` | number or string or null | no |  |
 | `valid_from` | string (date-time) or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "min_qty": 50000,
+  "max_qty": 50000,
+  "list_price": 1,
+  "min_price": 1,
+  "valid_from": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 **Response 201:** `PriceTierOut`
+
+<details><summary>Example response 201</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "min_qty": "<min_qty>",
+  "max_qty": "<max_qty>",
+  "list_price": "<list_price>",
+  "min_price": "<min_price>",
+  "currency": "AED",
+  "valid_from": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1647,7 +3879,38 @@ Manager (MFA): change a tier's prices or quantities (logged with old and new val
 | `list_price` | number or string or null | no |  |
 | `min_price` | number or string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "min_qty": 50000,
+  "max_qty": 50000,
+  "list_price": 1,
+  "min_price": 1
+}
+```
+
+</details>
+
 **Response 200:** `PriceTierOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "min_qty": "<min_qty>",
+  "max_qty": "<max_qty>",
+  "list_price": "<list_price>",
+  "min_price": "<min_price>",
+  "currency": "AED",
+  "valid_from": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1674,6 +3937,24 @@ Body: the .xlsx file (columns sku, min_qty, max_qty, list_price, min_price, curr
 **Who:** manager, admin, md (signed in with the authenticator app: `mfa=true`)
 
 **Response 200:** `ImportOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "saved": 1,
+  "errors": [
+    {
+      "row": 1,
+      "field": "<field>",
+      "error": "<error>"
+    }
+  ]
+}
+```
+
+</details>
+
 
 ---
 
@@ -1702,6 +3983,26 @@ Download the price list as Excel (the same layout the import accepts).
 
 **Response 200:** list of `kx__crm__api__screens__ChangeOut`
 
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "at": "2026-12-15T09:00:00+04:00",
+    "actor_type": "<actor_type>",
+    "actor_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "action": "<action>",
+    "entity_type": "<entity_type>",
+    "entity_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "before": {},
+    "after": {}
+  }
+]
+```
+
+</details>
+
+
 ---
 
 #### `GET /v1/price-list/history`
@@ -1717,6 +4018,26 @@ Download the price list as Excel (the same layout the import accepts).
 | `limit` | query | integer | no | ≥ 1; ≤ 500; default `100` |
 
 **Response 200:** list of `kx__crm__api__screens__ChangeOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "at": "2026-12-15T09:00:00+04:00",
+    "actor_type": "<actor_type>",
+    "actor_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "action": "<action>",
+    "entity_type": "<entity_type>",
+    "entity_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "before": {},
+    "after": {}
+  }
+]
+```
+
+</details>
+
 
 ---
 
@@ -1740,6 +4061,77 @@ Body: the .xlsx file. Saves nothing: returns every change and every error (sheet
 
 **Response 200:** `PreviewOut`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIuLi4ifQ.signature",
+  "ok": false,
+  "summary": {
+    "new_products": 1,
+    "updated_products": 1,
+    "unchanged_products": 1,
+    "price_lists_changed": 1,
+    "categories_changed": 1,
+    "website_drafts": 1
+  },
+  "errors": [
+    {
+      "sheet": "<sheet>",
+      "row": 1,
+      "column": "<column>",
+      "message": "<message>"
+    }
+  ],
+  "warnings": [
+    {
+      "sheet": "<sheet>",
+      "row": 1,
+      "column": "<column>",
+      "message": "<message>"
+    }
+  ],
+  "products": [
+    {
+      "code": "<code>",
+      "row": 1,
+      "is_new": false,
+      "changes": [
+        null
+      ],
+      "website_draft": false
+    }
+  ],
+  "price_lists": [
+    {
+      "code": "<code>",
+      "before": [
+        [
+          null
+        ]
+      ],
+      "after": [
+        [
+          null
+        ]
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "code": "<code>",
+      "is_new": false,
+      "changes": [
+        null
+      ]
+    }
+  ]
+}
+```
+
+</details>
+
+
 ---
 
 #### `POST /v1/catalogue/workbook/apply`
@@ -1755,6 +4147,21 @@ Body: the SAME .xlsx file as the preview; `token` from the preview. Saves everyt
 | `token` | query | string | yes | min length 64; max length 64 |
 
 **Response 200:** `AppliedOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "products_created": 1,
+  "products_updated": 1,
+  "price_lists_changed": 1,
+  "categories_changed": 1,
+  "website_drafts": 1
+}
+```
+
+</details>
+
 
 ---
 
@@ -1774,6 +4181,44 @@ Body: the SAME .xlsx file as the preview; `token` from the preview. Saves everyt
 
 **Response 200:** `QuoteVersionOut`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "quote_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "version_no": 1,
+  "kind": "<kind>",
+  "status": "<status>",
+  "currency": "AED",
+  "subtotal": "<subtotal>",
+  "vat_rate": "<vat_rate>",
+  "vat_amount": "<vat_amount>",
+  "total": "<total>",
+  "total_aed": "<total_aed>",
+  "incoterm": "<incoterm>",
+  "validity_days": 1,
+  "valid_until": "2026-12-15",
+  "clauses": [
+    "<clauses>"
+  ],
+  "approver_summary": "<approver_summary>",
+  "delivery_time_text": "<delivery_time_text>",
+  "delivery_place": "<delivery_place>",
+  "payment_terms_text": "<payment_terms_text>",
+  "fx_rate": "<fx_rate>",
+  "fx_rate_date": "2026-12-15",
+  "cover_note": "<cover_note>",
+  "change_summary": "<change_summary>",
+  "pdf_s3_key": "<pdf_s3_key>",
+  "created_at": "2026-12-15T09:00:00+04:00",
+  "lines": []
+}
+```
+
+</details>
+
+
 ---
 
 #### `GET /v1/quote-versions/{version_id}/costs`
@@ -1789,6 +4234,29 @@ Cost build-up of each line: MD only (T3).
 | `version_id` | path | string (uuid) | yes |  |
 
 **Response 200:** list of `LineCostOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "line_no": 1,
+    "material_rate": "<material_rate>",
+    "kg_per_1000": "<kg_per_1000>",
+    "yield_pct": "<yield_pct>",
+    "production_per_1000": "<production_per_1000>",
+    "packaging_per_1000": "<packaging_per_1000>",
+    "freight_per_1000": "<freight_per_1000>",
+    "unit_cost": "<unit_cost>",
+    "markup_pct": "<markup_pct>",
+    "markup_min_pct": "<markup_min_pct>",
+    "markup_max_pct": "<markup_max_pct>"
+  }
+]
+```
+
+</details>
+
 
 ---
 
@@ -1807,6 +4275,33 @@ Manager / MD: approvals open (with SLA deadlines, §16) or decided. Salespeople 
 | `limit` | query | integer | no | ≥ 1; ≤ 100; default `50` |
 
 **Response 200:** `Page_ApprovalOut_`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "items": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "quote_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "kind": "<kind>",
+      "required_role": "<required_role>",
+      "assigned_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "approver_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "status": "<status>",
+      "submitted_at": "2026-12-15T09:00:00+04:00",
+      "deadline_at": "2026-12-15T09:00:00+04:00",
+      "decided_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "decided_at": "2026-12-15T09:00:00+04:00",
+      "decision_note": "<decision_note>"
+    }
+  ],
+  "next_cursor": "<next_cursor>"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1829,7 +4324,40 @@ Human + MFA only. Whose deal it is, takeover and special price are checked in th
 | `decision` | `approve` \| `reject` \| `correct` | yes |  |
 | `note` | string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "decision": "approve",
+  "note": "<note>"
+}
+```
+
+</details>
+
 **Response 200:** `ApprovalOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "quote_version_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "kind": "<kind>",
+  "required_role": "<required_role>",
+  "assigned_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "approver_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "status": "<status>",
+  "submitted_at": "2026-12-15T09:00:00+04:00",
+  "deadline_at": "2026-12-15T09:00:00+04:00",
+  "decided_by": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "decided_at": "2026-12-15T09:00:00+04:00",
+  "decision_note": "<decision_note>"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1851,6 +4379,34 @@ Search by name, email or phone digits. A salesperson sees the contacts of their 
 
 **Response 200:** `Page_ContactRow_`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "items": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "full_name": "<full_name>",
+      "designation": "<designation>",
+      "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "phone_e164": "+971500000001",
+      "whatsapp_e164": "<whatsapp_e164>",
+      "email": "qa.buyer@example.com",
+      "preferred_channel": "<preferred_channel>",
+      "language": "en",
+      "timezone": "<timezone>",
+      "phone_status": "+971500000001",
+      "source": "<source>",
+      "created_at": "2026-12-15T09:00:00+04:00"
+    }
+  ],
+  "next_cursor": "<next_cursor>"
+}
+```
+
+</details>
+
+
 ---
 
 #### `GET /v1/contacts/{contact_id}`
@@ -1866,6 +4422,29 @@ Search by name, email or phone digits. A salesperson sees the contacts of their 
 | `contact_id` | path | string (uuid) | yes |  |
 
 **Response 200:** `ContactRow`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "full_name": "<full_name>",
+  "designation": "<designation>",
+  "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "phone_e164": "+971500000001",
+  "whatsapp_e164": "<whatsapp_e164>",
+  "email": "qa.buyer@example.com",
+  "preferred_channel": "<preferred_channel>",
+  "language": "en",
+  "timezone": "<timezone>",
+  "phone_status": "+971500000001",
+  "source": "<source>",
+  "created_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1892,7 +4471,45 @@ Edit name, designation, company, preferred channel, language, time zone (phone /
 | `language` | string or null | no |  |
 | `timezone` | string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "full_name": "<full_name>",
+  "designation": "<designation>",
+  "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "preferred_channel": "whatsapp",
+  "language": "en",
+  "timezone": "<timezone>"
+}
+```
+
+</details>
+
 **Response 200:** `ContactRow`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "full_name": "<full_name>",
+  "designation": "<designation>",
+  "company_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "phone_e164": "+971500000001",
+  "whatsapp_e164": "<whatsapp_e164>",
+  "email": "qa.buyer@example.com",
+  "preferred_channel": "<preferred_channel>",
+  "language": "en",
+  "timezone": "<timezone>",
+  "phone_status": "+971500000001",
+  "source": "<source>",
+  "created_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1911,6 +4528,30 @@ Edit name, designation, company, preferred channel, language, time zone (phone /
 | `limit` | query | integer | no | ≥ 1; ≤ 100; default `50` |
 
 **Response 200:** `Page_CompanyRow_`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "items": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "name": "Aisha Khan",
+      "country_code": "AE",
+      "city": "Dubai",
+      "customer_type": "<customer_type>",
+      "vat_trn": "<vat_trn>",
+      "website": "<website>",
+      "notes": "<notes>",
+      "created_at": "2026-12-15T09:00:00+04:00"
+    }
+  ],
+  "next_cursor": "<next_cursor>"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1932,7 +4573,42 @@ Create a company record.
 | `website` | string or null | no |  |
 | `notes` | string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "name": "Aisha Khan",
+  "country_code": "AE",
+  "city": "Dubai",
+  "customer_type": "distributor",
+  "vat_trn": "<vat_trn>",
+  "website": "<website>",
+  "notes": "<notes>"
+}
+```
+
+</details>
+
 **Response 201:** `CompanyRow`
+
+<details><summary>Example response 201</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "name": "Aisha Khan",
+  "country_code": "AE",
+  "city": "Dubai",
+  "customer_type": "<customer_type>",
+  "vat_trn": "<vat_trn>",
+  "website": "<website>",
+  "notes": "<notes>",
+  "created_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1960,7 +4636,42 @@ Edit a company record (logged); a salesperson only a company they may see (L3).
 | `website` | string or null | no |  |
 | `notes` | string or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "name": "Aisha Khan",
+  "country_code": "AE",
+  "city": "Dubai",
+  "customer_type": "distributor",
+  "vat_trn": "<vat_trn>",
+  "website": "<website>",
+  "notes": "<notes>"
+}
+```
+
+</details>
+
 **Response 200:** `CompanyRow`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "name": "Aisha Khan",
+  "country_code": "AE",
+  "city": "Dubai",
+  "customer_type": "<customer_type>",
+  "vat_trn": "<vat_trn>",
+  "website": "<website>",
+  "notes": "<notes>",
+  "created_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -1979,6 +4690,34 @@ Edit a company record (logged); a salesperson only a company they may see (L3).
 
 **Response 200:** list of `ProductRow`
 
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "sku": "<sku>",
+    "name": "Aisha Khan",
+    "category_code": "<category_code>",
+    "unit": "<unit>",
+    "moq": 1,
+    "carton_qty": 50000,
+    "is_active": false,
+    "is_quotable": false,
+    "custom_printing": false,
+    "default_lead_days_min": 1,
+    "default_lead_days_max": 1,
+    "spec": {},
+    "cms_product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "cms_published": false,
+    "cms_synced_at": "2026-12-15T09:00:00+04:00"
+  }
+]
+```
+
+</details>
+
+
 ---
 
 #### `GET /v1/products/{product_id}`
@@ -1994,6 +4733,32 @@ One product with its specification (from the CMS) and CRM-owned fields.
 | `product_id` | path | string (uuid) | yes |  |
 
 **Response 200:** `ProductRow`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "sku": "<sku>",
+  "name": "Aisha Khan",
+  "category_code": "<category_code>",
+  "unit": "<unit>",
+  "moq": 1,
+  "carton_qty": 50000,
+  "is_active": false,
+  "is_quotable": false,
+  "custom_printing": false,
+  "default_lead_days_min": 1,
+  "default_lead_days_max": 1,
+  "spec": {},
+  "cms_product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "cms_published": false,
+  "cms_synced_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -2021,7 +4786,49 @@ Manager (MFA): MOQ for quoting, default delivery time, quotable/active (D22: CRM
 | `default_lead_days_min` | integer or null | no |  |
 | `default_lead_days_max` | integer or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "moq": 1,
+  "carton_qty": 50000,
+  "unit": "<unit>",
+  "is_active": false,
+  "is_quotable": false,
+  "default_lead_days_min": 1,
+  "default_lead_days_max": 1
+}
+```
+
+</details>
+
 **Response 200:** `ProductRow`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "sku": "<sku>",
+  "name": "Aisha Khan",
+  "category_code": "<category_code>",
+  "unit": "<unit>",
+  "moq": 1,
+  "carton_qty": 50000,
+  "is_active": false,
+  "is_quotable": false,
+  "custom_printing": false,
+  "default_lead_days_min": 1,
+  "default_lead_days_max": 1,
+  "spec": {},
+  "cms_product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "cms_published": false,
+  "cms_synced_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
 
 ---
 
@@ -2041,6 +4848,31 @@ Manager (MFA): MOQ for quoting, default delivery time, quotable/active (D22: CRM
 
 **Response 200:** `Page_OrderRow_`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "items": [
+    {
+      "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "number": "<number>",
+      "deal_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+      "status": "<status>",
+      "production_started_on": "2026-12-15",
+      "ready_on": "2026-12-15",
+      "shipped_on": "2026-12-15",
+      "delivered_on": "2026-12-15",
+      "tracking_ref": "<tracking_ref>",
+      "created_at": "2026-12-15T09:00:00+04:00"
+    }
+  ],
+  "next_cursor": "<next_cursor>"
+}
+```
+
+</details>
+
+
 ---
 
 #### `GET /v1/fx-rates`
@@ -2050,6 +4882,22 @@ The latest rate per currency (the one quotes use).
 **Who:** manager, md
 
 **Response 200:** list of `FxRow`
+
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "currency": "AED",
+    "rate_to_aed": "<rate_to_aed>",
+    "as_of": "2026-12-15",
+    "source": "<source>"
+  }
+]
+```
+
+</details>
+
 
 ---
 
@@ -2067,7 +4915,33 @@ D38 "the manager can override": a manual rate for a day (it replaces that day's 
 | `rate_to_aed` | number or string | yes |  |
 | `as_of` | string (date) | yes |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "currency": "AED",
+  "rate_to_aed": 1,
+  "as_of": "2026-12-15"
+}
+```
+
+</details>
+
 **Response 201:** `FxRow`
+
+<details><summary>Example response 201</summary>
+
+```json
+{
+  "currency": "AED",
+  "rate_to_aed": "<rate_to_aed>",
+  "as_of": "2026-12-15",
+  "source": "<source>"
+}
+```
+
+</details>
+
 
 ---
 
@@ -2080,6 +4954,25 @@ D38 "the manager can override": a manual rate for a day (it replaces that day's 
 **Who:** sales, manager, admin, md
 
 **Response 200:** list of `StockOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "item_type": "<item_type>",
+    "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "material_code": "<material_code>",
+    "quantity": "<quantity>",
+    "reserved_quantity": "<reserved_quantity>",
+    "unit": "<unit>"
+  }
+]
+```
+
+</details>
+
 
 ---
 
@@ -2098,7 +4991,37 @@ Manager or admin: set the quantity on hand of a product or material (logged).
 | `quantity` | number or string | yes |  |
 | `unit` | string | no | default `"pcs"` |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "material_code": "<material_code>",
+  "quantity": 50000,
+  "unit": "pcs"
+}
+```
+
+</details>
+
 **Response 200:** `StockOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "item_type": "<item_type>",
+  "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "material_code": "<material_code>",
+  "quantity": "<quantity>",
+  "reserved_quantity": "<reserved_quantity>",
+  "unit": "<unit>"
+}
+```
+
+</details>
+
 
 ---
 
@@ -2111,6 +5034,40 @@ Manager or admin: set the quantity on hand of a product or material (logged).
 **Who:** admin, manager, md
 
 **Response 200:** list of `UserAdminOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+[
+  {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "email": "qa.buyer@example.com",
+    "full_name": "<full_name>",
+    "role": "<role>",
+    "phone_e164": "+971500000001",
+    "is_active": false,
+    "is_away": false,
+    "languages": [
+      "en"
+    ],
+    "countries": [
+      "<countries>"
+    ],
+    "category_codes": [
+      "<category_codes>"
+    ],
+    "alert_channels": [
+      "<alert_channels>"
+    ],
+    "backup_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "totp_enrolled": false,
+    "locked": false
+  }
+]
+```
+
+</details>
+
 
 ---
 
@@ -2130,7 +5087,53 @@ Admin (MFA): a new staff user; the one-time password in the answer is shown once
 | `phone_e164` | string or null | no |  |
 | `break_glass` | boolean | no | default `false` |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "email": "qa.buyer@example.com",
+  "full_name": "<full_name>",
+  "role": "md",
+  "phone_e164": "+971500000001",
+  "break_glass": false
+}
+```
+
+</details>
+
 **Response 201:** `UserCreatedOut`
+
+<details><summary>Example response 201</summary>
+
+```json
+{
+  "user": {
+    "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "email": "qa.buyer@example.com",
+    "full_name": "<full_name>",
+    "role": "<role>",
+    "phone_e164": "+971500000001",
+    "is_active": false,
+    "is_away": false,
+    "languages": [
+      "en"
+    ],
+    "countries": [
+      "<countries>"
+    ],
+    "category_codes": [
+      "<category_codes>"
+    ],
+    "alert_channels": [
+      "<alert_channels>"
+    ]
+  },
+  "temporary_password": "<temporary_password>"
+}
+```
+
+</details>
+
 
 ---
 
@@ -2159,7 +5162,64 @@ Admin (MFA): role, active flag, phone, languages / countries / categories for as
 | `category_codes` | list of string or null | no |  |
 | `alert_channels` | list of `whatsapp` \| `email` \| `call` \| `in_app` or null | no |  |
 
+<details><summary>Example request</summary>
+
+```json
+{
+  "full_name": "<full_name>",
+  "role": "md",
+  "phone_e164": "+971500000001",
+  "is_active": false,
+  "languages": [
+    "en"
+  ],
+  "countries": [
+    "<countries>"
+  ],
+  "category_codes": [
+    "<category_codes>"
+  ],
+  "alert_channels": [
+    "whatsapp"
+  ]
+}
+```
+
+</details>
+
 **Response 200:** `UserAdminOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "email": "qa.buyer@example.com",
+  "full_name": "<full_name>",
+  "role": "<role>",
+  "phone_e164": "+971500000001",
+  "is_active": false,
+  "is_away": false,
+  "languages": [
+    "en"
+  ],
+  "countries": [
+    "<countries>"
+  ],
+  "category_codes": [
+    "<category_codes>"
+  ],
+  "alert_channels": [
+    "<alert_channels>"
+  ],
+  "backup_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "totp_enrolled": false,
+  "locked": false
+}
+```
+
+</details>
+
 
 ---
 
@@ -2177,6 +5237,38 @@ A lost authenticator: sessions end; the person signs in with an email code and e
 
 **Response 200:** `UserAdminOut`
 
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "email": "qa.buyer@example.com",
+  "full_name": "<full_name>",
+  "role": "<role>",
+  "phone_e164": "+971500000001",
+  "is_active": false,
+  "is_away": false,
+  "languages": [
+    "en"
+  ],
+  "countries": [
+    "<countries>"
+  ],
+  "category_codes": [
+    "<category_codes>"
+  ],
+  "alert_channels": [
+    "<alert_channels>"
+  ],
+  "backup_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "totp_enrolled": false,
+  "locked": false
+}
+```
+
+</details>
+
+
 ---
 
 #### `POST /v1/users/{user_id}/unlock`
@@ -2192,6 +5284,38 @@ Admin (MFA): lift a lock-out after too many wrong passwords or codes.
 | `user_id` | path | string (uuid) | yes |  |
 
 **Response 200:** `UserAdminOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "email": "qa.buyer@example.com",
+  "full_name": "<full_name>",
+  "role": "<role>",
+  "phone_e164": "+971500000001",
+  "is_active": false,
+  "is_away": false,
+  "languages": [
+    "en"
+  ],
+  "countries": [
+    "<countries>"
+  ],
+  "category_codes": [
+    "<category_codes>"
+  ],
+  "alert_channels": [
+    "<alert_channels>"
+  ],
+  "backup_user_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "totp_enrolled": false,
+  "locked": false
+}
+```
+
+</details>
+
 
 ---
 

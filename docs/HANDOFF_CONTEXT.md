@@ -55,8 +55,8 @@ and the platform docs (`docs/Arifaa Platform — Platforms, Pricing & Fallbacks/
   - Cost: about **US$903 / 1,775 / 3,936 a month** per company at Light / Normal / Heavy (Recommendation).
 - **Code impact:** work list WP13–WP29 in `docs/V1_CHANGE_PLAN.md` (decisions D17–D40); open decisions #40–#60 in
   `docs/OPEN_QUESTIONS.md`; progress in `docs/V1_PROGRESS.md`.
-- **Frontend hand-offs** (from the code's OpenAPI): `docs/frontend/CRM_API.md`, `docs/frontend/CMS.md`,
-  `docs/frontend/WEBSITE_API.md`.
+- **Hand-off pack** (from the code, `make handoff`): `docs/handoff/` (`CRM_API.md`, `CMS_API.md`,
+  `WEBSITE_API.md`, OpenAPI, Postman collections per package, `TESTER_HELPER.docx`, `FRONTEND_GUIDE`).
 
 ---------------------------------------------------------------------------------------------------------
 ## 5 Nov changes (built 6 Nov, WP1–WP12). These override sections 5 and 6a below.

@@ -1,13 +1,14 @@
 # ruff: noqa: E501, S106, PLR0915, RUF005 - a build script: long markdown f-strings, a dummy secret, one
 # long render() routine, and list concatenation that reads more clearly than unpacking.
-"""Generate the frontend hand-off docs from the code (no database, no network). Run: `make frontend-docs`.
+"""Generate the API documents of the hand-off pack from the code (no database, no network). Run through
+`make handoff` (scripts/gen_handoff.py), or alone: `python scripts/gen_frontend_docs.py [out_dir]`.
 
-Builds the same routers the API process mounts, exports OpenAPI 3.1, and writes, into docs/frontend/:
-* CRM_API.md / WEBSITE_API.md = the hand-written head (scripts/frontend_heads/) + a reference generated per
+Builds the same routers the API process mounts, exports OpenAPI 3.1, and writes, into docs/handoff/ (D60):
+* CRM_API.md / WEBSITE_API.md = the hand-written head (scripts/handoff_heads/) + a reference generated per
   endpoint: method + path, purpose (route docstring), who may call it (read from the route's require_role /
-  require_human_mfa dependency closures), parameters, request body and response fields;
-* openapi-crm.json / openapi-website.json for a mock server.
-CMS.md is hand-written and is not touched here.
+  require_human_mfa dependency closures), parameters, request and response schema tables and JSON examples,
+  then a "data shapes" appendix with every model;
+* openapi/openapi-crm.json / openapi/openapi-website.json for a mock server (Prism).
 """
 
 import json
@@ -17,6 +18,7 @@ from typing import Any
 
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
+from gen_tester_pack import example
 
 from kx.agents import WebsiteDeps, website_router
 from kx.automation import admin_router as channels_admin_router
@@ -27,9 +29,8 @@ from kx.crm.deps import CrmDeps
 from kx.crm.quotes.pdf import Letterhead
 
 HERE = pathlib.Path(__file__).resolve().parent
-HEADS = HERE / "frontend_heads"
-OUT = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else HERE.parent / "docs" / "frontend"
-OUT.mkdir(parents=True, exist_ok=True)
+HEADS = HERE / "handoff_heads"
+DEFAULT_OUT = HERE.parent / "docs" / "handoff"
 
 
 class _Dummy:
@@ -227,6 +228,8 @@ def render(
                 if name:
                     used.add(name)
                     lines += fields_table(comps[name]) + [""]
+                if ctype == "application/json":
+                    lines += _json_block("Example request", media.get("schema", {}), comps)
             for code, resp in op.get("responses", {}).items():
                 if code == "422" and "HTTPValidationError" in json.dumps(resp):
                     continue
@@ -237,6 +240,8 @@ def render(
                 lines.append(f"**Response {code}:** {shown}")
                 for ref in _refs(schema):
                     used.add(ref)
+                if schema and code.startswith("2") and "application/json" in content:
+                    lines += [""] + _json_block(f"Example response {code}", schema, comps)
             lines += ["", "---", ""]
     # schemas appendix: everything referenced, transitively
     pending = list(used)
@@ -275,16 +280,98 @@ def _refs(schema: Any) -> list[str]:
     return out
 
 
-crm_md, crm_spec = render(crm_app(), "CRM endpoint reference", ("/v1", "/.well-known"))
-web_md, web_spec = render(website_app(), "Website endpoint reference", ("/v1/public",))
+_SAMPLE_UUID = "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12"
+
+
+# Readable example strings for the documents (the tester pack writes "QA test" so a tester sees test data).
+_DOC_STRINGS: dict[str, str] = {
+    "text": "Do you have 8325 containers with lids? I need 20,000 a month in Dubai.",
+    "reply": "Yes: 8325 is our 1-litre aluminium container with lid, packed 1 x 1000 pcs.",
+    "session_token": "eyJhbGciOiJIUzI1NiJ9.eyJzaWQiOiIuLi4ifQ.signature",
+    "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIuLi4ifQ.signature",
+    "name": "Aisha Khan",
+    "company": "Gulf Kitchens LLC",
+    "city": "Dubai",
+    "title": "Aluminium Container & Lid",
+    "slug": "about",
+    "path": "/products",
+    "url": "https://www.arifapack.com/products",
+}
+
+
+def _example(schema: dict[str, Any], comps: dict[str, Any]) -> Any:
+    """A realistic example (the tester pack's generator), with Postman `{{variables}}` made concrete and the
+    tester's placeholder text replaced by field-specific sample text."""
+
+    def concrete(value: Any, key: str = "") -> Any:
+        if isinstance(value, dict):
+            return {k: concrete(v, k) for k, v in value.items()}
+        if isinstance(value, list):
+            return [concrete(v, key) for v in value]
+        if isinstance(value, str) and value.startswith("{{") and value.endswith("}}"):
+            return _SAMPLE_UUID
+        if value == "QA test":
+            return _DOC_STRINGS.get(key, f"<{key or 'text'}>")
+        return value
+
+    return concrete(example(schema, comps))
+
+
+def _json_block(label: str, schema: dict[str, Any], comps: dict[str, Any]) -> list[str]:
+    value = _example(schema, comps)
+    if value in (None, {}, []):
+        return []
+    text = json.dumps(value, indent=2, ensure_ascii=False)
+    if len(text) > 2500:  # very large shapes: the tables above say it all
+        return []
+    return [f"<details><summary>{label}</summary>", "", "```json", text, "```", "", "</details>", ""]
 
 
 def _doc(head: str, body: str) -> str:
     return (HEADS / head).read_text(encoding="utf-8").rstrip() + "\n\n" + body + "\n"
 
 
-(OUT / "CRM_API.md").write_text(_doc("crm_head.md", crm_md), encoding="utf-8")
-(OUT / "WEBSITE_API.md").write_text(_doc("web_head.md", web_md), encoding="utf-8")
-(OUT / "openapi-crm.json").write_text(json.dumps(crm_spec, indent=2), encoding="utf-8")
-(OUT / "openapi-website.json").write_text(json.dumps(web_spec, indent=2), encoding="utf-8")
-print("CRM_API.md:", len(crm_spec["paths"]), "paths; WEBSITE_API.md:", len(web_spec["paths"]), "paths")
+def write_api_doc(
+    out: pathlib.Path,
+    *,
+    app: FastAPI,
+    title: str,
+    head: str,
+    md_name: str,
+    openapi_name: str,
+    prefixes: tuple[str, ...],
+    exclude: tuple[str, ...] = (),
+) -> int:
+    """One `*_API.md` + its OpenAPI file; returns the number of paths documented."""
+    md, spec = render(app, title, prefixes, exclude)
+    (out / md_name).write_text(_doc(head, md), encoding="utf-8")
+    (out / "openapi").mkdir(parents=True, exist_ok=True)
+    (out / "openapi" / openapi_name).write_text(json.dumps(spec, indent=2) + "\n", encoding="utf-8")
+    return len(spec["paths"])
+
+
+def main(out: pathlib.Path = DEFAULT_OUT) -> None:
+    out.mkdir(parents=True, exist_ok=True)
+    crm = write_api_doc(
+        out,
+        app=crm_app(),
+        title="CRM endpoint reference",
+        head="crm_head.md",
+        md_name="CRM_API.md",
+        openapi_name="openapi-crm.json",
+        prefixes=("/v1", "/.well-known"),
+    )
+    web = write_api_doc(
+        out,
+        app=website_app(),
+        title="Website endpoint reference",
+        head="web_head.md",
+        md_name="WEBSITE_API.md",
+        openapi_name="openapi-website.json",
+        prefixes=("/v1/public",),
+    )
+    print("CRM_API.md:", crm, "paths; WEBSITE_API.md:", web, "paths")
+
+
+if __name__ == "__main__":
+    main(pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_OUT)

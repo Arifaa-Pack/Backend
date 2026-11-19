@@ -11,7 +11,7 @@ Kairox platform: a reusable B2B sales system (CRM + automation + AI agents). The
 5. `docs/ARCHITECTURE.md`, `docs/DATABASE.md`, `docs/PLATFORM_MODES.md`: how the system, the databases and the paid / free switch work.
 6. `docs/REUSE_CATALOGUE.md`: where each capability lives. Import, never rewrite.
 7. Background only if needed: `docs/HANDOFF_CONTEXT.md`, `docs/DELIVERY.md`, `docs/DEPLOYMENT.md`, `docs/LOCAL_DEV.md`, `docs/MULTI_PROJECT.md`, `docs/CONTESTS.md`, `infra/server/README.md`.
-8. Frontend hand-offs (generated from the code): `docs/frontend/`.
+8. Hand-off pack for the frontend developer and the QA tester (generated from the code by `make handoff`): `docs/handoff/` (CRM_API, CMS_API, WEBSITE_API, OpenAPI, one Postman collection per package, TESTER_HELPER.docx, FRONTEND_GUIDE).
 
 ## Layout
 

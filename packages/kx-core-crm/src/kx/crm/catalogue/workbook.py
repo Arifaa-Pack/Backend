@@ -69,7 +69,7 @@ class Column:
 
 
 # Product details the CMS gets are `target="spec"` plus name, category, unit, MOQ and custom printing.
-# The spec keys are the CMS field names (docs/frontend/CMS.md): the CRM copy and the CMS use the same names.
+# The spec keys are the CMS field names (docs/handoff/CMS_API.md): the CRM copy and the CMS use the same names.
 PRODUCT_COLUMNS: Final = (
     Column(
         "code",

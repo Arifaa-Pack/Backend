@@ -1,4 +1,4 @@
-"""Round-2 re-test: run the tester's Postman collection (docs/testing/postman) with newman against the live stack.
+"""Round-2 re-test: run the tester's Postman collection (docs/handoff/postman) with newman against the live stack.
 
 Folder 01 (sign-in) needs a person with an authenticator app, so the harness signs in its own staff accounts
 (kxclient: real MFA) and puts their tokens in a run-only copy of the local environment, with the stack's TEST

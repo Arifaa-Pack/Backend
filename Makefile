@@ -35,9 +35,9 @@ bench: ## speed benchmarks of the hot paths
 migrate: ## apply Alembic migrations to every DB (the job queue is a table in the automation revisions)
 	uv run kx migrate
 
-.PHONY: frontend-docs
-frontend-docs: ## regenerate docs/frontend/ (CRM + website API) from the code's OpenAPI
-	uv run python scripts/gen_frontend_docs.py
+.PHONY: handoff
+handoff: ## regenerate docs/handoff/ (API docs, OpenAPI, Postman collections, endpoints.json) from the code
+	uv run python scripts/gen_handoff.py
 
 .PHONY: api
 api: ## run the API locally on :8000

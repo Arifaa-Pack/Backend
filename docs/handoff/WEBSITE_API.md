@@ -13,7 +13,7 @@ comes from), `CRM_API.md` (staff app).
 ## 1. Working against a mock
 
 ```bash
-npx @stoplight/prism-cli mock docs/frontend/openapi-website.json --port 4011
+npx @stoplight/prism-cli mock docs/handoff/openapi/openapi-website.json --port 4011
 ```
 
 Things a mock cannot do: the Turnstile check, the real AI reply, the LiveKit room. Real API locally:
@@ -91,3 +91,243 @@ Business errors use `application/problem+json` (`type`, `title`, `status`, `deta
 the CRM API.
 
 ---
+
+## Website endpoint reference
+
+### website
+
+#### `POST /v1/public/sessions`
+
+§6 step 1: start a website conversation (Turnstile-checked).
+
+**Who:** public
+
+**Request body** (`application/json`): `SessionIn`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `turnstile_token` | string | no | max length 4096; default `""` |
+| `language` | string or null | no |  |
+| `voice_consent` | boolean | no | default `false` |
+| `cookie_consent` | boolean | no | default `false` |
+| `country_code` | string or null | no |  |
+
+<details><summary>Example request</summary>
+
+```json
+{
+  "turnstile_token": "",
+  "language": "en",
+  "voice_consent": false,
+  "cookie_consent": false,
+  "country_code": "AE"
+}
+```
+
+</details>
+
+**Response 201:** `SessionOut`
+
+<details><summary>Example response 201</summary>
+
+```json
+{
+  "session_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "session_token": "eyJhbGciOiJIUzI1NiJ9.eyJzaWQiOiIuLi4ifQ.signature",
+  "expires_at": "2026-12-15T09:00:00+04:00",
+  "language": "en",
+  "voice_available": false
+}
+```
+
+</details>
+
+
+---
+
+#### `POST /v1/public/sessions/{session_id}/messages`
+
+One chat turn (§6 steps 2-6) through the same agents, guard and router as WhatsApp.
+
+**Who:** the website session: header `Authorization: Bearer <session_token>`
+
+**Parameters**
+
+| Name | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `session_id` | path | string (uuid) | yes |  |
+
+**Request body** (`application/json`): `MessageIn`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `text` | string | yes | min length 1; max length 2000 |
+| `language` | string or null | no |  |
+
+<details><summary>Example request</summary>
+
+```json
+{
+  "text": "Do you have 8325 containers with lids? I need 20,000 a month in Dubai.",
+  "language": "en"
+}
+```
+
+</details>
+
+**Response 200:** `MessageOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "reply": "Yes: 8325 is our 1-litre aluminium container with lid, packed 1 x 1000 pcs.",
+  "language": "en",
+  "handed_over": false
+}
+```
+
+</details>
+
+
+---
+
+#### `POST /v1/public/sessions/{session_id}/voice`
+
+A LiveKit room token for live voice (participant metadata: deal_ref, language).
+
+**Who:** the website session: header `Authorization: Bearer <session_token>`
+
+**Parameters**
+
+| Name | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `session_id` | path | string (uuid) | yes |  |
+
+**Response 200:** `VoiceOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "livekit_url": "<livekit_url>",
+  "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIuLi4ifQ.signature",
+  "room": "<room>",
+  "language": "en",
+  "expires_at": "2026-12-15T09:00:00+04:00"
+}
+```
+
+</details>
+
+
+---
+
+#### `POST /v1/public/sessions/{session_id}/identify`
+
+§6 step 7: the visitor typed their phone or email; a returning buyer is recognised now, never before. The answer does not say whether the buyer was known.
+
+**Who:** the website session: header `Authorization: Bearer <session_token>`
+
+**Parameters**
+
+| Name | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `session_id` | path | string (uuid) | yes |  |
+
+**Request body** (`application/json`): `IdentifyIn`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `phone` | string or null | no |  |
+| `email` | string or null | no |  |
+| `name` | string or null | no |  |
+
+<details><summary>Example request</summary>
+
+```json
+{
+  "phone": "+971500000001",
+  "email": "qa.buyer@example.com",
+  "name": "Aisha Khan"
+}
+```
+
+</details>
+
+**Response 200:** `IdentifyOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "ok": true
+}
+```
+
+</details>
+
+
+---
+
+## Website endpoint reference: data shapes
+
+### `IdentifyIn`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `phone` | string or null | no |  |
+| `email` | string or null | no |  |
+| `name` | string or null | no |  |
+
+### `IdentifyOut`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `ok` | boolean | no | default `true` |
+
+### `MessageIn`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `text` | string | yes | min length 1; max length 2000 |
+| `language` | string or null | no |  |
+
+### `MessageOut`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `reply` | string or null | yes |  |
+| `language` | string | yes |  |
+| `handed_over` | boolean | yes |  |
+
+### `SessionIn`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `turnstile_token` | string | no | max length 4096; default `""` |
+| `language` | string or null | no |  |
+| `voice_consent` | boolean | no | default `false` |
+| `cookie_consent` | boolean | no | default `false` |
+| `country_code` | string or null | no |  |
+
+### `SessionOut`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `session_id` | string (uuid) | yes |  |
+| `session_token` | string | yes |  |
+| `expires_at` | string (date-time) | yes |  |
+| `language` | string | yes |  |
+| `voice_available` | boolean | yes |  |
+
+### `VoiceOut`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `livekit_url` | string | yes |  |
+| `token` | string | yes |  |
+| `room` | string | yes |  |
+| `language` | string | yes |  |
+| `expires_at` | string (date-time) | yes |  |
+

@@ -9,7 +9,7 @@
 - **Event payload version changed (`kx/core/event_payloads.py`):** Y / N <!-- if Y: old consumers still accept it? -->
 - **Migration:** none / in which database (`crm`, `automation`, `agents`, `core`) and revision id
 - **`docs/FEATURE_MAP.md` refreshed** (`uv run kx map --write docs/FEATURE_MAP.md`) when wiring changed: Y / N / not needed
-- **OpenAPI regenerated** (`python scripts/gen_frontend_docs.py`) when an endpoint changed: Y / N / not needed
+- **Hand-off pack regenerated** (`make handoff`) when an endpoint changed: Y / N / not needed
 
 ## Tests run
 

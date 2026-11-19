@@ -16,7 +16,7 @@ Companion files in this folder:
 
 ```bash
 # any OpenAPI mock server works; for example Prism:
-npx @stoplight/prism-cli mock docs/frontend/openapi-crm.json --port 4010
+npx @stoplight/prism-cli mock docs/handoff/openapi/openapi-crm.json --port 4010
 # then point the app at http://localhost:4010 (the paths below start with /v1)
 ```
 
@@ -127,6 +127,15 @@ Rules the screens must respect:
 Public key for verifying tokens elsewhere: `GET /.well-known/jwks.json`.
 
 ---
+
+### Working in Postman (no re-login every 15 minutes)
+
+Import `docs/handoff/postman/Kairox-CRM-quickstart.postman_collection.json`, set `base_url`, `email` and `password` in the
+collection variables, then sign in **once**: "1 Sign in", then "2a Send email code" + "2b Verify email code"
+(code into `mfa_code`), or "2c Authenticator code" (needed for approvals). From then on a collection
+pre-request script renews the 15-minute access token automatically before any request that needs it (it sends
+the refresh token in the body, which non-browser clients may do, and keeps the rotated one). Sign in again only
+when the session ends: 12 hours after sign-in, or after "Sign out" / a password change.
 
 ## 4. Conventions
 

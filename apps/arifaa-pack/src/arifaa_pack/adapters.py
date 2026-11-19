@@ -221,7 +221,7 @@ class PayloadProductWriter:
     """18 Nov product workbook -> CMS: saves a product's details in Payload **as a draft** (a manager previews
     and publishes it in the CMS; the publish webhook then updates the website, the AI and the CRM mirror).
 
-    Contract with the CMS (docs/frontend/CMS.md §5): collection `products` with `code`, `name`, `title`,
+    Contract with the CMS (docs/handoff/CMS_API.md §5): collection `products` with `code`, `name`, `title`,
     `category` (relationship to `product-categories`, matched by `code`), `shortDescription`,
     `descriptionText`, `moq`, `unit`, `customPrinting` and the group `specs` {material, capacity, dimensions,
     thickness, colours, lidOptions}. Only the fields the workbook set are sent; existing `specs` are merged,
