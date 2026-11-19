@@ -25,8 +25,13 @@ Kairox platform: a reusable B2B sales system (CRM + automation + AI agents). The
   `webhooks/`, `optout/`, `whatsapp/`, `email/` Stalwart → SES, `calls/` Telnyx, `alerts/`, `followups/`, `scraping/`,
   `cms/`, `admin/`; shared code in `_shared/`), `handlers.py`, `jobs.py`; the app imports only `kx.automation`.
 - `packages/kx-agent-framework` → `kx.agents`: one folder per feature (`runtime/` the turn engine, `router/`,
-  `graphs/`, `tools/`, `guard/`, `llm/`, `roles/`, `knowledge/`, `memory/`, `voice/`, `website/`, `tracing/`,
-  `evals/`), `handlers.py`; the app imports only `kx.agents`. Map: `docs/arch/AUTOMATION_AGENTS_SLICES.md`.
+  `graphs/`, `tools/`, `guard/`, `llm/`, `roles/`, `knowledge/`, `memory/`, `voice/`, `website/`, `site/` (the
+  site map resolver and site actions, D55), `tracing/`, `evals/`), `handlers.py`; the app imports only `kx.agents`.
+  Map: `docs/arch/AUTOMATION_AGENTS_SLICES.md`.
+- `packages/kx-cms` → `kx.cms` (D54, ADR-0003): the CMS, its own database `cms`. `content/` (drafts, publish,
+  versions; public `/v1/content/*`, admin `/v1/cms/*`), `media/` (R2), `manifest/` (the site map the AI moves the
+  website with), `preview/`, `publish/` (website revalidation), `site_import/`; imports only `kx.core`; no
+  prices in content (`kx.core.no_prices`).
 - `apps/arifaa-pack` → `arifaa_pack`: wiring (`container.py`), vendor adapters (`adapters.py`), Celery app (`celery_app.py`), API, CLI `kx`, voice worker, telemetry, Alembic `migrations/`.
 - `services/speech/`: the free speech server (faster-whisper + Piper), its own image (Python 3.12), outside the uv workspace.
 - `db/ddl/0*.sql`: the v1 baseline. **Never edit it.** Schema changes are new Alembic revisions (`migrations/<db>/versions/000N_*.py`).
@@ -45,6 +50,8 @@ make migrate                              # kx migrate (alembic, every DB)
 kx api | kx worker | kx beat | kx voice   # API, Celery worker, the ONE Celery Beat, LiveKit voice worker
 kx platform show                          # D41: resolved paid / free version per field
 kx reindex                                # D47: re-embed knowledge chunks after an embedding-model switch
+kx content import-site                    # D54: the current website into the CMS (catalogue, pages, chapters)
+kx catalogue import-erp <file> [--dry-run]  # D61: the ERP stock list into the CRM (the website products' variants)
 make up-voice | up-mail | up-obs | up-embed   # one local profile at a time (docs/LOCAL_DEV.md, Docker on D:)
 uv run pytest tests/spec -m bench --benchmark-enable   # speed checks
 ```
@@ -60,6 +67,8 @@ uv run pytest tests/spec -m bench --benchmark-enable   # speed checks
 - **The backend builds every quote** (§11.1); the AI never calculates or types a price.
 - **AI-visible data** (`DealContext` and DTOs) never contains cost, markup, the minimum price or ladder steps.
 - **Every AI reply** passes `kx.core.price_guard.check_prices` (it fails closed), whichever model or vendor answered. Priced messages go out only through `OutboundService` with a single-use send grant.
+- **No invented facts:** the claims guard (`kx.agents.guard.claims`) removes a certificate, standard or capacity a tool did not return; the language guard keeps the visitor's script; website replies are plain text.
+- **Website actions** (D55) are checked against the CMS site map (`kx.agents.site.actions`) before they leave the server: never a selector, a free URL or a price.
 - **Opt-out (§8.1):** one suppression list checked before every message and call; the AI may add a stop, never remove one.
 - **Approvals** use `require_human_mfa` (TOTP factor; an email-code login is not enough).
 - **Vendors:** call a field's adapter (`llm`, `stt`, `tts`, `calls`, `email`, `embeddings` …), never a vendor directly. The order comes from `kx.core.platform.order()` (env `KX_PLATFORM_PLAN` + `KX_PLATFORM__<FIELD>`: paid = paid → free alternative; free = free only); a switch must be logged and alerted. Only the platforms of the server plan v2 §2 belong in the code.

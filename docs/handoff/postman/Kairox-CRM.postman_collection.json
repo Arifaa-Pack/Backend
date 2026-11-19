@@ -2928,7 +2928,7 @@
           ]
         },
         {
-          "name": "Import erp",
+          "name": "Import the ERP stock list (dry run first)",
           "request": {
             "method": "POST",
             "header": [],
@@ -2966,7 +2966,7 @@
           ]
         },
         {
-          "name": "Set website link",
+          "name": "Link an ERP item to its website product",
           "request": {
             "method": "PUT",
             "header": [
@@ -2991,7 +2991,7 @@
             "description": "Link an ERP item (a variant) to its website product, or unlink it (null): when the automatic match was not sure, or was wrong.\n\n**Who may call it:** manager, md, admin\n\n**Expected on success:** HTTP 204",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cms_product_id\": \"{{cms_product_id}}\"\n}",
+              "raw": "{\n  \"cms_product_id\": \"{{web_product_id}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3012,7 +3012,7 @@
           ]
         },
         {
-          "name": "Website variants",
+          "name": "What the AI may say about a product's packings",
           "request": {
             "method": "GET",
             "header": [],
@@ -3037,7 +3037,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test(\"Never an amount: availability words and quantity breaks only (D61)\", function () {",
+                  "    pm.expect(JSON.stringify(pm.response.json())).to.not.match(/price|AED|amount/i);",
+                  "  });",
+                  "}"
                 ]
               }
             }

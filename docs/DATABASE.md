@@ -9,7 +9,7 @@ One PostgreSQL cluster holds one **logical database per area**. Each has its own
 | Logical DB (name on the server) | Owner role | Used by | Tier | Grows by |
 | --- | --- | --- | --- | --- |
 | `pack_crm` | `pack_crm_app` (+ `pack_reporting_ro`) | `kx.crm` | Business | slowly: deals, quotes, audit (≈ 1 row per state change) |
-| `pack_cms` | `pack_cms_app` | Payload CMS (Node) | Business | very slowly |
+| `pack_cms` | `pack_cms_app` | `kx.cms` (D54): documents, versions, media, outbox, audit | Business | slowly: one version per save or publish |
 | `pack_automation` | `pack_automation_app` | `kx.automation` | Interactions | every message in or out, every job |
 | `pack_agents` | `pack_agents_app` | `kx.agents` | Interactions | every buyer turn, every AI run and tool call, website sessions |
 | `pack_phoenix` (separate container) | `pack_phoenix_app` | Arize Phoenix | Telemetry | every model call (≈ 4 KB) |
@@ -125,3 +125,15 @@ never wait; forward-only; `tests/db/test_migrations_v1.py` re-runs each statemen
 
 Under load the AI worker's thread pool holds its own connection pool per thread: the live load test saw up to 89
 PostgreSQL connections at 50 users (34 before). Size PgBouncer's `max_db_connections` for it (§3).
+
+## Website AI, CMS and ERP tables (19–20 Nov)
+
+| Table | Database | What | Growth and retention |
+| --- | --- | --- | --- |
+| `cms.documents`, `cms.versions` | cms | one document per page, product, family …; every saved draft and publish is a version (`data` per locale) | slow; versions are kept so an editor can restore any (a clean-up rule for very old archived versions is an open question) |
+| `cms.media_assets` | cms | R2 keys (content-addressed), alt text EN / AR | slow |
+| `cms.outbox`, `cms.audit` | cms | publish events (relayed by `relay.cms`), who changed what | outbox pruned like the other outboxes; audit kept |
+| `crm.website_products` (crm_0018) | crm | the website products the CMS published (id, ref, family, range, `match_words`): what ERP items are linked to | 78 rows today |
+| `crm.products` ERP columns (crm_0018) | crm | `sellable`, `erp_category`, `erp_description`, `erp_packing`, `brand`; `cms_product_id` links a variant to its website product | one row per ERP item (every category kept) |
+| `agents.visitors` (agents_0006) | agents | `site_context`, `engaged_at`, `proactive_count`, `last_proactive_at`, `recording_notice_at` | one row per website visit; `expires_at` 90 days (existing rule) |
+

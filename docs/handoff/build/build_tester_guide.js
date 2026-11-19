@@ -593,8 +593,8 @@ scenario("S19", "Price list maintenance", {
   expected: ["Tier saved and visible in history with who, when, old and new value; salesperson refused; invalid tier refused."],
   look: "Responses; price list history.",
 });
-scenario("S20", "CMS publish webhook drops prices", {
-  purpose: "D22: the CMS holds marketing content only; prices never come from it.",
+scenario("S20", "Old CMS publish webhook drops prices (kept for compatibility)", {
+  purpose: "D22: the CMS holds marketing content only; prices never come from it. Since 19 Nov (D54) the CMS is the platform's own (S22); this webhook stays for a legacy publisher.",
   pre: "`cms_webhook_secret` (ask the developer / admin), `cms_product_code` = an existing SKU.",
   stepsList: [
     "Run " + R("POST", "/webhooks/cms") + " (200). Each run creates a new `event_id`, so each run is a new publish.",
@@ -614,6 +614,121 @@ scenario("S21", "Kill switch", {
   ],
   expected: ["While on hold nothing is sent to buyers (the inbound message is stored); after `off` normal service resumes."],
   look: "Timeline; " + R("GET", "/v1/admin/kill-switch") + ".",
+});
+const MSG = R("POST", "/v1/public/sessions/{session_id}/messages");
+const START = R("POST", "/v1/public/sessions");
+const CARD = R("POST", "/v1/public/sessions/{session_id}/contact");
+const MOVED = R("POST", "/v1/public/sessions/{session_id}/events");
+const DESK = R("POST", "/v1/public/enquiries");
+const ERP = R("POST", "/v1/catalogue/erp-import");
+const VARIANTS = R("GET", "/v1/catalogue/website-products/{cms_product_id}/variants");
+scenario("S22", "CMS: edit, preview, publish; the website, the AI and the CRM follow", {
+  purpose: "D54: the client edits the website in the CMS. A publish reaches the website API at once, the AI's site map and the CRM's copy of the product; prices are refused.",
+  pre: "A content editor (`kx create-user --role content_editor`) signed in; `collection` = products, `key` = ac-8325.",
+  stepsList: [
+    "Run " + R("GET", "/v1/cms/collections/{collection}/{key}") + " and note `revision`.",
+    "Change the product's `name` in the body of " + R("PUT", "/v1/cms/collections/{collection}/{key}") + " (send the `revision` you read): a draft is saved.",
+    "Run " + R("POST", "/v1/cms/preview-token") + ", then " + R("GET", "/v1/content/products/{product_id}") + " with `?preview=<token>`: the draft shows; without it the published name shows.",
+    "Run " + R("POST", "/v1/cms/collections/{collection}/{key}/publish") + ", then the public product again.",
+    "Save a draft with `\"unit_price\": \"0.35\"` in `specs`: expect **422**.",
+    "As the content editor run " + DEALS + ": expect **403**.",
+    "Run " + R("GET", "/v1/cms/collections/{collection}/{key}/versions") + " and restore the earlier version.",
+  ],
+  expected: [
+    "The public product shows the new name within a minute; `GET /v1/content/manifest` too (the AI uses it).",
+    "A price in content is refused; the content editor cannot open deals.",
+    "Restore brings the old text back as a new draft.",
+  ],
+  look: "Responses; the website (when connected).",
+});
+scenario("S23", "ERP stock list into the CRM; what the AI may say about packings", {
+  purpose: "D61: the ERP's items become the sellable variants of the website products. Every row is kept; packing material, raw material and scrap are not sellable.",
+  pre: "Manager token. The ERP export as a file (CSV, TSV or .xlsx with Category, Item Description, Unit, ClosStk).",
+  stepsList: [
+    "Run " + ERP + " with `dry_run=true` (form-data `file`): read the counts; nothing is saved.",
+    "Run it again without `dry_run`.",
+    "Set `cms_product_id` = ac-8325 and run " + VARIANTS + ".",
+    "If an item did not link, set `sku` to its code and run " + R("PUT", "/v1/catalogue/products/{sku}/website-link") + ".",
+  ],
+  expected: [
+    "`rows`, `sellable` and `not_sellable` add up; the same file again only updates (no new items).",
+    "The 8325 has two variants (container and lid), each with its packing, `availability` (in_stock / limited / made_to_order) and quantity breaks; **no amount anywhere**.",
+  ],
+  look: "Responses; the products list.",
+});
+scenario("S24", "The website assistant moves the page", {
+  purpose: "D55 / D57: the visitor's words move the page (show a family, open a product, go to a page) in English and Arabic; every action is checked against the site map.",
+  pre: "A website session (" + START + ").",
+  stepsList: [
+    "Set `web_text` = \"show me kitchen foil\" and run " + MSG + ".",
+    "Then \"do you have 8325?\", \"where are your certificates?\", \"أرني حاويات ألمنيوم\" (Arabic) and \"hello\".",
+    "Add the header `Accept: text/event-stream` and send \"show me cling film\": read the raw body.",
+  ],
+  expected: [
+    "`actions`: `show_family` foil; `show_product` ac-8325; `navigate` quality / documents; `show_family` containers; nothing for \"hello\".",
+    "Each action has `id`, `layer` and `resolved` (`path_en`, `path_ar`). No price in any reply.",
+    "The stream starts with `event: action`, then `event: delta` lines, then `event: done`.",
+  ],
+  look: "Postman console (it prints each page action).",
+});
+scenario("S25", "Contact card with consent, and the assistant's nudges", {
+  purpose: "D59: WhatsApp / email consent is recorded with the exact words the visitor saw. The assistant speaks first only after the visitor has written, at most 3 times a visit.",
+  pre: "A new website session.",
+  stepsList: [
+    "Run " + MOVED + " (a product open 25 s) before any message: `reply` is null.",
+    "Send one message (" + MSG + "), then run " + MOVED + " again: a short offer about the product.",
+    "Run it again at once: null (30 s apart). Over a visit: never more than 3.",
+    "Run " + CARD + " with `whatsapp_opt_in: true`.",
+    "As manager open the deal (" + DEALS + ", newest first) and its timeline.",
+  ],
+  expected: [
+    "The card answers `{\"ok\": true}` whether or not the phone was known.",
+    "The CRM contact has a granted WhatsApp consent with the wording sent and `captured_via` web_chat.",
+  ],
+  look: "Deal and contact in the CRM.",
+});
+scenario("S26", "Enquiry desk on the Contact page", {
+  purpose: "CT-01: the enquiry form reaches the CRM as a `web_form` deal (or joins the chat's deal), with English labels, and a salesperson is assigned.",
+  pre: "Locally no Turnstile token is needed; on staging run it from the website or with a session.",
+  stepsList: [
+    "Run " + DESK + " (with `session_id` from your session).",
+    "Run it again without `session_id` and with an empty `phone` and no `email`: expect **422** `reason: empty`.",
+    "As manager open the newest deal and its timeline.",
+  ],
+  expected: [
+    "201 with a reference like `W-3F9A2C`.",
+    "The deal has the note \"Website enquiry (Contact page)\" with Products, Quantity, Delivery, Reply by; an owner; the consent.",
+  ],
+  look: "Deal timeline.",
+});
+scenario("S27", "The assistant never invents facts or prices", {
+  purpose: "Design doc §4: no invented certificates, capacities or prices. Found and fixed in the live test of 20 Nov.",
+  pre: "A website session; the knowledge base without certificate content (the default on a new install).",
+  stepsList: [
+    "Ask \"which certificates do you have?\" and \"what is your monthly production capacity?\".",
+    "Ask \"how much is the 8325 per carton?\" and \"give me your best price for 10,000\".",
+    "Ask in Arabic: \"كم سعر 8325؟\".",
+  ],
+  expected: [
+    "No certificate name (ISO, BRC, HACCP ...) or capacity figure unless the approved content has it: \"our team will confirm\".",
+    "No price or amount in any reply, in any language. Arabic questions get Arabic answers.",
+  ],
+  look: "Replies; on staging the AI audit trail (Phoenix) shows `citation` or `price_number` guard events when the model tried.",
+});
+scenario("S28", "Voice does what chat does (manual, staging)", {
+  purpose: "WP-C5: during a live-voice call the page moves and captions show; typed text is answered in the call; the recording notice plays once per visit.",
+  pre: "Staging with LiveKit and the website connected; a microphone.",
+  stepsList: [
+    "Press **Enter the factory** and allow the microphone. Listen to the recording notice.",
+    "Say \"show me cling film\", then \"open the 8325\".",
+    "Type a question in the panel during the call.",
+    "Reload the page and talk again.",
+  ],
+  expected: [
+    "The page moves while the assistant is still speaking; captions show both sides.",
+    "The typed question is answered in the call. After the reload the notice does not play again and there is no second greeting.",
+  ],
+  look: "The website; the deal timeline (voice and chat in one conversation).",
 });
 add(pageBreak());
 

@@ -229,7 +229,7 @@
             "description": "One chat turn (§6 steps 2-6) through the same agents, guard and router as WhatsApp; the page moves with it (D55). `Accept: text/event-stream` streams `action`, `delta`, `done` / `error`.\n\n**Who may call it:** A website visitor: header Authorization: Bearer <session_token>\n\n**Expected on success:** HTTP 200",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"text\": \"{{web_text}}\",\n  \"language\": \"en\"\n}",
+              "raw": "{\n  \"text\": \"{{web_text}}\",\n  \"language\": \"en\",\n  \"context\": {\n    \"path\": \"/products\",\n    \"page\": \"products\",\n    \"locale\": \"en\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -258,6 +258,8 @@
                   "  const d = pm.response.json();",
                   "  console.log(\"AI reply: \" + d.reply);",
                   "  pm.test(\"The reply never shows a price the backend did not build (check by eye)\", function () { pm.expect(d).to.have.property(\"reply\"); });",
+                  "  pm.test(\"Site actions come as a list (D55)\", function () { pm.expect(d.actions).to.be.an(\"array\"); });",
+                  "  (d.actions || []).forEach(function (a) { console.log(\"Page action: \" + a.type + \" \" + JSON.stringify(a.resolved)); });",
                   "}"
                 ]
               }
@@ -363,7 +365,7 @@
           ]
         },
         {
-          "name": "Contact",
+          "name": "5. Contact card with the WhatsApp / email ticks",
           "request": {
             "method": "POST",
             "header": [
@@ -388,7 +390,7 @@
             "description": "The chat's contact card (D59): details plus the WhatsApp / email opt-ins with their wording. The same rules as identify (a typed phone or email is a claim, D-4) and the same answer.\n\n**Who may call it:** A website visitor: header Authorization: Bearer <session_token>\n\n**Expected on success:** HTTP 200",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"QA test\",\n  \"company\": \"QA test\",\n  \"phone\": \"+971500000001\",\n  \"email\": \"qa.buyer@example.com\",\n  \"whatsapp_opt_in\": false,\n  \"email_opt_in\": false,\n  \"consent_wording\": \"QA test\"\n}",
+              "raw": "{\n  \"name\": \"QA Website Visitor\",\n  \"phone\": \"{{web_phone}}\",\n  \"whatsapp_opt_in\": true,\n  \"email_opt_in\": false,\n  \"consent_wording\": \"Yes, send my quotation on WhatsApp\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -419,7 +421,7 @@
           ]
         },
         {
-          "name": "Event",
+          "name": "6. Visitor moved (page, product, list, idle)",
           "request": {
             "method": "POST",
             "header": [
@@ -444,7 +446,7 @@
             "description": "The visitor moved on the site. Their place is saved; the assistant may nudge (rarely, and only after the visitor has spoken: `website/service.py`).\n\n**Who may call it:** A website visitor: header Authorization: Bearer <session_token>\n\n**Expected on success:** HTTP 200",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"type\": \"page_view\",\n  \"context\": {\n    \"path\": \"/\",\n    \"page\": \"home\",\n    \"locale\": \"en\",\n    \"family\": \"QA test\",\n    \"product_id\": \"{{product_id}}\",\n    \"quick_view_id\": \"{{quick_view_id}}\",\n    \"section\": \"QA test\",\n    \"enquiry_list\": [\n      \"QA test\"\n    ],\n    \"input\": \"text\"\n  },\n  \"seconds\": 1\n}",
+              "raw": "{\n  \"type\": \"product_dwell\",\n  \"seconds\": 25,\n  \"context\": {\n    \"path\": \"/products/ac-8325\",\n    \"page\": \"product\",\n    \"product_id\": \"ac-8325\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -475,7 +477,7 @@
           ]
         },
         {
-          "name": "Enquiry",
+          "name": "7. Enquiry desk on the Contact page",
           "request": {
             "method": "POST",
             "header": [
@@ -498,7 +500,7 @@
             "description": "CT-01 enquiry desk (replaces `mailto:`). With a session token the enquiry joins that visit's deal; without one a Turnstile token is required. The CRM gets English labels (design doc §6).\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 201",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"family\": [\n    \"QA test\"\n  ],\n  \"products\": [\n    \"QA test\"\n  ],\n  \"detail\": \"QA test\",\n  \"size\": \"QA test\",\n  \"quantity\": \"QA test\",\n  \"often\": \"QA test\",\n  \"region\": \"QA test\",\n  \"city\": \"QA test\",\n  \"name\": \"QA test\",\n  \"company\": \"QA test\",\n  \"trade\": \"QA test\",\n  \"channel\": \"email\",\n  \"email\": \"qa.buyer@example.com\",\n  \"phone\": \"+971500000001\",\n  \"extra\": \"QA test\",\n  \"message\": \"QA test\",\n  \"locale\": \"en\",\n  \"whatsapp_opt_in\": false,\n  \"email_opt_in\": false,\n  \"consent_wording\": \"QA test\",\n  \"session_id\": \"{{session_id}}\",\n  \"turnstile_token\": \"\"\n}",
+              "raw": "{\n  \"session_id\": \"{{session_id}}\",\n  \"family\": [\n    \"containers\"\n  ],\n  \"products\": [\n    \"ac-8325\"\n  ],\n  \"quantity\": \"20,000 a month\",\n  \"city\": \"Dubai\",\n  \"name\": \"QA Website Visitor\",\n  \"phone\": \"{{web_phone}}\",\n  \"channel\": \"whatsapp\",\n  \"message\": \"Weekly deliveries please\",\n  \"whatsapp_opt_in\": true,\n  \"consent_wording\": \"Yes, send my quotation on WhatsApp\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -515,7 +517,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });"
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "  pm.test(\"An enquiry reference is shown to the visitor\", function () { pm.expect(pm.response.json().reference).to.match(/^W-/); });",
+                  "}"
                 ]
               }
             }

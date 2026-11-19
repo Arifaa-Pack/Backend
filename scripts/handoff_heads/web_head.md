@@ -2,7 +2,7 @@
 
 For the developer building the **public website** (Next.js on Vercel, the 3D "Enter the factory" experience)
 against a mock first. Taken from the code (`packages/kx-agent-framework/src/kx/agents/website/router.py`,
-`kx/agents/voice/service.py`) and the SRS §6 (website flow), §8 (qualification), §8.1 (opt-out), D34/D36/D39. The
+`kx/agents/website/service.py`, `kx/agents/voice/bridge.py`) and the SRS §6 (website flow), §8 (qualification), §8.1 (opt-out), D34/D36/D39. The
 endpoint reference in the second half is **generated from the code**.
 
 Companion files: `openapi-website.json` (OpenAPI 3.1 of these endpoints), `CMS.md` (where the page content
@@ -48,6 +48,73 @@ SRS §6 journey and the calls behind it:
 
 Languages: English, Arabic, Hindi, Tamil, Chinese, Sinhala (`en`, `ar`, `hi`, `ta`, `zh`, `si`). **Sinhala is
 text-only**: `voice_available` is `false` for `si`, so hide the voice button and keep the chat.
+
+---
+
+## 2a. The assistant moves the page (D55, D57)
+
+The assistant never reads the site's HTML. It knows the site from the **site map** the CMS builds
+(`GET /v1/content/manifest`: pages and their section ids, the 8 families with their words in English and
+Arabic, the 78 products, the 7 tour chapters). The site tells it **where the visitor is** (`context`, below)
+and it answers with **site actions**: what to show, never how. The site animates each action with the
+functions it already has.
+
+| Action (`type`) | Fields | What the site does (existing code in `assistant.ts`) |
+|---|---|---|
+| `show_family` | `family` (containers, foil, platters, cups-trays, pots, microwave, cutlery, cling-film) | `showFamily(fam(id))` |
+| `show_product` | `product_id` (e.g. `ac-8325`), `view` (`quick` or `page`) | `showProduct(ref)` (quick view), or the product page `/products/<id>` |
+| `navigate` | `page` (home, products, about, quality, clients, contact), `section?` (a DOM id) | go to `resolved.path_en` / `path_ar` (the page's locale) |
+| `scroll_to` | `section` (a DOM id on this page) | `lenis.scrollTo('#' + section)` |
+| `factory_tour` | `chapter?` (arrival, forming, lids, foil, packing, moulding, warehouse), `seconds?` | `goFactory()`, then seek the film to `seconds` |
+| `add_to_enquiry` | `product_ids[]` | add them to the enquiry list |
+| `fill_enquiry` | `fill` with the desk's own field names (`family[]`, `detail`, `size`, `quantity`, `often`, `region`, `city`, `name`, `company`, `trade`, `channel`, `message`) | `goQuote(fill)` / `arifa:quote-fill` |
+| `ask_contact` | `fields[]`, `consents[]` | show the contact card in the chat (name, phone, email, two separate unticked ticks: WhatsApp, email), then `POST /sessions/{id}/contact` |
+
+Every action has `id` (a hash of the intent: **do an id once**, even if it arrives twice), `layer`
+(`instant` or `agent`) and `resolved` (`path_en`, `path_ar`, `anchor`: use the one of the page's locale, not
+the chat language). The backend checks every action against the site map before sending it: an unknown
+product, family, page or section is never sent. No action carries a CSS selector, a free URL or a price.
+
+**Three speed layers.**
+
+| Layer | Where | Time | What |
+|---|---|---|---|
+| 0, optimistic | the browser, from the site map | ~0 ms | optional: the same matching rules (test cases: `vectors/site-nav.json`) move the page before the request is sent |
+| 1, instant | the backend, before the AI | under 100 ms (live: 15-150 ms) | product codes, family words in English and Arabic, pages and sections, the factory film |
+| 2, agent | the AI's own tools | 1-8 s | unclear needs ("a container for 1 kg of biryani"): it finds the product and opens it |
+
+Send `Accept: text/event-stream` so the page moves as soon as an action is known (the JSON answer comes only
+when the whole reply is written: live, 3-19 s later). Queue the actions; run the next only when the current
+animation ends; cancel the queue if the visitor scrolls or clicks.
+
+**`context` (`SiteContext`)**, sent with every message (and with `events`): `path`, `page` (home, products,
+product, about, quality, clients, contact, other), `locale` (en, ar), `family` (the catalogue filter),
+`product_id` (the product page open), `quick_view_id` (the quick view open), `section` (in view),
+`enquiry_list[]`, `input` (text or voice). Without it the assistant cannot tell "this one" from any other.
+
+**Streaming (SSE).** Events, in order: `action` (one site action), `delta` `{text}` (the reply, a sentence at
+a time, already checked by the price guard), `done` `{language, handed_over}`; `error` `{status, code,
+message}` replaces `done` when the turn fails (same codes as §4).
+
+**Voice (LiveKit data channel, WP-C5).** A call is the same visit and the same conversation as the chat.
+Topics (JSON, reliable): `kx.site.actions` (agent -> page: one action, same shape as above), `kx.captions`
+(agent -> page: `{role: visitor|assistant, text, final}`, for the captions §9 asks for), `kx.chat.in`
+(page -> agent: `{text, context?}`: text typed while the call is on, answered in the call, so chat and voice
+never race), `kx.site.context` (page -> agent: a `SiteContext` when the visitor moves). The recording notice
+plays once per visit: a page load that rejoins the room does not repeat it, and the agent does not greet again.
+Keep the room connection in the root layout and move with client-side navigation (`router.push`), so a
+call survives a page change.
+
+**Nudges.** The assistant speaks first only after the visitor has written or spoken, at most 3 times a
+visit, 30 s apart: 20 s on a product (`product_dwell`), an enquiry-list add (`enquiry_add`; with the contact
+card when no phone or email is known), 45 s idle on Contact (`idle`). Send the `events`; show a `reply` as an
+assistant message and do its `actions`.
+
+**Reference implementation.** `website-adapter/arifa-site-actions.patch` is the change the live test of
+20 Nov ran on the current site (commit `0e160eb`): `siteContext()` in `src/lib/arifaApi.ts`, `context` on every
+message, and the actions mapped onto `act()` (`show_family` -> family, `show_product` -> product by its ref,
+`fill_enquiry` -> quote, `factory_tour` -> factory, `navigate` -> the page). Apply it with `git apply`, or use
+it as a guide.
 
 ---
 
@@ -116,5 +183,24 @@ When the visitor says "stop" in voice, the agent stops talking and listens (§8.
 
 Business errors use `application/problem+json` (`type`, `title`, `status`, `detail`, `reason`), the same as
 the CRM API.
+
+---
+
+## 5. What the live test found on the current site (20 Nov, commit `0e160eb`)
+
+The site ran (`next dev`) against the live backend with the real AI. What already works with the backend
+unchanged: sessions, chat turns, voice tokens, identify, error handling (429 / 503 / WhatsApp fallback). What
+to add, in order of value:
+
+| # | Finding | What to do |
+|---|---|---|
+| 1 | The assistant panel has **no text box**: a visitor without a microphone (or who prefers typing) cannot ask anything; design doc AS-02 and §9 (accessibility) ask for it | add a text field to the panel; send what is typed through the same `handle()`; in a call, send it on `kx.chat.in` |
+| 2 | `actions` are ignored (`backendTurn` returns `action: null`) | map them onto `act()`: `website-adapter/arifa-site-actions.patch` |
+| 3 | No `context` is sent | `siteContext()` in the patch; also send it with `events` when the visitor moves |
+| 4 | Turns use the JSON answer, so the page moves only after the whole reply (live: 3-19 s) | `Accept: text/event-stream` (§2a): the page moves in under 0.2 s |
+| 5 | The enquiry desk opens `mailto:` | `POST /v1/public/enquiries` (§3 item 7) |
+| 6 | No contact card, no consent ticks | the `ask_contact` action and `POST /sessions/{id}/contact` |
+| 7 | No `events` | `product_dwell`, `enquiry_add`, `idle`, `page_view` (§3 item 6) |
+| 8 | Content is read from `catalogue.json`, `site.ts`, `clients.json` | `GET /v1/content/*` with revalidation (`CMS_API.md`) |
 
 ---

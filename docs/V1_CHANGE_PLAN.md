@@ -56,8 +56,8 @@ and the planned Payload CMS did not exist.
 | WP-C4 | Agents drive the site: manifest resolver, `show_on_site`, `find_products`, product variants, specialists, router keywords from config, prompts | done (20 Nov) |
 | WP-C5 | Voice = chat: actions and captions on the LiveKit data channel, rejoin after a page load | done (20 Nov) |
 | WP-C6 | Opt-in consent (D59) | done: CRM part with WP-C9, the API paths (`/contact`, `/enquiries`) with WP-C3 |
-| WP-C7 | Hand-off content: WEBSITE_API head, FRONTEND_GUIDE (.md + .docx), TESTER_HELPER scenarios | |
-| WP-C8 | Docs and map | |
+| WP-C7 | Hand-off content: WEBSITE_API head, FRONTEND_GUIDE (.md + .docx), TESTER_HELPER scenarios | done (20 Nov) |
+| WP-C8 | Docs and map | done (20 Nov) |
 | WP-C9 | ERP import into the CRM (all categories kept, non-sellable flagged, unit / measure, closing stock) and product variants (D61) | done (19 Nov) |
 
 ---

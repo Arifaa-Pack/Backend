@@ -1084,7 +1084,7 @@
     },
     {
       "folder": "04 Products, stock and price list",
-      "name": "Import erp",
+      "name": "Import the ERP stock list (dry run first)",
       "method": "POST",
       "path": "/v1/catalogue/erp-import",
       "who": "manager, md, admin",
@@ -1101,7 +1101,7 @@
     },
     {
       "folder": "04 Products, stock and price list",
-      "name": "Set website link",
+      "name": "Link an ERP item to its website product",
       "method": "PUT",
       "path": "/v1/catalogue/products/{sku}/website-link",
       "who": "manager, md, admin",
@@ -1118,7 +1118,7 @@
     },
     {
       "folder": "04 Products, stock and price list",
-      "name": "Website variants",
+      "name": "What the AI may say about a product's packings",
       "method": "GET",
       "path": "/v1/catalogue/website-products/{cms_product_id}/variants",
       "who": "sales, manager, md, admin",
@@ -1888,7 +1888,7 @@
     },
     {
       "folder": "10 Buyer simulation - Website chat",
-      "name": "Contact",
+      "name": "5. Contact card with the WhatsApp / email ticks",
       "method": "POST",
       "path": "/v1/public/sessions/{session_id}/contact",
       "who": "A website visitor: header Authorization: Bearer <session_token>",
@@ -1901,7 +1901,7 @@
     },
     {
       "folder": "10 Buyer simulation - Website chat",
-      "name": "Event",
+      "name": "6. Visitor moved (page, product, list, idle)",
       "method": "POST",
       "path": "/v1/public/sessions/{session_id}/events",
       "who": "A website visitor: header Authorization: Bearer <session_token>",
@@ -1914,7 +1914,7 @@
     },
     {
       "folder": "10 Buyer simulation - Website chat",
-      "name": "Enquiry",
+      "name": "7. Enquiry desk on the Contact page",
       "method": "POST",
       "path": "/v1/public/enquiries",
       "who": "public (no sign-in)",

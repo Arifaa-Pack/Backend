@@ -23,7 +23,7 @@ This replaces `docs/Architecture-and-System-Design.docx` (12 Nov, AWS). Business
    │  │ beat (exactly 1)    schedule sweep, heartbeat │   │ speech: faster-whisper +   │ │
    │  │ voice (LiveKit      website voice calls       │   │         Piper (free STT/TTS)│ │
    │  │        agent)                                 │   │ LiveKit server (media)     │ │
-   │  │ cms (Payload)       website admin             │   │ Stalwart mail (SMTP, JMAP) │ │
+   │  │ (CMS = kx.cms, in api: content + admin API)   │   │ Stalwart mail (SMTP, JMAP) │ │
    │  │ web / crm-web       only if self-hosted       │   │ Phoenix (+ own Postgres)   │ │
    │  └───────────────────────────────────────────────┘   │ SigNoz (OTel, ClickHouse)  │ │
    │                                                      └────────────────────────────┘ │
@@ -43,7 +43,8 @@ The website and CRM screens (Next.js, not in this repo) run on Vercel Pro in the
 | Core | `kx.core` (`packages/kx-core-db`) | settings, DB engines, money, ids, events / outbox / inbox, job store, auth, fallback + circuit breaker, **platform modes**, **retention helpers**, metrics (OTel API), price guard, contracts | — |
 | CRM | `kx.crm` | `crm` DB: deals, quotes, approvals, grants, pricing, settings, staff login | `kx.core.contracts` protocols, events |
 | Automation | `kx.automation` | `automation` DB: WhatsApp, email (Stalwart → SES), calls (Telnyx), opt-out, outbound gate, jobs | same |
-| Agents | `kx.agents` | `agents` DB: LangGraph graphs, tools, guard, memory, knowledge search, voice routing, website sessions | same |
+| Agents | `kx.agents` | `agents` DB: LangGraph graphs, tools, guard, memory, knowledge search, voice routing, website sessions, the site map resolver and site actions | same |
+| CMS | `kx.cms` (`packages/kx-cms`, D54) | `cms` DB: website content (drafts, versions, publish), media, the site map, preview, revalidation | same |
 | App | `arifaa_pack` | wiring (`container.py`), vendor adapters, Celery app, API, CLI, voice worker, telemetry, migrations | imports everything; imported by nothing |
 | Speech | `services/speech` | free STT/TTS server (own image) | HTTP only |
 
@@ -88,6 +89,27 @@ LiveKit server ◄──► voice worker (AgentSession: Silero VAD + turn detect
 ```
 
 LiveKit's fallback adapters switch vendors inside a live call. In free STT mode the number of calls at once is capped (`KX_APP_VOICE_MAX_CONCURRENT_FREE`); above it the visitor gets chat.
+
+## 5a. Website assistant: the page moves with the conversation (D55–D61, 20 Nov)
+
+```
+browser (Arifa-Pack)  ── POST /v1/public/sessions/{id}/messages {text, context}  (Accept: text/event-stream)
+   │                         │
+   │                         ├─ layer 1: kx.agents.site.resolver   product code / family / page words ── action (~50 ms)
+   │                         ├─ layer 2: AgentService turn (one thread web:{session}) with the site tools,
+   │                         │           find_products, product_variants (CRM, D61), the two specialists ── actions
+   │                         │           guards: price (fails closed), claims (no invented certificates /
+   │                         │           capacities), language (the visitor's script), plain text
+   │  ◄── SSE: action … delta … done
+   ├─ POST /events (nudges: after the first message, at most 3, 30 s apart)   POST /contact (consent ticks)
+   └─ POST /v1/public/enquiries ──► CrmGateway.website_enquiry ──► web_form deal, assigned, English note
+voice: the same turn over LiveKit (kx.agents.voice.bridge): kx.site.actions, kx.captions, kx.chat.in, kx.site.context
+content: kx.cms ──publish──► outbox ──► website /api/revalidate · site map rebuilt · CRM website_products + variants
+```
+
+Every action is checked against the site map the CMS builds (`GET /v1/content/manifest`) and sent once (intent
+id). The live test of 20 Nov ran the current website against this flow with the real model
+(`live-test/TEST_REPORT.md` §16).
 
 ## 6. Paid / free switch
 

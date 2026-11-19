@@ -30,6 +30,7 @@ owning package (and this file), not to your app. Enforced by import-linter (pack
 | STOP rules (§8.1) | `kx.core.optout`: `match`, `match_voice`, `confirmation_text` | |
 | Signed public tokens | `kx.core.signed`: `sign`, `verify` | website sessions |
 | Metrics (D46) | `kx.core.metrics`: `emit_metric` (OpenTelemetry API; no-op until the app installs a provider) | exported to SigNoz |
+| No prices in content (D54) | `kx.core.no_prices`: `is_price_key`, `drop_price_keys`, `find_price` | CMS saves, product mirror |
 | Phone parsing without exceptions | `kx.core.identity.try_normalise_phone` | webhooks must never 500 on a bad number |
 
 ## Planned in docs/V1_CHANGE_PLAN.md (do not build twice; add them here when done)
@@ -60,7 +61,11 @@ owning package (and this file), not to your app. Enforced by import-linter (pack
 | Staff login, users | `kx.crm.auth.service`; HTTP `kx.crm.auth.router`, `kx.crm.auth.users_router` |
 | §14 hand-over: staff reply, click-to-call | `kx.crm.handover.service` (`reply`, `call_buyer`) |
 | §8.2 phone status, Requirement Summary | `kx.crm.contacts.phone`, `kx.crm.deals.summary` |
-| §7 CMS product mirror | `kx.crm.catalogue.service.mirror_product` |
+| §7 CMS product mirror (D61: updates the website product's variants, never creates products) | `kx.crm.catalogue.service.mirror_product` |
+| ERP stock list import (D61; every row kept, generated codes, measure, closing stock) | `kx.crm.catalogue.erp_import`: `parse`, `item_code`, `measure`, `is_sellable`, `import_erp`, `summary`; CLI `kx catalogue import-erp` |
+| Website product ↔ ERP items (D61) | `kx.crm.catalogue.variants`: `best_match`, `link_unlinked`, `remember_website_product`, `variants_of`, `availability` |
+| Website enquiry desk (CT-01) | `CrmGateway.website_enquiry` → `kx.crm.deals.service.open_web_enquiry` (+ patch contact / requirement, note, assignment) |
+| Consent opt-ins (D59) | `kx.crm.deals.service.patch_contact` → `_record_opt_ins` |
 | D32 WhatsApp quote -> email | `kx.crm.quotes.issuing.resend_by_email` |
 | §20/§21 records, dashboards, exports | `kx.crm.records.router`, `kx.crm.reports.router`, kill switch `kx.crm.operations.router` |
 | Feature slices (ADR-0001) | one folder per feature under `kx/crm/`: `deals/`, `quotes/` (service, issuing, grants, pdf), `approvals/`, `pricing/` (pure maths + service, price-list service, fx, proposals), `negotiation/`, `orders/`, `change_requests/`, `assignment/`, `handover/`, `contacts/`, `catalogue/`, `auth/`, `company/`, `texts/`, `reports/`, `retention/`, `inbox/`, routers in `admin/`, `operations/`, `records/`, `screens/`; shared code in `_shared/` (journal, access, staff, settings, API plumbing). Map: `docs/arch/CRM_SLICES.md`. Public surface for apps: `kx.crm` |
@@ -111,17 +116,35 @@ owning package (and this file), not to your app. Enforced by import-linter (pack
 | Hybrid KB search | `kx.agents.knowledge`: `KnowledgeBase`, `KnowledgeIndexer`, `Embedder`, `ContentSource` |
 | Voice (D52) | `kx.agents.voice`: `VoiceRouter`, `voice_routes`, `make_livekit_entrypoint`; worker entry `arifaa_pack.voice_worker` |
 | AI audit trail | `kx.agents.tracing.service.Tracer` (Phoenix or Langfuse over OTLP, PII-masked, D46) |
-| Website conversation API (§6) | `kx.agents.website.router.build_router(WebsiteDeps)` |
+| Website conversation API (§6; D55 / D57: context in, actions out, SSE, events, contact, enquiries) | `kx.agents.website.router.build_router(WebsiteDeps)`; the turn logic `kx.agents.website.service.WebsiteTurns`; the enquiry mapping `kx.agents.website.enquiry` |
+| Site map resolver and site actions (D55) | `kx.agents.site`: `resolver.instant_actions`, `actions.resolve_action`, `models` (`SiteContext`, the actions, `visit_thread`) |
+| Site, catalogue and specialist tools (D55, D56, D61) | `kx.agents.tools.site`: `show_family` … `ask_for_contact`, `find_products` / `find_in_manifest`, `product_variants` / `describe_variants`, `ask_product_specialist`, `ask_manufacturing_specialist` |
+| Claims and language guards (live test 20 Nov) | `kx.agents.guard.claims.ClaimsGuardMiddleware` (`unsupported`, `without_claims`), `kx.agents.guard.language.LanguageGuardMiddleware`; plain text `kx.agents.guard.service.plain_text` |
+| Voice = chat over LiveKit data (WP-C5) | `kx.agents.voice.bridge.VoiceBridge` (topics `kx.site.actions`, `kx.captions`, `kx.chat.in`, `kx.site.context`) |
+| Router words per client | `kx.agents.router.service.TopicWords` (Arifa's: `arifaa_pack.topics.ARIFA_TOPICS`) |
+| Site navigation eval | `kx/agents/evals/site_nav/cases.json` (also `docs/handoff/vectors/site-nav.json`), test `tests/integration/test_site_nav_eval.py` |
 | Run cost table | `kx.agents.runtime.runs.PRICES`, `call_cost` |
 | Entry point | `kx.agents.runtime.service.AgentService`, `kx.agents.handlers.AgentHandlers` |
 | Test kit | `kx.agents.testing` (fake model, `FakeCrmGateway`, fake embedder), `kx.agents.evals` (§23 scenarios s01-s10 + trick prompts t01-t07) |
 | Change requests from the AI | tool `kx.agents.tools.service.raise_change_request`; deal graph `intent=change` + `PAYMENT_TOPIC`; phrase `Phrase.CHANGE_REQUEST`, `team_member` |
 | Feature slices (ADR-0001) | one folder per feature under `kx/agents/`: `runtime/` (AgentService, runs, context, middleware), `router/`, `graphs/`, `tools/`, `guard/`, `llm/`, `roles/` (registry, languages), `knowledge/`, `memory/`, `voice/`, `website/`, `tracing/`, `evals/`; map `docs/arch/AUTOMATION_AGENTS_SLICES.md` |
-| What an app imports | `from kx.agents import ...`: the 25 names of `kx/agents/__init__.py` (`__all__`); import-linter enforces it |
+| What an app imports | `from kx.agents import ...`: the 27 names of `kx/agents/__init__.py` (`__all__`); import-linter enforces it |
+
+## kx.cms — website content (D54, `packages/kx-cms`)
+| Capability | Import |
+|---|---|
+| Drafts, publish, versions, restore, links between documents | `kx.cms.content.service.ContentService` |
+| Content model (site, pages with section ids, families, products, chapters, stations, FAQs, certificates, clients, industries, stories, people) | `kx.cms.content.schemas` |
+| Public reads (ETag, CDN headers, preview) / admin API | `kx.cms.content.public_router`, `kx.cms.content.admin_router` |
+| Media (R2 presigned uploads, content-addressed keys) | `kx.cms.media.service`, `kx.cms.media.router` |
+| The site map for the AI and the website | `kx.cms.manifest.service`: `build_manifest`, `ManifestCache` |
+| Preview tokens, website revalidation (HMAC) | `kx.cms.preview.service`, `kx.cms.publish.revalidate.WebsiteRevalidator` |
+| Import the current website | `kx.cms.site_import.service.import_site`; CLI `kx content import-site` |
+| What an app imports | `from kx.cms import ...` (`kx/cms/__init__.py`) |
 
 ## Client app (copy per client) — `apps/arifaa-pack`
-`company.yaml` (identity), `config.py` (`KX_APP_*`), `adapters.py` (address book, `HttpEmbedder` = BGE-M3 / Qwen3 on TEI (D47), Payload CMS
-source, `PlatformVoicePlugins`, `R2BlobStore`, `OpsNotifier`), `container.py` (composition root + `EventBus`), `telemetry.py` (OpenTelemetry → SigNoz),
+`company.yaml` (identity), `config.py` (`KX_APP_*`), `adapters.py` (address book, `HttpEmbedder` = BGE-M3 / Qwen3 on TEI (D47), CMS content
+source (`CmsContentSource`, `R2MediaStorage`), `PlatformVoicePlugins`, `R2BlobStore`, `OpsNotifier`), `container.py` (composition root + `EventBus`), `telemetry.py` (OpenTelemetry → SigNoz),
 `voice_worker.py` (LiveKit entry + prewarm), `api.py`, `cli.py`
 (`kx api | worker | beat | voice | migrate | reindex | platform show | create-user`), `migrations/` (Alembic, one script dir per DB).
 Free speech server: `services/speech/` (own image).

@@ -1201,3 +1201,35 @@ Branch `feat/website-ai` (from `docs/tester-pack`), one commit per WP, plan `doc
     `kx.site.context` (the visitor moved).
   - The recording notice plays once per visit (`agents_0006 recording_notice_at`): a page reload that
     rejoins the room does not repeat it, and the agent never greets twice.
+
+## 20 Nov. Website AI: the whole-app test, the live test with the real website, the hand-off documents
+
+* **Whole-app test** (`tests/integration/test_whole_app_flow.py`): one visitor's journey through every package
+  on real Postgres and Redis, through the real API, CLI, outbox relay and job runner (only the model is
+  scripted). It covers launch (migrate, staff, `kx content import-site`, `kx catalogue import-erp`), the content
+  reads (no price), page moves (instant and agent layers, JSON and SSE), the contact card and the enquiry
+  desk, and the CRM record. Passes on Linux in 28 s.
+* **Live test with the real website** (`live-test/TEST_REPORT.md` §16): Arifa's site (Arifa-Pack `0e160eb`,
+  `next dev`) against the live stack (image from this branch) with the real AI (Groq / Gemini). The round-1
+  defects were fixed and the test re-run until clean:
+  - invented certificates and capacity → `ClaimsGuardMiddleware`;
+  - English replies to Arabic → `LanguageGuardMiddleware`;
+  - markdown on the site → plain text;
+  - asking for details in every reply, internal ids, tool talk → prompt rules;
+  - "8325 is not in our system" (D61 codes) → `patch_requirement` resolves website ids and refs;
+  - the guard cutting the buyer's own words → visitor messages count as facts.
+
+  Final round: page moves in 13–131 ms (instant layer), 0 prices, 0 invented facts, Arabic in Arabic; the
+  browser run passed 6 / 6 with 0 console errors.
+* **Hand-off (WP-C7):**
+  - `WEBSITE_API.md` §2a (site actions, speed layers, SSE, voice topics, nudges) and §5 (what the live test
+    found on the site);
+  - `FRONTEND_GUIDE.md` / `.docx` (8 steps, each with a check);
+  - `website-adapter/arifa-site-actions.patch`;
+  - `vectors/site-nav.json`;
+  - TESTER_HELPER S22–S28 (CMS, ERP variants, page moves, consent and nudges, enquiry desk, no invented
+    facts, voice);
+  - Postman names, bodies and tests for the new requests;
+  - `build/md2docx.js`.
+* **Docs (WP-C8):** CLAUDE.md (kx-cms, site slice, commands, rules), CONTRACTS.md, ARCHITECTURE.md §5a,
+  DATABASE.md, REUSE_CATALOGUE.md; OPEN_QUESTIONS #85–96.
