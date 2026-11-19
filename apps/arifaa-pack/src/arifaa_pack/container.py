@@ -67,6 +67,7 @@ from kx.automation.channels.email_chain import EmailChain, EmailVendor
 from kx.automation.channels.stalwart import JmapClient, MailboxPoller, StalwartSender
 from kx.automation.channels.whatsapp import WhatsAppClient
 from kx.automation.handlers import EventHandlers, FollowUps
+from kx.automation.inbound.webhooks import WebhookDeps
 from kx.automation.jobs import AutomationRuntime, JobScheduler
 from kx.automation.media import S3MediaStore
 from kx.automation.outbound import OutboundService
@@ -75,7 +76,6 @@ from kx.automation.outbound.ratelimit import Bucket, TokenBucketLimiter
 from kx.automation.scraping import PriceScraper
 from kx.automation.settings import AutomationSettings, OptOutSettings
 from kx.automation.unsubscribe import UnsubscribeDeps, UnsubscribeLinks
-from kx.automation.webhooks import WebhookDeps
 from kx.core import events as ev
 from kx.core.auth import TokenIssuer
 from kx.core.db import Databases

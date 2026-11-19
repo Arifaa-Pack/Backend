@@ -577,3 +577,18 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 21.15s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** Phase 1 public surface @ `023968d` (see 1.23)
+
+## 2.2 slice `inbound` — TESTING (COMPLETED when tagged `arch-slice/automation-inbound`)
+
+- **Moved:** `inbound.py` → `inbound/__init__.py` (same module, code identical), `webhooks.py` → `inbound/webhooks.py`; shim at `kx.automation.webhooks`; imports rewritten in `arifaa_pack/{api,container}.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 441 files already formatted
+  - mypy: Success: no issues found in 284 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 22.03s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `outbound` @ `027295f`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/automation-outbound`, COMPLETED
