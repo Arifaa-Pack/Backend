@@ -198,7 +198,7 @@ containers = [
 ]
 layers = [
     "(router) : (actions_router) : (users_router)",
-    "(service) : (issuing) : (grants) : (pdf) : (workbook) : (dashboards) : (scheduled) : (summary) : (lost_proposals) : (session_guard) : (throttle) : (consent) : (phone) : (fx) : (proposals) : (price_list_service)",
+    "(service) : (issuing) : (grants) : (pdf) : (workbook) : (dashboards) : (scheduled) : (summary) : (lost_proposals) : (session_guard) : (throttle) : (consent) : (phone) : (fx) : (proposals) : (price_list_service) : (allowed)",
 ]
 
 [[tool.importlinter.contracts]]
@@ -299,7 +299,7 @@ ignore_imports = [
     "kx.crm.deps -> kx.crm.auth.throttle",
     "kx.crm.deps -> kx.crm.pricing.fx",
     "kx.crm.deps -> kx.crm.quotes.pdf",
-    "kx.crm.handover.service -> kx.crm.gateway",
+    "kx.crm.handover.service -> kx.crm.quotes.allowed",
 ]  # baseline 2026-11-19: may only shrink
 
 # Phase 2b (docs/arch/AUTOMATION_AGENTS_SLICES.md): a slice imports only the layers below it; slices on one line

@@ -3,7 +3,8 @@ approval-status reader automation's alert ladder needs.
 
 Every method runs in its own CRM transaction. DealContext is assembled field by field from
 buyer-safe data: no cost, markup, margin range or floor is ever read into it, and `allowed_prices` is
-the closed list of amounts the AI may say (issued quote lines + totals + issued counter offers).
+the closed list of amounts the AI may say (issued quote lines + totals + issued counter offers; built by
+`kx.crm.quotes.allowed`, which a salesperson's own reply is checked against too).
 """
 
 from __future__ import annotations
@@ -39,7 +40,6 @@ from kx.core.contracts import (
 )
 from kx.core.db import Databases
 from kx.core.identity import phone_kind
-from kx.core.money import MONEY_PLACES, q
 from kx.core.settings import LogicalDb
 from kx.crm._shared import staff
 from kx.crm._shared.journal import Actor
@@ -56,9 +56,7 @@ from kx.crm.models import (
     Contact,
     DealRequirement,
     DeliveryEstimateRow,
-    NegotiationRound,
     Product,
-    Quote,
     QuoteLine,
     QuoteVersion,
 )
@@ -73,7 +71,7 @@ from kx.crm.pricing.service import (
 )
 from kx.crm.quotes import grants
 from kx.crm.quotes import service as quotes
-from kx.crm.quotes.issuing import lines_of
+from kx.crm.quotes.allowed import issued_offer
 from kx.crm.rules import pause_reason
 
 
@@ -130,41 +128,6 @@ def quote_view(number: str, v: QuoteVersion, lines: list[QuoteLine]) -> QuoteVie
             for ln in lines
         ),
     )
-
-
-def allowed_prices(
-    v: QuoteVersion, lines: list[QuoteLine], offers: list[NegotiationRound]
-) -> tuple[AllowedPrice, ...]:
-    """Closed list of amounts the AI may state, all in the quote currency."""
-    cur = v.currency
-    out = [
-        AllowedPrice(amount=v.subtotal, currency=cur, label="subtotal"),
-        AllowedPrice(amount=v.total, currency=cur, label="total"),
-    ]
-    if v.vat_amount:
-        out.append(AllowedPrice(amount=v.vat_amount, currency=cur, label="vat"))
-    for ln in lines:
-        out += [
-            AllowedPrice(amount=ln.unit_price, currency=cur, label=f"line {ln.line_no} unit price"),
-            AllowedPrice(amount=ln.line_total, currency=cur, label=f"line {ln.line_no} total"),
-        ]
-    qty = lines[0].quantity if lines else None
-    for r in offers:
-        if r.offered_unit_price is None:
-            continue
-        out.append(AllowedPrice(amount=r.offered_unit_price, currency=cur, label=f"offer round {r.round_no}"))
-        if (n := r.buyer_ask_quantity or qty) is not None:
-            out.append(
-                AllowedPrice(
-                    amount=q(r.offered_unit_price * n, MONEY_PLACES),
-                    currency=cur,
-                    label=f"offer round {r.round_no} total",
-                )
-            )
-    unique: dict[tuple[Decimal, str], AllowedPrice] = {}
-    for p in out:
-        unique.setdefault((p.amount.normalize(), p.currency), p)
-    return tuple(unique.values())
 
 
 class CrmGatewayImpl:
@@ -373,22 +336,11 @@ async def build_context(s: AsyncSession, deps: CrmDeps, deal_id: uuid.UUID) -> D
         .tuples()
         .all()
     )
-    issued = await quotes.latest_version(s, deal.id, quotes.ISSUED)
+    offer = await issued_offer(s, deal.id)
     latest_quote: QuoteView | None = None
     prices: tuple[AllowedPrice, ...] = ()
-    if issued is not None:
-        number = await s.scalar(select(Quote.number).where(Quote.id == issued.quote_id))
-        lines = await lines_of(s, issued.id)
-        offers = list(
-            (
-                await s.execute(
-                    select(NegotiationRound)
-                    .where(NegotiationRound.quote_version_id == issued.id)
-                    .order_by(NegotiationRound.round_no)
-                )
-            ).scalars()
-        )
-        latest_quote, prices = quote_view(number or "", issued, lines), allowed_prices(issued, lines, offers)
+    if offer is not None:
+        latest_quote, prices = quote_view(offer.number, offer.version, offer.lines), offer.prices
     left = await negotiation.steps_left(s, deal, settings)
     estimate = await _latest_estimate(s, deal.id)
     return DealContext(

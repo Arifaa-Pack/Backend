@@ -29,9 +29,9 @@ from kx.crm._shared.journal import Actor, Timeline, record
 from kx.crm.company import service as company_svc
 from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
-from kx.crm.gateway import build_context
 from kx.crm.models import Deal, User
 from kx.crm.quotes import issuing
+from kx.crm.quotes.allowed import allowed_prices_for
 from kx.crm.quotes.grants import SendChannel, recipient, recipient_on
 
 SIGNATURE: Final = "— {name}, {company}"
@@ -69,8 +69,8 @@ async def _take_over(session: AsyncSession, deps: CrmDeps, deal: Deal, actor: Ac
     )
 
 
-async def _check_amounts(session: AsyncSession, deps: CrmDeps, deal: Deal, text: str) -> None:
-    allowed = (await build_context(session, deps, deal.id)).allowed_prices
+async def _check_amounts(session: AsyncSession, deal: Deal, text: str) -> None:
+    allowed = await allowed_prices_for(session, deal.id)
     result = check_prices(text, allowed, default_currency=deal.currency)
     amounts = [m.raw for m in result.violations if not m.is_percentage]
     if amounts:
@@ -131,7 +131,7 @@ async def reply(
     else:
         if not text.strip():
             raise RuleViolation("the message is empty", reason="empty")
-        await _check_amounts(session, deps, deal, text)
+        await _check_amounts(session, deal, text)
         body = signed(text, author.full_name, company) if chosen == "whatsapp" else text
         request = request.model_copy(
             update={"body": body, "subject": f"{company} — {deal.number}" if chosen == "email" else None}
