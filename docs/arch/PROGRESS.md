@@ -237,3 +237,18 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 17.01s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `operations` @ `8b4f851`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-operations`, COMPLETED
+
+## 1.5 slice `reports` — TESTING (COMPLETED when tagged `arch-slice/crm-reports`)
+
+- **Moved:** `services/dashboards.py` → `reports/dashboards.py`, `services/scheduled_reports.py` → `reports/scheduled.py`, `api/reports.py` → `reports/router.py`; shims at the three old paths; imports rewritten in `api/__init__.py`, `api/screens.py`, `jobs.py` and inside the slice.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 377 files already formatted
+  - mypy: Success: no issues found in 221 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 21.39s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `retention` @ `49e061e`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-retention`, COMPLETED

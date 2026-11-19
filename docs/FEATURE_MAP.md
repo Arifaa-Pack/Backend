@@ -161,9 +161,9 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/contacts/{contact_id}` | `kx.crm.api.records:router.<locals>.contact` | `kx.crm.api.deals:visible_to` |
 | PATCH | `/v1/contacts/{contact_id}` | `kx.crm.api.records:router.<locals>.edit_contact` | `kx.crm.api.deals:visible_to`<br>`kx.crm.services.journal:record` |
 | GET | `/v1/dashboard/summary` | `kx.crm.api.admin:router.<locals>.summary` | `kx.crm.services.price_proposals:material_freshness` |
-| GET | `/v1/dashboards/manager` | `kx.crm.api.reports:router.<locals>.manager` | `kx.crm.services.dashboards:manager_board` |
-| GET | `/v1/dashboards/md` | `kx.crm.api.reports:router.<locals>.md` | `kx.crm.services.dashboards:counts` |
-| GET | `/v1/dashboards/salesperson` | `kx.crm.api.reports:router.<locals>.salesperson` | `kx.crm.services.dashboards:salesperson_board` |
+| GET | `/v1/dashboards/manager` | `kx.crm.reports.router:router.<locals>.manager` | `kx.crm.reports.dashboards:manager_board` |
+| GET | `/v1/dashboards/md` | `kx.crm.reports.router:router.<locals>.md` | `kx.crm.reports.dashboards:counts` |
+| GET | `/v1/dashboards/salesperson` | `kx.crm.reports.router:router.<locals>.salesperson` | `kx.crm.reports.dashboards:salesperson_board` |
 | GET | `/v1/deals` | `kx.crm.api.deals:router.<locals>.list_deals` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
 | PATCH | `/v1/deals/orders/{order_id}` | `kx.crm.api.deal_actions:router.<locals>.order_status` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.orders:deal_of_order`<br>`kx.crm.services.orders:update_order_status` |
 | GET | `/v1/deals/{deal_id}` | `kx.crm.api.deals:router.<locals>.get_deal` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:requirements_of` |
@@ -185,7 +185,7 @@ other mapping files, and this table is updated with each move.
 | POST | `/v1/deals/{deal_id}/takeover` | `kx.crm.api.assignment:router.<locals>.take_over` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.assignment:take_over` |
 | GET | `/v1/deals/{deal_id}/timeline` | `kx.crm.api.deals:router.<locals>.timeline` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of`<br>`kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |
 | POST | `/v1/deals/{deal_id}/won` | `kx.crm.api.deal_actions:router.<locals>.won` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.orders:mark_won` |
-| GET | `/v1/exports/{entity}` | `kx.crm.api.reports:router.<locals>.export` | `kx.crm.api.deals:visible_to` |
+| GET | `/v1/exports/{entity}` | `kx.crm.reports.router:router.<locals>.export` | `kx.crm.api.deals:visible_to` |
 | PUT | `/v1/feature-flags/{key}` | `kx.crm.api.admin:router.<locals>.put_flag` | - |
 | GET | `/v1/fx-rates` | `kx.crm.api.records:router.<locals>.fx_rates` | - |
 | POST | `/v1/fx-rates` | `kx.crm.api.records:router.<locals>.fx_override` | `kx.crm.services.journal:record` |
@@ -267,7 +267,7 @@ other mapping files, and this table is updated with each move.
 | `crm.lost_proposals` | <crontab: 7 4 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.lost` | `kx.crm.services.lost_proposals:propose_lost` |
 | `crm.price_staleness` | <crontab: 23 5 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.staleness` | `kx.crm.services.price_proposals:emit_stale`<br>`kx.crm.services.quotes:expire_quotes` |
 | `crm.retention` | <crontab: 41 23 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.retention_` | `kx.crm.retention.service:run_retention` |
-| `crm.scheduled_reports` | <crontab: */15 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.reports` | `kx.crm.services.scheduled_reports:send_due` |
+| `crm.scheduled_reports` | <crontab: */15 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.reports` | `kx.crm.reports.scheduled:send_due` |
 | `jobs.dispatch_due` | 0:00:30 | `arifaa_pack.container:_periodic.<locals>.dispatch_due` | - |
 | `relay.agents` | 0:00:05 | `arifaa_pack.container:_periodic.<locals>.relay_agents` | - |
 | `relay.automation` | 0:00:05 | `kx.automation.jobs:periodic_jobs.<locals>.relay` | - |

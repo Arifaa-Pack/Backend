@@ -20,7 +20,6 @@ from kx.crm.api import (
     deals,
     quotes,
     records,
-    reports,
     screens,
     users,
 )
@@ -29,6 +28,7 @@ from kx.crm.api.session_guard import SessionGuard
 from kx.crm.company import router as company
 from kx.crm.deps import CrmDeps
 from kx.crm.operations import router as operations
+from kx.crm.reports import router as reports
 from kx.crm.texts import router as texts
 
 

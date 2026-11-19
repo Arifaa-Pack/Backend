@@ -43,6 +43,7 @@ from kx.core.settings import LogicalDb
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Contact, Deal, FxRate
 from kx.crm.models.base import SCHEMA
+from kx.crm.reports import scheduled as scheduled_reports
 from kx.crm.retention import service as retention
 from kx.crm.rules import OPEN_STAGES
 from kx.crm.services import (
@@ -56,7 +57,6 @@ from kx.crm.services import (
     phone,
     price_proposals,
     quotes,
-    scheduled_reports,
     staff,
     summary,
 )
