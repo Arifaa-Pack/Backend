@@ -59,6 +59,9 @@ class AppSettings(BaseSettings):
     # M7 layer 3: a FAST-model second opinion on replies that talk about money or quantities but passed the
     # deterministic price guard; "yes" or an error fails closed (regenerate once, then the safe reply)
     price_second_opinion: bool = True
+    # 19 Nov: a WhatsApp or email message's AI turn waits this long for the buyer's next quick message and
+    # answers them together (website chat is not merged); 0 = one turn per message
+    reply_merge_seconds: float = Field(default=8.0, ge=0, le=60)
 
     # ---- knowledge search (D47: BGE-M3 or Qwen3 on TEI, chosen by KX_PLATFORM__EMBEDDINGS; full-text
     # fallback)

@@ -57,6 +57,40 @@ class ThreadAddressBook:
         return await self._one(_DEAL_SQL, deal_ref)
 
 
+# M8: an email whose sender failed the checks (raw.sender_verified = false) never joins a turn
+_NEWER_SQL = text(
+    "SELECT EXISTS (SELECT 1 FROM inbound_messages i WHERE i.thread_id = :thread AND i.id <> :msg "
+    "AND coalesce(i.raw->>'sender_verified', 'true') <> 'false' AND i.text IS NOT NULL AND i.received_at > "
+    "(SELECT received_at FROM inbound_messages WHERE id = :msg))"
+)
+_BURST_SQL = text(
+    "SELECT text FROM inbound_messages WHERE thread_id = :thread AND text IS NOT NULL "
+    "AND coalesce(raw->>'sender_verified', 'true') <> 'false' "
+    "AND received_at <= (SELECT received_at FROM inbound_messages WHERE id = :msg) "
+    "AND received_at > coalesce((SELECT max(created_at) FROM outbound_messages WHERE thread_id = :thread), "
+    "'-infinity') ORDER BY received_at DESC LIMIT :n"
+)
+
+
+class ThreadBurst:
+    """kx.agents MessageBurst over automation.inbound_messages (19 Nov: merge quick buyer messages). The bus
+    starts the agents' turn KX_APP_REPLY_MERGE_SECONDS after the message; by then a buyer who sent three
+    lines in a row has sent all three. The turn of the newest one answers them together; the others step
+    aside. "Since our last message" = after the newest outbound message on the thread."""
+
+    def __init__(self, databases: Databases, max_messages: int = 10) -> None:
+        self._db = databases
+        self._max = max_messages
+
+    async def unanswered(self, thread_ref: uuid.UUID, message_ref: uuid.UUID) -> tuple[str, ...] | None:
+        args = {"thread": thread_ref, "msg": message_ref}
+        async with self._db.transaction(LogicalDb.AUTOMATION) as s:
+            if (await s.execute(_NEWER_SQL, args)).scalar():
+                return None
+            texts = list((await s.execute(_BURST_SQL, {**args, "n": self._max})).scalars())
+        return tuple(reversed(texts))
+
+
 # Qwen3-Embedding model card: queries carry a one-line task instruction, documents do not. BGE-M3 takes plain
 # text on both sides (no prefix, no instruction).
 QWEN3_QUERY_INSTRUCTION = "Given a web search query, retrieve relevant passages that answer the query"

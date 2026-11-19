@@ -36,6 +36,7 @@ from arifaa_pack.adapters import (
     RedisAuthThrottle,
     StaffCodeMailer,
     ThreadAddressBook,
+    ThreadBurst,
     TurnstileVerifier,
     VoiceSlots,
 )
@@ -514,6 +515,8 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             addresses=ThreadAddressBook(dbs),
             indexer=indexer,
             checkpointer=checkpointer,
+            burst=ThreadBurst(dbs) if s.reply_merge_seconds > 0 else None,  # merge quick buyer messages
+            merge_seconds=s.reply_merge_seconds,
         )
         agent_handlers = agents.handlers()
 

@@ -111,6 +111,55 @@ async def test_an_unverified_email_gets_no_ai_answer(databases: Any) -> None:
     assert sender.sent == {} and model.calls == [] and gw.calls == []
 
 
+class Burst:
+    def __init__(self, answer: tuple[str, ...] | None) -> None:
+        self.answer, self.asked = answer, 0
+
+    async def unanswered(self, thread_ref: uuid.UUID, message_ref: uuid.UUID) -> tuple[str, ...] | None:
+        self.asked += 1
+        return self.answer
+
+
+@pytest.mark.parametrize(
+    ("burst", "expected"),
+    [
+        (None, None),  # a newer message on the thread answers this one too: no turn here
+        (("Hi", "750 ml containers", "20,000 pcs to Dubai"), "Hi\n750 ml containers\n20,000 pcs to Dubai"),
+    ],
+)
+async def test_quick_buyer_messages_get_one_answer(
+    databases: Any, monkeypatch: pytest.MonkeyPatch, burst: tuple[str, ...] | None, expected: str | None
+) -> None:
+    """19 Nov (client): three quick WhatsApp lines or emails get ONE answer to all of them. The turn waits
+    out the merge window, then the newest message's turn answers the unanswered ones together."""
+    deal = make_deal(DealStage.QUALIFIED)
+    svc = AgentService(
+        databases=databases,
+        gateway=FakeCrmGateway(deal),
+        models=ModelRouter.static(ScriptedChatModel(script=[])),
+    )
+    turns: list[Any] = []
+
+    async def handle_turn(turn: Any, deliver: Any) -> None:
+        turns.append(turn)
+
+    monkeypatch.setattr(svc, "handle_turn", handle_turn)
+    fake = Burst(burst)
+    handlers = AgentHandlers(
+        databases=databases,
+        service=svc,
+        sender=Sender(),
+        addresses=Addresses(),
+        burst=fake,
+        merge_seconds=0.2,
+    )
+    started = datetime.now(UTC)
+    assert await handlers.dispatch(_event(deal.deal_id))
+    assert (datetime.now(UTC) - started).total_seconds() >= 0.15  # waited out the merge window
+    assert fake.asked == 1
+    assert [t.text for t in turns] == ([] if expected is None else [expected])
+
+
 async def test_injection_flags_and_gaps_are_masked_and_removed_on_anonymisation(databases: Any) -> None:
     contact = uuid.uuid4()
     async with databases.transaction(AGENTS) as s:

@@ -8,9 +8,11 @@ and re-indexing by nature.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any, Final, Literal, Protocol, runtime_checkable
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -67,6 +69,17 @@ class ReplyAddressBook(Protocol):
     async def for_deal(self, deal_ref: uuid.UUID) -> ReplyAddress | None: ...
 
 
+@runtime_checkable
+class MessageBurst(Protocol):
+    """App-wired from automation's inbound messages (19 Nov, merge quick buyer messages): a buyer who sends
+    three short WhatsApp lines or emails in a row gets ONE answer to all of them, not three."""
+
+    async def unanswered(self, thread_ref: uuid.UUID, message_ref: uuid.UUID) -> tuple[str, ...] | None:
+        """None when a newer buyer message on the thread exists (its turn answers all of them); else the
+        texts of the buyer's messages on the thread since our last message to it, oldest first."""
+        ...
+
+
 @dataclass(frozen=True, slots=True)
 class AgentHandlers:
     databases: Databases
@@ -75,6 +88,8 @@ class AgentHandlers:
     addresses: ReplyAddressBook
     indexer: KnowledgeIndexer | None = None
     checkpointer: BaseCheckpointSaver[Any] | None = None
+    burst: MessageBurst | None = None  # merge quick buyer messages (WhatsApp, email); None = one turn each
+    merge_seconds: float = 8.0  # how long after a buyer message its turn waits for the next one
 
     def handlers(self) -> dict[str, EventHandler]:
         impl: dict[str, EventHandler] = {
@@ -145,11 +160,25 @@ class AgentHandlers:
         if m.opted_out:  # §8.1 steps 2-3: the stop already happened; the one confirmation is all that leaves
             log.info("agents.opted_out_no_reply", message_ref=str(m.message_ref))
             return
+        text = m.text
+        if self.burst is not None and self.merge_seconds > 0:
+            # wait out the rest of the merge window, counted from the message: under load the queue has
+            # usually spent it already, so only a quiet worker waits (never longer than the window)
+            age = (datetime.now(UTC) - m.received_at).total_seconds()
+            if 0 <= age < self.merge_seconds:
+                await asyncio.sleep(self.merge_seconds - age)
+            texts = await self.burst.unanswered(m.thread_ref, m.message_ref)
+            if texts is None:
+                log.info("agents.merged_into_newer_message", message_ref=str(m.message_ref))
+                return
+            text = "\n".join(t for t in texts if t.strip()) or m.text
+            if len(texts) > 1:
+                log.info("agents.messages_merged", message_ref=str(m.message_ref), count=len(texts))
         deliver = self._deliver(addr, deal_ref, f"agent-reply:{event.event_id}") if addr else None
         await self.service.handle_turn(
             InboundTurn(
                 channel=m.channel,
-                text=m.text,
+                text=text,
                 deal_id=deal_ref,
                 thread_key=f"{m.channel}:{m.thread_ref}",
                 trigger_event=event.event_type,
