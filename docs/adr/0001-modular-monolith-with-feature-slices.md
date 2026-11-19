@@ -55,6 +55,8 @@ working while the inside is reorganised.
   removals are announced to the Arifaa Auto team. **19 Nov:** all removed (Phase 2c) once the tests had moved to
   the new paths; the old → new table for Arifaa Auto is `docs/ARIFAA_AUTO_NOTES.md` §3.
 - The baseline of cross-slice imports is visible in `.importlinter`/`pyproject.toml`; it can only shrink.
+  **19 Nov (Phase 2d):** every baseline is gone. A CRM slice now declares what other slices may use in its own
+  `api.py`, and rule 5 allows only those imports.
 - If slices keep needing each other's internals (the baseline grows, or most changes touch three slices), the
   slice cut is wrong and should be revisited with a new ADR.
 

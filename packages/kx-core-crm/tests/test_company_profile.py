@@ -9,7 +9,8 @@ import pytest
 from test_quote_document import DOC
 
 from kx.core.errors import RuleViolation
-from kx.crm.company.service import BankDetails, CompanyProfile, effective, iban_ok, logo_data_uri
+from kx.crm._shared.company_profile import BankDetails, CompanyProfile, iban_ok
+from kx.crm.company.service import effective, logo_data_uri
 from kx.crm.quotes.pdf import Letterhead, QuoteRenderer
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64

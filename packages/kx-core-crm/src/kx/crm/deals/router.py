@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import Select, exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.core.auth import Principal, Role
+from kx.core.auth import Role
 from kx.core.contracts import DealStage
 from kx.crm._shared import access
 from kx.crm._shared.api_context import ApiContext, HumanManager, Manager, Staff
@@ -21,20 +21,19 @@ from kx.crm._shared.journal import Actor
 from kx.crm._shared.pagination import Page, keyset, page_of
 from kx.crm._shared.schemas import (
     AiToggleIn,
-    ContactOut,
     DealDetail,
     DealSummary,
     ManagerOfferIn,
     QuoteEditsIn,
     QuoteVersionOut,
-    RequirementOut,
     StageMoveIn,
     TimelineOut,
 )
-from kx.crm.approvals import service as approvals
-from kx.crm.assignment import service as assignment
-from kx.crm.change_requests import service as change_requests
+from kx.crm.approvals import api as approvals
+from kx.crm.assignment import api as assignment
+from kx.crm.change_requests import api as change_requests
 from kx.crm.deals import service as deal_svc
+from kx.crm.deals.views import deal_detail, visible_to
 from kx.crm.models import (
     Approval,
     ChangeRequest,
@@ -44,37 +43,9 @@ from kx.crm.models import (
     Quote,
     QuoteVersion,
     TimelineEvent,
-    User,
 )
-from kx.crm.negotiation import service as negotiation
-from kx.crm.quotes import service as quotes
-
-
-async def deal_detail(s: AsyncSession, deal: Deal) -> DealDetail:
-    contact = await deal_svc.contact_of(s, deal)
-    reqs = await deal_svc.requirements_of(s, deal.id)
-    return DealDetail.model_validate(
-        {
-            **DealSummary.model_validate(deal).model_dump(),
-            "contact": ContactOut.model_validate(contact),
-            "requirements": [RequirementOut.model_validate(x) for x in reqs],
-            "missing_fields": list(await deal_svc.missing_for(s, deal)),
-            "lost_reason": deal.lost_reason,
-            "lost_note": deal.lost_note,
-            "ai_summary": deal.ai_summary,
-            "ai_summary_at": deal.ai_summary_at,
-            "personal_contact_shared_at": deal.personal_contact_shared_at,
-        }
-    )
-
-
-def visible_to[S: Select[Any]](stmt: S, p: Principal) -> S:
-    """§3 "the salesperson sees their own; the manager and MD see all": a salesperson's lists show their
-    own deals plus those of an away colleague they cover as backup (§9.3)."""
-    if p.role is not Role.SALES:
-        return stmt
-    covered = select(User.id).where(User.is_away.is_(True), User.backup_user_id == p.user_id)
-    return stmt.where(or_(Deal.owner_user_id == p.user_id, Deal.owner_user_id.in_(covered)))
+from kx.crm.negotiation import api as negotiation
+from kx.crm.quotes import api as quotes
 
 
 class DealFilters(BaseModel):

@@ -32,17 +32,25 @@ from kx.core.event_payloads import NegotiationPaused
 from kx.crm._shared import staff
 from kx.crm._shared.journal import Actor, Emit, Timeline, record
 from kx.crm._shared.settings import BusinessSettings
-from kx.crm.deals import service as deal_svc
+from kx.crm.deals import api as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Deal, MarginRuleRow, NegotiationRound, QuoteLine, QuoteLineCost, QuoteVersion, Task
-from kx.crm.pricing.engine import evaluate_counter as engine_counter
-from kx.crm.pricing.engine import evaluate_ladder_counter, ladder_between, unit_cost_per_1000
-from kx.crm.pricing.price_list import PriceTier, TierPrice, convert_tier
-from kx.crm.pricing.service import tiers_of_version
-from kx.crm.pricing.types import CostInputs, LadderState, MarginBand, NegotiationState
-from kx.crm.quotes import service as quotes
-from kx.crm.quotes.issuing import local_today
-from kx.crm.quotes.service import ISSUED, costs_of, create_final_version, latest_version, tiers_of
+from kx.crm.pricing.api import (
+    CostInputs,
+    LadderState,
+    MarginBand,
+    NegotiationState,
+    PriceTier,
+    TierPrice,
+    convert_tier,
+    evaluate_ladder_counter,
+    ladder_between,
+    tiers_of_version,
+    unit_cost_per_1000,
+)
+from kx.crm.pricing.api import evaluate_counter as engine_counter
+from kx.crm.quotes import api as quotes
+from kx.crm.quotes.api import ISSUED, costs_of, create_final_version, latest_version, local_today, tiers_of
 from kx.crm.rules import PauseReason, round_verdict
 
 THOUSAND = Decimal(1000)

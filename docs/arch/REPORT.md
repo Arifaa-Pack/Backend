@@ -1,7 +1,8 @@
 # Architecture restructuring (ADR-0001): final report
 
-Phases 0–2, 2b and 2c of the restructuring brief, 19 Nov 2026. The details of every step, with the real gate output, are in
-`docs/arch/PROGRESS.md`. **No behaviour change:** moves, import-path renames and new tooling only.
+Phases 0–2, 2b, 2c and 2d of the restructuring brief, 19 Nov 2026. The details of every step, with the real gate output, are in
+`docs/arch/PROGRESS.md`. **No behaviour change in the product:** moves, import-path renames and new tooling only.
+Phase 2d also fixed a false match in the `kx map` tool, so its output lost two wrong entries.
 
 ## Done
 
@@ -69,22 +70,50 @@ on its own; map: `docs/arch/AUTOMATION_AGENTS_SLICES.md`).
 - A shim's removal is the one place a reader could see a difference: code outside this repository that still
   imports an old path now fails at import. Arifaa Auto is parked; its table is `docs/ARIFAA_AUTO_NOTES.md` §3.
 
+**Phase 2d: the "found, not fixed" list, fixed** (19 Nov, on request). One commit each:
+- automation: `TRANSIENT_REASONS` moved into `_shared/sending.py`; `LadderTicket` (`_shared/ladder.py`) and the email
+  `Attachment` (`_shared/channels.py`) moved next to the ports that carry them. The type-only import cycle is gone,
+  and the automation layers contract has no baseline (it had 3 lines).
+- CRM `_shared`: `QuoteEdits` / `LineEdit` (`_shared/quote_edits.py`) and `CompanyProfile` / `BankDetails`
+  (`_shared/company_profile.py`) moved unchanged; the "_shared imports no slice" contract has no baseline.
+- `handover/` no longer imports the gateway. `allowed_prices` and the issued-quote lookup live in
+  `quotes/allowed.py`, used by both the AI's `DealContext` and a salesperson's reply: one definition of what a buyer
+  may be told (§11.1).
+- Rule 5: 14 slices declare what other slices may use in an `api.py` (106 names, lazy, typed); every cross-slice
+  import goes through one, and the 74-line baseline is replaced by one rule, `kx.crm.** -> kx.crm.*.api`. A planted
+  direct import breaks it. `deal_detail` / `visible_to` moved from `deals/router.py` to `deals/views.py`.
+- `kx map`: `calls()` resolves only the `module.attr` chains a function reads. Two false entries are gone (see Diffs);
+  a unit test reproduces the first and fails on the old code.
+- Events: `kx.core.events.NO_SUBSCRIBER` records why each of the 6 unsubscribed events has no handler; a unit test
+  keeps it true both ways, and `docs/FEATURE_MAP.md` shows the reason. One is a real gap, the v2 stale-price
+  manager alert: `OPEN_QUESTIONS.md` #78.
+- mypy covers `scripts/` in `make lint` and CI: `gen_frontend_docs.py` (7 errors) and `gen_tester_pack.py`
+  (6 errors, on `docs/tester-pack`) are fixed without changing what they write.
+- Docs: 12 dotted references in `REUSE_CATALOGUE.md` and `CONTRACTS.md` that stopped resolving in Phase 2c (names
+  read through a folder that no longer re-exports) now name the module.
+
 ## Gates
 
-Each gate was run on every commit. Shown here: the final head (Phase 2c, `kx-shims` commits on `arch/slices`).
+Each gate was run on every commit. Shown here: the final head (Phase 2d on `arch/slices`).
 
 | Gate | Result |
 | --- | --- |
 | `ruff check .` | PASS: All checks passed! |
-| `ruff format --check .` | PASS: 415 files already formatted (54 shim files fewer than Phase 2b) |
-| `mypy` (strict, 5 source trees) | PASS: no issues found in 254 source files |
-| `lint-imports` | PASS: Contracts: 12 kept, 0 broken |
-| `pytest tests/unit` | PASS: 131 passed |
-| Full suite (Linux app image, own PostgreSQL) | PASS: tests=992, failures=0, errors=0, skipped=4 (they need `redis-server`), on the Phase 2c test move and again on the shim removal. Every slice commit before it passed its own full suite before the next one was committed: 982 tests in Phases 1–2, 992 in Phase 2b (round-2 tests added in between); each result is in `PROGRESS.md` |
+| `ruff format --check .` | PASS: 435 files already formatted |
+| `mypy` (strict, 5 source trees + `scripts`) | PASS: no issues found in 275 source files |
+| `lint-imports` | PASS: Contracts: 12 kept, 0 broken; no contract has a baseline line left except the two recorded ORM imports of the app |
+| `pytest tests/unit` | PASS: 133 passed |
+| Full suite (Linux app image, own PostgreSQL) | PASS on every Phase 2d commit: tests=992 to 994 (the two new unit tests), failures=0, errors=0, skipped=4 (they need `redis-server`). Earlier: 982 tests in Phases 1–2, 992 in Phases 2b–2c; each result is in `PROGRESS.md` |
 | OpenAPI (`scripts/gen_frontend_docs.py` + `git diff docs/frontend`) | PASS: `openapi-crm.json` and `openapi-website.json` byte-identical on every commit (see Deviations for how) |
 | `kx map --check docs/FEATURE_MAP.md` | PASS |
-| `kx map --format json`, compared after applying the renames | PASS: path-only on every commit, with 1 explained exception (below); identical before and after Phase 2c |
+| `kx map --format json`, compared after applying the renames | PASS: path-only on every commit, with 3 explained exceptions (below) |
 | actionlint on the new workflows | NOT RUN locally: not installed. `ci.yml` runs it on every workflow |
+
+**How lint-imports was run in the worktrees.** `kx` is a namespace package, and the shared virtualenv also points
+at the main folder's copy, so a plain `lint-imports` in a second checkout analysed both copies (Phase 2d found
+this). Phase 2d runs it with the main folder's paths removed (it then reports the worktree's own imports: the
+removed baselines would otherwise fail) and without the cache. Phase 2c's per-commit results were re-checked this
+way on the pushed head: 12 kept, 0 broken.
 
 ## Diffs
 
@@ -94,6 +123,11 @@ Each gate was run on every commit. Shown here: the final head (Phase 2c, `kx-shi
   - `kx map` matches every name in a function against every module in scope;
   - the job calls `agents_retention.run_retention`;
   - while the CRM module was in the container's namespace, that name matched the CRM's `run_retention` too.
+- **`kx map`, Phase 2d:** the same matcher bug, fixed at its root (`calls()` now reads the bytecode's `module.attr`
+  chains). `app.retention` no longer lists `kx.agents.retention:plumbing_rules` (it reads automation's), and
+  `POST /v1/deals/{id}/offer` no longer lists `negotiation.service:resume_ai` (the route reads `body.resume_ai`, a
+  request field). `deal_detail` and `visible_to` show as `kx.crm.deals.views:*` after their move, and events gain
+  a `no_subscriber` field.
 
 ## Deviations
 
@@ -120,24 +154,14 @@ Each gate was run on every commit. Shown here: the final head (Phase 2c, `kx-shi
 
 ## Found, not fixed
 
-- `apps/arifaa-pack/src/arifaa_pack/featuremap.py:234`: `calls()` can list a function that is never called, when
-  another module in scope has an attribute of the same name (the `run_retention` case above).
-- `packages/kx-core-crm/src/kx/crm/_shared/schemas.py` imports `kx.crm.quotes.service`, and `_shared/settings.py`
-  imports `kx.crm.company.service`. Shared code depends on two slices; this is the `_shared` baseline.
-- `kx/crm/handover/service.py` imports `kx.crm.gateway`: a slice depending on the package's outward-facing gateway.
-- `kx/automation/_shared/sending.py` imports `TRANSIENT_REASONS` from `outbound.service`: shared code depending on a
-  slice. Moving the constant into `_shared/` removes the baseline line (a code change, so not done here).
+Phase 2d fixed every item of this list (see above). What stays, by design:
 - The `runtime/` slice of `kx.agents` spans layers: `runtime.service` (the turn engine) is near the top, while
   `runtime.context` sits under the graphs, tools and guard that read it. The contract names the modules, not the
   folder.
-- The rule-5 baseline has 74 lines: 68 direct service-level imports between CRM slices, and 6 edges through
-  `deps`, `_shared` and `gateway`. The busiest targets are `quotes` (18), `deals` (16) and `pricing` (13), so a
-  narrow read API in those slices would remove most of the baseline.
-- From the recon, still open:
-  - a type-only import cycle between `kx.automation._shared.ports` and `alerts.service` (a line of the automation
-    baseline);
-  - six events have no subscriber;
-  - `docs/REUSE_CATALOGUE.md` gave a stale payload count (now corrected to 33).
+- The app's two ORM imports stay recorded in rule 3 (they were not on this list): `cli.py` reads `User`, and
+  `container.py` writes `Product.cms_product_id` for the CMS product draft. Each could become a CRM function in
+  `kx.crm`'s public surface.
+- `OPEN_QUESTIONS.md` #78: the v2 stale-price alert to the manager is not built (cost mode is off in v1).
 
 ## Questions for the lead
 

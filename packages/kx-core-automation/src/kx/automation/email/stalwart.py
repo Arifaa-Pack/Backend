@@ -22,9 +22,9 @@ from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
-from kx.automation._shared.channels import ChannelError
+from kx.automation._shared.channels import Attachment, ChannelError
 from kx.automation._shared.settings import SesSettings, StalwartSettings
-from kx.automation.email.channel import Attachment, build_mime
+from kx.automation.email.channel import build_mime
 from kx.core.identity import sha256_hex
 from kx.core.logging import get_logger
 

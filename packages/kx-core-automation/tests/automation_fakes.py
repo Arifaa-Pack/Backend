@@ -7,8 +7,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from kx.automation.alerts.service import LadderTicket
-from kx.automation.email.channel import Attachment
+from kx.automation._shared.channels import Attachment
+from kx.automation._shared.ladder import LadderTicket
 from kx.automation.outbound.ratelimit import Bucket, Decision
 from kx.automation.whatsapp.channel import DocumentRef
 from kx.core.event_payloads import DealNextActionSet, NegotiationPaused

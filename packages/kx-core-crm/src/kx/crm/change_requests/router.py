@@ -17,10 +17,10 @@ from kx.crm._shared.api_context import ApiContext, Staff
 from kx.crm._shared.journal import Actor
 from kx.crm._shared.schemas import ChangeRequestOut, DeclineIn, QuoteEditsIn, QuoteVersionOut, ResolveIn
 from kx.crm.change_requests import service as change_requests
-from kx.crm.deals import service as deal_svc
-from kx.crm.deals.router import visible_to
+from kx.crm.deals import api as deal_svc
+from kx.crm.deals.api import visible_to
 from kx.crm.models import ChangeRequest, Deal
-from kx.crm.quotes import service as quotes
+from kx.crm.quotes import api as quotes
 
 
 def router(ctx: ApiContext) -> APIRouter:

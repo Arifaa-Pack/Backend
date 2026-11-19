@@ -125,6 +125,22 @@ the CRM code moved from `kx/crm/services/*` and `kx/crm/api/*` into one folder p
 | `kx.crm.services.workbook` | `kx.crm.catalogue.workbook` | **no: removed** |
 | `kx.crm.throttle` | `kx.crm.auth.throttle` | **no: removed** |
 
+Names that moved to another module in Phase 2d (19 Nov; the old module path still exists, the name does not):
+
+| Name | Was in | Now in |
+| --- | --- | --- |
+| `TRANSIENT_REASONS` | `kx.automation.outbound.service` | `kx.automation._shared.sending` |
+| `LadderTicket` | `kx.automation.alerts.service` | `kx.automation._shared.ladder` |
+| `Attachment` | `kx.automation.email.channel` | `kx.automation._shared.channels` |
+| `QuoteEdits`, `LineEdit` | `kx.crm.quotes.service` | `kx.crm._shared.quote_edits` |
+| `CompanyProfile`, `BankDetails`, `iban_ok` | `kx.crm.company.service` | `kx.crm._shared.company_profile` |
+| `allowed_prices` | `kx.crm.gateway` | `kx.crm.quotes.allowed` |
+| `deal_detail`, `visible_to` | `kx.crm.deals.router` | `kx.crm.deals.views` |
+| `FollowUps` | `kx.automation.handlers` (Phase 2c) | `kx.automation.followups.service` |
+
+Inside `kx.crm`, a slice reaches another slice only through that slice's `api.py` (rule 5); an Auto backend uses
+the `kx.crm` public surface and is not affected.
+
 ## 4. Other changes of 19 Nov an Auto backend inherits
 
 - **Settings:** the website's origins moved out of the CRM CORS list to `KX_APP_CORS_PUBLIC_ORIGINS` (M2); new

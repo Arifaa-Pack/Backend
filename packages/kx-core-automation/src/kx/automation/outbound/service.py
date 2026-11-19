@@ -32,11 +32,10 @@ from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.automation._shared.channels import ChannelError, EmailTransport
+from kx.automation._shared.channels import Attachment, ChannelError, EmailTransport
 from kx.automation._shared.outbox import emit
 from kx.automation._shared.ports import Clock, MediaStore, TaskScheduler, utc_now
 from kx.automation._shared.settings import AutomationSettings
-from kx.automation.email.channel import Attachment
 from kx.automation.models import (
     ChannelAccount,
     InboundMessage,
@@ -70,8 +69,6 @@ _INACTIVE: Final = ("blocked", "cancelled", "failed")
 # A conversational reply over the per-recipient limit is held, not refused, at most this long (beyond it
 # the limit's loop protection refuses as before).
 REPLY_HOLD_MAX: Final = timedelta(minutes=5)
-# Refusals that clear by themselves (switch turned back on, bucket refilled): callers may retry.
-TRANSIENT_REASONS: Final = frozenset({"kill_switch", "rate_limited", "spend_cap"})
 _PLACEHOLDER: Final = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 
 

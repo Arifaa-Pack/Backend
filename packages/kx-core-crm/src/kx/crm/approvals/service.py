@@ -32,12 +32,11 @@ from kx.core.money import display
 from kx.crm._shared import access, staff
 from kx.crm._shared.journal import Actor, Emit, Timeline, record
 from kx.crm._shared.settings import BusinessSettings
-from kx.crm.change_requests import service as change_requests
-from kx.crm.deals import service as deal_svc
+from kx.crm.change_requests import api as change_requests
+from kx.crm.deals import api as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Approval, ApprovalEvent, Deal, Quote, QuoteVersion
-from kx.crm.quotes.grants import GrantPolicy
-from kx.crm.quotes.issuing import issue_to_buyer
+from kx.crm.quotes.api import GrantPolicy, issue_to_buyer
 
 ApprovalKind = Literal["initial", "revision", "counter", "final", "special_price"]
 RequiredRole = Literal["sales", "manager", "md"]

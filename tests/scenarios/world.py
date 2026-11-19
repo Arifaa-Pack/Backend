@@ -29,8 +29,9 @@ from kx.agents.router.service import route
 from kx.agents.runtime.context import AgentContext
 from kx.agents.runtime.service import GraphRunner
 from kx.agents.testing import ScriptedChatModel
+from kx.automation._shared.ladder import LadderTicket
 from kx.automation._shared.settings import AutomationSettings
-from kx.automation.alerts.service import ApprovalLadder, LadderTicket, PauseAlerts, VoiceAlerts
+from kx.automation.alerts.service import ApprovalLadder, PauseAlerts, VoiceAlerts
 from kx.automation.followups.service import FollowUps
 from kx.automation.handlers import EventHandlers
 from kx.core.contracts import PRICED_KINDS, AiRole, ContactPatch, OutboundRequest, RequirementPatch

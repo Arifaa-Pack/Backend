@@ -52,7 +52,7 @@ uv run pytest tests/spec -m bench --benchmark-enable   # speed checks
 ## Rules
 
 - **Packages never import each other** (import-linter). They cross only through `kx.core.contracts` Protocols and events (`kx.core.events`, `kx.core.event_payloads`).
-- **Inside a package** (ADR-0001, import-linter): new code goes in its feature slice; routers above services; slices don't import each other's internals (the baseline in `pyproject.toml` may only shrink); `kx map` / `docs/FEATURE_MAP.md` say where things are wired (`uv run kx map --write docs/FEATURE_MAP.md` after wiring changes).
+- **Inside a package** (ADR-0001, import-linter): new code goes in its feature slice; routers above services; a CRM slice reaches another slice only through that slice's `api.py` (its declared interface; adding a name there is a reviewed change), and shared code (`_shared/`) imports no slice; `kx map` / `docs/FEATURE_MAP.md` say where things are wired (`uv run kx map --write docs/FEATURE_MAP.md` after wiring changes).
 - **Celery is imported only by the app** (`arifaa_pack`). Packages schedule work through `kx.core.jobs` (PostgreSQL schedule table) and the `TaskScheduler` protocol. Long waits are rows in the table, never Celery ETAs. Every task is idempotent (`acks_late` can redeliver).
 - **Money:** Decimal only (`kx.core.money`), never float.
 - **IDs:** `kx.core.identity.new_id`; hashes and phone/email normalisation come from `kx.core.identity`.

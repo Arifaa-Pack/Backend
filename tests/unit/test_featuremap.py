@@ -14,6 +14,8 @@ from typing import Any, Protocol
 import pytest
 
 from arifaa_pack import featuremap
+from kx.agents import retention as agents_retention
+from kx.automation import retention as automation_retention
 from kx.core import contracts
 from kx.core import events as ev
 from kx.core.event_payloads import PAYLOADS
@@ -99,6 +101,19 @@ def test_every_event_with_a_handler_is_mapped(fmap: dict[str, Any]) -> None:
             assert event in expected
     agents = {h["name"] for h in mapped[ev.MESSAGE_RECEIVED]["handlers"] if h["package"] == "agents"}
     assert agents == {"kx.agents.handlers:AgentHandlers._message"}
+
+
+def test_every_event_has_a_handler_or_a_recorded_reason(fmap: dict[str, Any]) -> None:
+    """Six events had no subscriber and nobody had said why (recon, 19 Nov). Now each one either has a
+    handler or is in kx.core.events.NO_SUBSCRIBER with its reason, and the list cannot go stale."""
+    for e in fmap["events"]:
+        if e["handlers"]:
+            assert e["event"] not in ev.NO_SUBSCRIBER, (
+                f"{e['event']} has a handler now: drop it from NO_SUBSCRIBER"
+            )
+        else:
+            assert e["event"] in ev.NO_SUBSCRIBER, f"{e['event']} has no handler: subscribe one or record why"
+    assert set(ev.NO_SUBSCRIBER) <= {e["event"] for e in fmap["events"]}
 
 
 def test_routes_jobs_and_beat_are_mapped(fmap: dict[str, Any]) -> None:
@@ -198,6 +213,21 @@ class _NameFromInit:
 )
 def test_structural_conformance(cls: type, ok: bool) -> None:
     assert featuremap.conforms(cls, _Port) is ok
+
+
+def _retention_job() -> None:
+    """Like the app's nightly job: one module's plumbing_rules, the other module's run_retention."""
+    automation_retention.plumbing_rules  # noqa: B018
+    agents_retention.run_retention  # noqa: B018
+
+
+def test_calls_lists_only_what_is_read_on_each_module() -> None:
+    """Both retention modules define plumbing_rules: only the one the code reads may be listed (the
+    `app.retention` false positive of 19 Nov)."""
+    found = featuremap.calls(_retention_job)
+    assert "kx.automation.retention:plumbing_rules" in found
+    assert "kx.agents.retention:run_retention" in found
+    assert "kx.agents.retention:plumbing_rules" not in found
 
 
 def test_package_of() -> None:

@@ -17,8 +17,9 @@ from test_auto_email import RAW_REPLY
 
 from kx.automation import jobs
 from kx.automation._shared.channels import HttpRetry
+from kx.automation._shared.ladder import LadderTicket
 from kx.automation._shared.settings import AutomationSettings, PriceSourceConfig
-from kx.automation.alerts.service import ApprovalLadder, LadderTicket, PauseAlerts, VoiceAlerts
+from kx.automation.alerts.service import ApprovalLadder, PauseAlerts, VoiceAlerts
 from kx.automation.followups.service import FollowUps
 from kx.automation.handlers import EventHandlers
 from kx.automation.models import Base

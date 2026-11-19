@@ -21,7 +21,7 @@ from typing import Any, Final, Protocol
 
 from selectolax.lexbor import LexborHTMLParser
 
-from kx.automation._shared.channels import ChannelError
+from kx.automation._shared.channels import Attachment, ChannelError
 from kx.automation._shared.settings import SesSettings
 from kx.core.identity import normalise_email
 
@@ -42,13 +42,6 @@ class SesV2Client(Protocol):
     """The slice of an aioboto3 `sesv2` client we use (create it once in the app lifespan)."""
 
     async def send_email(self, **kwargs: Any) -> dict[str, Any]: ...
-
-
-@dataclass(frozen=True, slots=True)
-class Attachment:
-    filename: str
-    content_type: str
-    data: bytes
 
 
 # ---------------------------------------------------------------- outbound
