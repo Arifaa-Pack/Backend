@@ -54,8 +54,8 @@ other mapping files, and this table is updated with each move.
 | `kx.agents.models:ModelProvider` | `kx.agents.models:AnthropicApiProvider`<br>`kx.agents.models:GeminiApiProvider` | `packages/kx-agent-framework/src/kx/agents/models.py`<br>`packages/kx-agent-framework/src/kx/agents/models.py` |
 | `kx.agents.registry:PromptStore` | `kx.agents.registry:DefaultPromptStore` | `packages/kx-agent-framework/src/kx/agents/registry.py` |
 | `kx.agents.voice.service:VoicePlugins` | `arifaa_pack.adapters:PlatformVoicePlugins` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
-| `kx.agents.website:HumanCheck` | `arifaa_pack.adapters:TurnstileVerifier` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
-| `kx.agents.website:PublicLimits` | `arifaa_pack.adapters:PublicLimiter` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.website.router:HumanCheck` | `arifaa_pack.adapters:TurnstileVerifier` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.website.router:PublicLimits` | `arifaa_pack.adapters:PublicLimiter` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.automation._shared.channels:EmailTransport` | `kx.automation.email.chain:EmailChain`<br>`kx.automation.email.channel:EmailSender`<br>`kx.automation.email.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/email/chain.py`<br>`packages/kx-core-automation/src/kx/automation/email/channel.py`<br>`packages/kx-core-automation/src/kx/automation/email/stalwart.py` |
 | `kx.automation._shared.media:S3Client` | - | - |
 | `kx.automation._shared.ports:ApprovalStatusReader` | `kx.crm.gateway:ApprovalStatusReaderImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
@@ -206,10 +206,10 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/products/{product_id}/history` | `kx.crm.screens.router:router.<locals>.product_history` | - |
 | GET | `/v1/products/{product_id}/price-tiers` | `kx.crm.screens.router:router.<locals>.tiers` | `kx.crm.pricing.price_list_service:tiers_for` |
 | POST | `/v1/products/{product_id}/price-tiers` | `kx.crm.screens.router:router.<locals>.add_tier` | `kx.crm.pricing.price_list_service:add_tier` |
-| POST | `/v1/public/sessions` | `kx.agents.website:build_router.<locals>.start` | `kx.agents.language:normalise_language` |
-| POST | `/v1/public/sessions/{session_id}/identify` | `kx.agents.website:build_router.<locals>.identify` | - |
-| POST | `/v1/public/sessions/{session_id}/messages` | `kx.agents.website:build_router.<locals>.message` | - |
-| POST | `/v1/public/sessions/{session_id}/voice` | `kx.agents.website:build_router.<locals>.voice` | - |
+| POST | `/v1/public/sessions` | `kx.agents.website.router:build_router.<locals>.start` | `kx.agents.language:normalise_language` |
+| POST | `/v1/public/sessions/{session_id}/identify` | `kx.agents.website.router:build_router.<locals>.identify` | - |
+| POST | `/v1/public/sessions/{session_id}/messages` | `kx.agents.website.router:build_router.<locals>.message` | - |
+| POST | `/v1/public/sessions/{session_id}/voice` | `kx.agents.website.router:build_router.<locals>.voice` | - |
 | GET | `/v1/public/unsubscribe` | `kx.automation.optout.router:build_router.<locals>.unsubscribe_page` | - |
 | POST | `/v1/public/unsubscribe` | `kx.automation.optout.router:build_router.<locals>.unsubscribe` | `kx.automation.optout.service:apply_stop` |
 | GET | `/v1/quote-versions/{version_id}` | `kx.crm.quotes.router:router.<locals>.get_version` | `kx.crm._shared.access:check_view`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.quotes.issuing:lines_of` |

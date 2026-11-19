@@ -15,7 +15,7 @@ from sqlalchemy import text
 from kx.agents.handlers import ReplyAddress
 from kx.agents.knowledge.service import KbSource
 from kx.agents.voice.service import VoiceRoute
-from kx.agents.website import PublicScope
+from kx.agents.website.router import PublicScope
 from kx.automation import Bucket
 from kx.core.db import Databases
 from kx.core.errors import Unavailable
