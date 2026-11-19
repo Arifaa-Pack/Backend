@@ -10,7 +10,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from kx.core.db import Databases
-from kx.crm.api import admin, deal_actions, deals, quotes, screens
+from kx.crm.api import admin, deal_actions, deals, quotes
 from kx.crm.api.context import ApiContext
 from kx.crm.assignment import router as assignment
 from kx.crm.auth import router as auth
@@ -23,6 +23,7 @@ from kx.crm.deps import CrmDeps
 from kx.crm.operations import router as operations
 from kx.crm.records import router as records
 from kx.crm.reports import router as reports
+from kx.crm.screens import router as screens
 from kx.crm.texts import router as texts
 
 
