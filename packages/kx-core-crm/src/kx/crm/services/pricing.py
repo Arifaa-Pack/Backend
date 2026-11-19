@@ -11,6 +11,7 @@ I/O that feeds it.
 from __future__ import annotations
 
 import math
+from collections.abc import Collection
 from dataclasses import dataclass, replace
 from datetime import date, datetime
 from decimal import Decimal
@@ -18,6 +19,7 @@ from typing import Any, Final
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from kx.core.errors import RuleViolation
 from kx.core.money import MONEY_PLACES, q
@@ -429,6 +431,32 @@ async def current_tiers(session: AsyncSession, product_id: Any, now: datetime) -
         )
     ).scalars()
     return tuple(_tier(r) for r in rows)
+
+
+async def current_tiers_many(
+    session: AsyncSession, product_ids: Collection[Any], now: datetime
+) -> dict[Any, tuple[PriceTier, ...]]:
+    """`current_tiers` for many products in one query (review N1, 19 Nov: the workbook preview, apply and
+    price-list export ran one query per product). Same rows, same order; no tiers maps to ()."""
+    if not product_ids:
+        return {}
+    newer = aliased(ProductPriceTier)
+    latest = (
+        select(func.max(newer.valid_from))
+        .where(newer.product_id == ProductPriceTier.product_id, newer.valid_from <= now)
+        .scalar_subquery()
+    )
+    rows = (
+        await session.execute(
+            select(ProductPriceTier)
+            .where(ProductPriceTier.product_id.in_(list(product_ids)), ProductPriceTier.valid_from == latest)
+            .order_by(ProductPriceTier.product_id, ProductPriceTier.min_qty)
+        )
+    ).scalars()
+    out: dict[Any, list[PriceTier]] = {pid: [] for pid in product_ids}
+    for r in rows:
+        out[r.product_id].append(_tier(r))
+    return {pid: tuple(tiers) for pid, tiers in out.items()}
 
 
 async def tiers_of_version(session: AsyncSession, tier_id: Any) -> tuple[PriceTier, ...]:

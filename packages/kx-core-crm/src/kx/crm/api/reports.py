@@ -12,9 +12,11 @@ out (OPEN_QUESTIONS #63):
 
 # No `from __future__ import annotations` here: FastAPI resolves the closure-local annotations.
 
+import asyncio
 import csv
 import io
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Annotated, Any, Final, Literal
@@ -161,7 +163,7 @@ _EXPORTS: dict[str, tuple[Any, tuple[str, ...]]] = {
 }
 
 
-def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one handler per dashboard
+def router(ctx: ApiContext) -> APIRouter:
     r = APIRouter(tags=["dashboards"])
     Session = Annotated[AsyncSession, Depends(ctx.session)]  # noqa: N806
     deps = ctx.deps
@@ -306,27 +308,39 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one handler per das
                 stmt = stmt.where(Company.id.in_(visible_to(select(Deal.company_id), p)))
         rows = (await s.execute(stmt.limit(50_000))).tuples().all()
         name = f"{entity}-{datetime.now(UTC):%Y%m%d}"
-        if format == "csv":
-            buf = io.StringIO()
-            writer = csv.writer(buf)
-            writer.writerow(columns)
-            writer.writerows([csv_cell(v) for v in row] for row in rows)
-            return Response(
-                buf.getvalue(),
-                media_type="text/csv; charset=utf-8",
-                headers={"Content-Disposition": f'attachment; filename="{name}.csv"'},
-            )
-        wb = Workbook(write_only=True)
-        ws = wb.create_sheet(entity)
-        ws.append(list(columns))
-        for row in rows:
-            ws.append([xlsx_cell(ws, v) for v in row])
-        out = io.BytesIO()
-        wb.save(out)
+        # review B1 (19 Nov): up to 50,000 rows take 1-3 s of CPU; built in a thread, the API keeps serving
+        body = await asyncio.to_thread(render_export, entity, columns, rows, format)
         return Response(
-            out.getvalue(),
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'},
+            body,
+            media_type=_EXPORT_TYPES[format],
+            headers={"Content-Disposition": f'attachment; filename="{name}.{format}"'},
         )
 
     return r
+
+
+_EXPORT_TYPES: Final = {
+    "csv": "text/csv; charset=utf-8",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+
+
+def render_export(
+    entity: str, columns: Sequence[str], rows: Sequence[Sequence[Any]], format: str
+) -> bytes | str:
+    """The export file (CSV text or XLSX bytes); pure CPU work on plain tuples, safe in a worker thread.
+    Every cell goes through csv_cell / xlsx_cell (M4: never a spreadsheet formula)."""
+    if format == "csv":
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(columns)
+        writer.writerows([csv_cell(v) for v in row] for row in rows)
+        return buf.getvalue()
+    wb = Workbook(write_only=True)
+    ws = wb.create_sheet(entity)
+    ws.append(list(columns))
+    for row in rows:
+        ws.append([xlsx_cell(ws, v) for v in row])
+    out = io.BytesIO()
+    wb.save(out)
+    return out.getvalue()

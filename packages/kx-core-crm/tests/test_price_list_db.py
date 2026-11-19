@@ -24,7 +24,7 @@ from kx.crm import models as m
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import CrmGatewayImpl
 from kx.crm.services import deals, quotes
-from kx.crm.services.pricing import PricingNeeded, QuantityOutsideTiers
+from kx.crm.services.pricing import PricingNeeded, QuantityOutsideTiers, current_tiers, current_tiers_many
 
 pytestmark = [pytest.mark.db, pytest.mark.usefixtures("price_list")]
 CRM = LogicalDb.CRM
@@ -330,3 +330,17 @@ async def test_staleness_job_is_off_in_price_list_mode(databases: Databases, dep
         return None
 
     assert await run_price_staleness(CrmRuntime(databases, deps, publish=_noop)) == 0
+
+
+async def test_current_tiers_many_matches_one_product_at_a_time(databases: Databases) -> None:
+    """Review N1 (19 Nov): the batched lookup used by the workbook and the price-list export returns exactly
+    what current_tiers returns per product (same tiers, same order; a product without tiers gets ())."""
+    now = datetime.now(UTC)
+    async with databases.transaction(CRM) as s:
+        ids = list((await s.execute(select(m.Product.id))).scalars())
+        many = await current_tiers_many(s, ids, now)
+        assert set(many) == set(ids)
+        for pid in ids:
+            assert many[pid] == await current_tiers(s, pid, now)
+        assert many[LIST_PRODUCT_ID]  # the seeded price list has tiers
+        assert await current_tiers_many(s, [], now) == {}

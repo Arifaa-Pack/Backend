@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import io
 import itertools
 import uuid
@@ -28,7 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core.errors import Conflict, NotFound, RuleViolation
 from kx.crm.models import Product, ProductPriceTier, QuoteLineTier
 from kx.crm.services.journal import Actor, record
-from kx.crm.services.pricing import current_tiers
+from kx.crm.services.pricing import current_tiers_many
 
 COLUMNS: Final = ("sku", "min_qty", "max_qty", "list_price", "min_price", "currency")
 
@@ -228,17 +229,22 @@ def check_xlsx(data: bytes) -> None:
         raise RuleViolation("the workbook unpacks to far more data than a price list holds")
 
 
-async def import_xlsx(
-    session: AsyncSession, data: bytes, *, valid_from: datetime, actor: Actor
-) -> ImportResult:
-    """§10 Excel import: validate every row, then save all of them as one new price-list version."""
+def _read_rows(data: bytes) -> list[tuple[Any, ...]]:
+    """The data rows of the price-list sheet (CPU work; runs in a worker thread)."""
     check_xlsx(data)
     try:
         sheet = load_workbook(io.BytesIO(data), read_only=True, data_only=True).active
     except Exception as exc:
         raise RuleViolation("the file is not a readable .xlsx workbook") from exc
     assert sheet is not None
-    rows = list(sheet.iter_rows(min_row=2, values_only=True))
+    return list(sheet.iter_rows(min_row=2, values_only=True))
+
+
+async def import_xlsx(
+    session: AsyncSession, data: bytes, *, valid_from: datetime, actor: Actor
+) -> ImportResult:
+    """§10 Excel import: validate every row, then save all of them as one new price-list version."""
+    rows = await asyncio.to_thread(_read_rows, data)  # review B2: openpyxl parsing off the event loop
     products = {p.sku: p.id for p in (await session.execute(select(Product))).scalars()}
     parsed, errors = parse_rows(rows, set(products))
     if errors:
@@ -279,8 +285,10 @@ async def export_xlsx(session: AsyncSession, now: datetime) -> bytes:
     assert ws is not None
     ws.title = "price list"
     ws.append(list(COLUMNS))
-    for product in (await session.execute(select(Product).order_by(Product.sku))).scalars():
-        for t in await current_tiers(session, product.id, now):
+    all_products = list((await session.execute(select(Product).order_by(Product.sku))).scalars())
+    by_product = await current_tiers_many(session, [p.id for p in all_products], now)  # review N1: 1 query
+    for product in all_products:
+        for t in by_product[product.id]:
             ws.append(  # quantities as whole numbers, prices as exact text: never a float (money rule)
                 [
                     product.sku,

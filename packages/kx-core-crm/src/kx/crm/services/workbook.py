@@ -25,6 +25,7 @@ history); price changes need no approval (client decision) and the MD sees them 
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import io
 import re
@@ -46,7 +47,7 @@ from kx.core.price_guard import extract_prices
 from kx.crm.models import Product, ProductCategory, ProductPriceTier
 from kx.crm.services.journal import Actor, Emit, record
 from kx.crm.services.price_lists import RowError, check_xlsx, parse_rows
-from kx.crm.services.pricing import current_tiers
+from kx.crm.services.pricing import current_tiers, current_tiers_many
 
 PRODUCTS: Final = "Products"
 TIERS: Final = "Price tiers"
@@ -488,11 +489,12 @@ def _diff(
 async def snapshot(session: AsyncSession, now: datetime) -> Snapshot:
     products: dict[str, dict[str, Any]] = {}
     tiers: dict[str, tuple[tuple[Decimal, Decimal | None, Decimal, Decimal | None], ...]] = {}
-    for prod in (await session.execute(select(Product))).scalars():
+    all_products = list((await session.execute(select(Product))).scalars())
+    by_product = await current_tiers_many(session, [p.id for p in all_products], now)  # review N1: 1 query
+    for prod in all_products:
         products[prod.sku.upper()] = _product_fields(prod)
         tiers[prod.sku.upper()] = tuple(
-            (t.min_qty, t.max_qty, t.list_price, t.min_price)
-            for t in await current_tiers(session, prod.id, now)
+            (t.min_qty, t.max_qty, t.list_price, t.min_price) for t in by_product[prod.id]
         )
     categories = {
         c.code: {"name": c.name, "min_discount_pct": c.min_discount_pct}
@@ -557,7 +559,7 @@ class Preview:
 
 
 async def preview(session: AsyncSession, data: bytes, now: datetime) -> Preview:
-    sheets = read_sheets(data)
+    sheets = await asyncio.to_thread(read_sheets, data)  # review B2: openpyxl parsing off the event loop
     return Preview(_token(data, await _stamp(session)), plan(sheets, await snapshot(session, now)))
 
 
@@ -576,7 +578,8 @@ async def apply(session: AsyncSession, data: bytes, token: str, *, actor: Actor,
     await session.execute(select(func.pg_advisory_xact_lock(0x6B78776B62)))
     if _token(data, await _stamp(session)) != token:
         raise Conflict("the catalogue changed since the preview, or this is another file: preview it again")
-    result = plan(read_sheets(data), await snapshot(session, now))
+    sheets = await asyncio.to_thread(read_sheets, data)  # review B2
+    result = plan(sheets, await snapshot(session, now))
     if not result.ok:
         raise RuleViolation(f"the workbook has {len(result.errors)} error(s): preview it to see them")
 
