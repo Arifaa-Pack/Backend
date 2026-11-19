@@ -1,9 +1,11 @@
-"""`kx` entrypoint: api | worker | beat | voice | migrate | reindex | platform show | create-user | map
-(one image; Coolify services api, worker, beat (exactly one), voice, plus the one-off migrate job)."""
+"""`kx` entrypoint: api | worker | beat | voice | migrate | reindex | platform show | create-user | map |
+content import-site (one image; Coolify services api, worker, beat (exactly one), voice, plus the one-off
+migrate job)."""
 
 from __future__ import annotations
 
 import argparse
+from typing import Any
 
 from kx.core.settings import LogicalDb
 
@@ -252,7 +254,51 @@ def _map(args: argparse.Namespace) -> None:
     print(f"wrote {target}")
 
 
-def main(argv: list[str] | None = None) -> None:
+def _content(args: argparse.Namespace) -> None:
+    """WP-C2 (D54): load the current website's content into the CMS and publish it, so the client edits it
+    from day one and the AI's site map and knowledge base are filled. Defaults to the Arifa seed shipped with
+    the app (arifaa_pack/seed: the website's catalogue.json and clients.json, the page layouts with their
+    section ids, tour chapters, stations, synonyms, the Arabic dictionary). Safe to run again: unchanged
+    documents stay."""
+    import asyncio  # noqa: PLC0415
+    import json  # noqa: PLC0415
+    import pathlib  # noqa: PLC0415
+
+    from kx.cms import import_site  # noqa: PLC0415
+    from kx.core.db import Databases  # noqa: PLC0415
+    from kx.core.settings import get_settings  # noqa: PLC0415
+
+    seed_dir = pathlib.Path(__file__).resolve().parent / "seed"
+
+    def load(path: str | None, default: str) -> dict[str, Any]:
+        data: dict[str, Any] = json.loads(
+            pathlib.Path(path or seed_dir / default).read_text(encoding="utf-8")
+        )
+        return data
+
+    async def run() -> None:
+        dbs = Databases(get_settings(), only={LogicalDb.CMS})
+        try:
+            report = await import_site(
+                dbs,
+                catalogue=load(args.catalogue, "catalogue.json"),
+                seed=load(args.seed, "cms_seed.json"),
+                clients=None if args.no_clients else load(args.clients, "clients.json"),
+                arabic=load(args.arabic, "arabic.json"),
+            )
+        finally:
+            await dbs.dispose()
+        print("published:", report.published or "nothing new")
+        print("unchanged:", report.unchanged or "-")
+        for problem in report.problems:
+            print("PROBLEM:", problem)
+        if report.problems:
+            raise SystemExit(1)
+
+    asyncio.run(run())
+
+
+def main(argv: list[str] | None = None) -> None:  # noqa: PLR0915 - one parser per command
     p = argparse.ArgumentParser(prog="kx")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("api").set_defaults(fn=_api)
@@ -286,10 +332,22 @@ def main(argv: list[str] | None = None) -> None:
     u = sub.add_parser("create-user", help="a staff user with a one-time password (D26)")
     u.add_argument("--email", required=True)
     u.add_argument("--name", required=True)
-    u.add_argument("--role", required=True, choices=["md", "manager", "admin", "sales"])
+    u.add_argument("--role", required=True, choices=["md", "manager", "admin", "sales", "content_editor"])
     u.add_argument("--phone", default=None, help="E.164, for WhatsApp / call alerts")
     u.add_argument("--break-glass", action="store_true", help="emergency admin: every sign-in is alerted")
     u.set_defaults(fn=_create_user)
+    ct = sub.add_parser("content", help="D54 CMS: import the current website's content (WP-C2)")
+    ct.add_argument("action", choices=["import-site"])
+    ct.add_argument(
+        "--catalogue", help="the website's src/data/catalogue.json (default: the app's seed copy)"
+    )
+    ct.add_argument("--clients", help="the website's src/data/clients.json (default: the app's seed copy)")
+    ct.add_argument(
+        "--seed", help="site settings, page layouts, chapters, stations, synonyms (cms_seed.json)"
+    )
+    ct.add_argument("--arabic", help="English -> Arabic dictionary as JSON (default: arabic.json)")
+    ct.add_argument("--no-clients", action="store_true", help="skip industries, stories and client logos")
+    ct.set_defaults(fn=_content)
     mp = sub.add_parser("map", help="where each contract, event, route and job is implemented (ADR-0001)")
     mp.add_argument("--format", choices=["md", "json"], default="md")
     mp.add_argument("--feature", default=None, help="keep entries mentioning this name, e.g. quotes")
