@@ -110,8 +110,40 @@ def test_sql_is_idempotent_when_rerun(upgraded: dict[str, str]) -> None:
     """A half-applied revision can be re-run: every statement is IF NOT EXISTS / ON CONFLICT."""
     for key, dsn in upgraded.items():
         for module in _revisions(key):
+            if hasattr(module, "STATEMENTS"):  # index builds / drops CONCURRENTLY: outside a transaction
+                with psycopg.connect(dsn, autocommit=True) as c:
+                    for statement in module.STATEMENTS:
+                        c.execute(statement.encode())
+                continue
             with psycopg.connect(dsn) as c:
                 c.execute(str(module.SQL).encode())
+
+
+def test_the_review_indexes_exist_and_the_duplicate_is_gone(upgraded: dict[str, str]) -> None:
+    """Maintainability review 19 Nov (I1-I7, I2): built CONCURRENTLY by automation_0010, crm_0016 and
+    agents_0005."""
+    sql = "SELECT count(*) FROM pg_indexes WHERE schemaname = %s AND indexname = %s"
+    expected = {
+        "automation": ("automation", ["outbound_provider_msg_idx"]),
+        "crm": (
+            "crm",
+            [
+                "audit_action_at_idx",
+                "audit_price_tier_after_idx",
+                "audit_price_tier_before_idx",
+                "approvals_assignee_open_idx",
+                "deals_updated_idx",
+                "timeline_deal_id_idx",
+            ],
+        ),
+    }
+    for key, (schema, names) in expected.items():
+        with psycopg.connect(upgraded[key]) as c:
+            for name in names:
+                assert c.execute(sql.encode(), (schema, name)).fetchone() == (1,), name
+    with psycopg.connect(upgraded["agents"]) as c:
+        assert c.execute(sql.encode(), ("agents", "agent_runs_started_idx")).fetchone() == (0,)
+        assert c.execute(sql.encode(), ("agents", "agent_runs_day_idx")).fetchone() == (1,)
 
 
 def test_settings_seeded_and_existing_values_kept(upgraded: dict[str, str]) -> None:
