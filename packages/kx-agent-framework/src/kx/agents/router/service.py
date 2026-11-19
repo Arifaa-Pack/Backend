@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass
 from typing import Final, Literal
 
-from kx.agents.registry import GraphName
+from kx.agents.roles.registry import GraphName
 from kx.core.contracts import AiRole, DealContext, DealStage
 from kx.core.price_guard import extract_prices
 

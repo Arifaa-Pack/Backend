@@ -25,8 +25,8 @@ from decimal import Decimal
 from typing import Any, Final, Literal, Protocol, cast
 
 from kx.agents.guard.service import PriceGuard
-from kx.agents.language import DEFAULT_LANGUAGE, normalise_language
-from kx.agents.registry import Phrase, PromptStore
+from kx.agents.roles.language import DEFAULT_LANGUAGE, normalise_language
+from kx.agents.roles.registry import Phrase, PromptStore
 from kx.agents.service import AgentService, InboundTurn
 from kx.core.contracts import AiRole, CrmGateway
 from kx.core.optout import match_voice

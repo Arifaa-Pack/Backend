@@ -30,10 +30,10 @@ from kx.agents.graphs.deal import build_deal_graph
 from kx.agents.graphs.quotation import build_quotation_graph
 from kx.agents.guard.service import PriceSecondOpinion, clip_for_channel, looks_like_injection
 from kx.agents.knowledge.service import KnowledgeSearch
-from kx.agents.language import reply_language
 from kx.agents.llm.service import ModelRouter
 from kx.agents.memory.service import TurnStore
-from kx.agents.registry import (
+from kx.agents.roles.language import reply_language
+from kx.agents.roles.registry import (
     AgentRegistry,
     DefaultPromptStore,
     GraphName,

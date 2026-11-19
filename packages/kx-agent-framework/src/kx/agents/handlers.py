@@ -19,10 +19,10 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from sqlalchemy import text
 
 from kx.agents.knowledge.service import KnowledgeIndexer
-from kx.agents.language import reply_language
 from kx.agents.memory.service import TurnStore
 from kx.agents.orm import SCHEMA
-from kx.agents.registry import Phrase
+from kx.agents.roles.language import reply_language
+from kx.agents.roles.registry import Phrase
 from kx.agents.service import AgentService, Deliver, InboundTurn
 from kx.core import events as ev
 from kx.core.contracts import AiRole, MessageSender, OutboundKind, OutboundRequest

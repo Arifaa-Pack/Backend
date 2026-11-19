@@ -13,7 +13,7 @@ from langchain.tools import ToolRuntime, tool
 from langchain_core.tools import BaseTool
 
 from kx.agents.context import AgentContext
-from kx.agents.registry import Phrase, team_member
+from kx.agents.roles.registry import Phrase, team_member
 from kx.core.contracts import ChangeField, ChangeType, ContactPatch, DealStage, RequirementPatch
 
 Runtime = ToolRuntime[AgentContext]

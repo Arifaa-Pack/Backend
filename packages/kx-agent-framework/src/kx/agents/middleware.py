@@ -20,7 +20,7 @@ from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
 from kx.agents.context import AgentContext, ToolCallRecord
-from kx.agents.language import language_name
+from kx.agents.roles.language import language_name
 from kx.core.contracts import AllowedPrice
 from kx.core.errors import DomainError
 from kx.core.logging import mask_pii

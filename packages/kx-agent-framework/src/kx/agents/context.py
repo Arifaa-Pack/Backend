@@ -14,7 +14,7 @@ from decimal import Decimal
 from typing import Any, Literal
 
 from kx.agents.knowledge.service import KnowledgeSearch
-from kx.agents.registry import AgentSpec, PromptStore
+from kx.agents.roles.registry import AgentSpec, PromptStore
 from kx.core.contracts import AllowedPrice, Channel, CrmGateway, DealContext
 
 GuardKind = Literal["price_number", "injection", "disclosure", "cost_leak", "language"]

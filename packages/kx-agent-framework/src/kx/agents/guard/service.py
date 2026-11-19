@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field
 
 from kx.agents.context import AgentContext, GuardEventRecord, PriceCheck, RunLog
 from kx.agents.llm.service import ModelSet
-from kx.agents.registry import Phrase
+from kx.agents.roles.registry import Phrase
 from kx.agents.runs import UsageMeter
 from kx.core.contracts import AllowedPrice, Channel
 from kx.core.logging import get_logger

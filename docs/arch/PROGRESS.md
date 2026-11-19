@@ -1078,3 +1078,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 19.86s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `llm` @ `6b6c4a6`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-llm`, COMPLETED
+
+## 2b.24 slice `roles` — TESTING (COMPLETED when tagged `arch-slice/agents-roles`)
+
+- **Moved:** `registry.py` → `roles/registry.py` (the 12 sales roles as data) and `language.py` → `roles/language.py` (buyer languages); both old files are alias shims (38 of 38 and 10 of 10 names); 18 imports rewritten.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 471 files already formatted
+  - mypy: Success: no issues found in 309 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 23.29s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `router` @ `888b132`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-router`, COMPLETED

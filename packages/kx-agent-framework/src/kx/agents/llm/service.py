@@ -29,7 +29,7 @@ from langchain_core.messages import BaseMessage
 from langchain_core.runnables import Runnable
 from pydantic import BaseModel, SecretStr
 
-from kx.agents.registry import ModelTier
+from kx.agents.roles.registry import ModelTier
 
 ANTHROPIC_MODEL_IDS: Final[dict[ModelTier, str]] = {
     ModelTier.FAST: "claude-haiku-5-5",

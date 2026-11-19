@@ -52,7 +52,7 @@ other mapping files, and this table is updated with each move.
 | `kx.agents.knowledge.service:Embedder` | `arifaa_pack.adapters:HttpEmbedder` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.knowledge.service:KnowledgeSearch` | `kx.agents.knowledge.service:KnowledgeBase` | `packages/kx-agent-framework/src/kx/agents/knowledge/service.py` |
 | `kx.agents.llm.service:ModelProvider` | `kx.agents.llm.service:AnthropicApiProvider`<br>`kx.agents.llm.service:GeminiApiProvider` | `packages/kx-agent-framework/src/kx/agents/llm/service.py`<br>`packages/kx-agent-framework/src/kx/agents/llm/service.py` |
-| `kx.agents.registry:PromptStore` | `kx.agents.registry:DefaultPromptStore` | `packages/kx-agent-framework/src/kx/agents/registry.py` |
+| `kx.agents.roles.registry:PromptStore` | `kx.agents.roles.registry:DefaultPromptStore` | `packages/kx-agent-framework/src/kx/agents/roles/registry.py` |
 | `kx.agents.voice.service:VoicePlugins` | `arifaa_pack.adapters:PlatformVoicePlugins` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.website.router:HumanCheck` | `arifaa_pack.adapters:TurnstileVerifier` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.website.router:PublicLimits` | `arifaa_pack.adapters:PublicLimiter` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
@@ -206,7 +206,7 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/products/{product_id}/history` | `kx.crm.screens.router:router.<locals>.product_history` | - |
 | GET | `/v1/products/{product_id}/price-tiers` | `kx.crm.screens.router:router.<locals>.tiers` | `kx.crm.pricing.price_list_service:tiers_for` |
 | POST | `/v1/products/{product_id}/price-tiers` | `kx.crm.screens.router:router.<locals>.add_tier` | `kx.crm.pricing.price_list_service:add_tier` |
-| POST | `/v1/public/sessions` | `kx.agents.website.router:build_router.<locals>.start` | `kx.agents.language:normalise_language` |
+| POST | `/v1/public/sessions` | `kx.agents.website.router:build_router.<locals>.start` | `kx.agents.roles.language:normalise_language` |
 | POST | `/v1/public/sessions/{session_id}/identify` | `kx.agents.website.router:build_router.<locals>.identify` | - |
 | POST | `/v1/public/sessions/{session_id}/messages` | `kx.agents.website.router:build_router.<locals>.message` | - |
 | POST | `/v1/public/sessions/{session_id}/voice` | `kx.agents.website.router:build_router.<locals>.voice` | - |
