@@ -71,7 +71,7 @@ def full_app() -> FastAPI:
     app = FastAPI(title="Kairox platform API (all routes)", version="1.0.0")
     install_problem_handlers(app)
     auto = AutomationSettings.model_construct()  # defaults only: never reads the environment or a .env
-    crm_deps = CrmDeps(uploader=_Dummy(), letterhead=Letterhead(name="Arifaa Pack", address=""))  # type: ignore[arg-type]
+    crm_deps = CrmDeps(uploader=_Dummy(), letterhead=Letterhead(name="Arifaa Pack", address=""))
     app.include_router(crm_router(_Dbs(), crm_deps), prefix="/v1")  # type: ignore[arg-type]
     app.include_router(
         webhook_router(WebhookDeps(databases=_Dummy(), settings=auto, scheduler=_Dummy(), voice=_Dummy()))  # type: ignore[arg-type]
@@ -81,10 +81,10 @@ def full_app() -> FastAPI:
     web = WebsiteDeps(
         databases=_Dummy(),  # type: ignore[arg-type]
         service=_Dummy(),  # type: ignore[arg-type]
-        gateway=_Dummy(),  # type: ignore[arg-type]
+        gateway=_Dummy(),
         secret="x",
         human_check=None,
-        limits=_Dummy(),  # type: ignore[arg-type]
+        limits=_Dummy(),
         ai_budget_left=_Dummy(),  # type: ignore[arg-type]
     )
     app.include_router(website_router(web))
@@ -140,7 +140,7 @@ def roles_of(route: APIRoute) -> tuple[list[str], bool, bool]:
         nonlocal mfa, signed
         call = getattr(dep, "call", None)
         qual = getattr(call, "__qualname__", "")
-        if qual.startswith(("require_role.", "require_human_mfa.")):
+        if call is not None and qual.startswith(("require_role.", "require_human_mfa.")):
             signed = True
             for cell in call.__closure__ or ():
                 value = cell.cell_contents
@@ -1087,7 +1087,7 @@ def build() -> tuple[dict[str, Any], list[dict[str, Any]], int]:
     show_hidden(app.routes)
     spec = app.openapi()
     comps = spec.get("components", {}).get("schemas", {})
-    routes = {(m, path): r for path, r in flat_routes(app.routes) for m in r.methods}
+    routes = {(m, path): r for path, r in flat_routes(app.routes) for m in r.methods or ()}
     openapi_ops = [(m.upper(), p) for p, ops in spec["paths"].items() for m in ops]
 
     folders: dict[str, list[tuple[int, int, dict[str, Any]]]] = {name: [] for name, _ in FOLDERS}
@@ -1182,7 +1182,7 @@ def build() -> tuple[dict[str, Any], list[dict[str, Any]], int]:
             headers.append({"key": "Content-Type", "value": "application/json"})
             body = json_body(BODY[(method, path)])
         elif "requestBody" in op:
-            media = next(iter(op["requestBody"].get("content", {}).values()), {})
+            media: dict[str, Any] = next(iter(op["requestBody"].get("content", {}).values()), {})
             value = example(media.get("schema", {}), comps)
             headers.append({"key": "Content-Type", "value": "application/json"})
             body = json_body(value if value is not None else {})
