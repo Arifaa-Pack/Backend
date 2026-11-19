@@ -1,11 +1,10 @@
 # `kx.crm` feature slices: the mapping (ADR-0001 Phase 1)
 
 Every module under `kx/crm/services`, `kx/crm/api` and the loose top-level modules, with the slice it moves to.
-Each move is a `git mv` (history kept) and leaves an **alias shim** at the old path: the old module name becomes
-the same module object as the new one (`sys.modules[old] = new`), so `from kx.crm.services.quotes import X`,
-`from kx.crm.services import quotes`, private helpers and `monkeypatch` on the old path all keep working for the
-Arifaa Auto team and for the tests (which are left on the old paths on purpose: they exercise the shims).
-Imports inside `src/` (the package and the app) are rewritten to the new paths in the same commit.
+Each move was a `git mv` (history kept) and left an **alias shim** at the old path (the old module name was the
+same module object as the new one), while imports inside `src/` were rewritten to the new paths in the same
+commit. **Phase 2c (19 Nov):** the tests moved to the new paths and every shim was removed, so the old paths below
+are a record of where the code was; they no longer import.
 
 ## What does not move
 

@@ -15,8 +15,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from tenacity import wait_none
 
-from kx.automation.channels import ChannelError, HttpRetry
-from kx.automation.channels.calls import (
+from kx.automation._shared.channels import ChannelError, HttpRetry
+from kx.automation._shared.settings import TelnyxSettings
+from kx.automation.calls.channel import (
     CallbackUrls,
     TelnyxCaller,
     alert_texml,
@@ -25,7 +26,6 @@ from kx.automation.channels.calls import (
     gather_reply_texml,
     verify_signature,
 )
-from kx.automation.settings import TelnyxSettings
 
 SETTINGS = TelnyxSettings(api_key="KEY-1", account_sid="TX123", from_number="+97140000000")  # type: ignore[arg-type]
 

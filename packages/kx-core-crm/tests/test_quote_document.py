@@ -13,7 +13,7 @@ import pytest
 
 from kx.core.contracts import AllowedPrice
 from kx.core.price_guard import check_prices
-from kx.crm.pdf import (
+from kx.crm.quotes.pdf import (
     OPEN_TO_DISCUSS,
     DocLine,
     Letterhead,

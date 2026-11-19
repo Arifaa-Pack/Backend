@@ -10,10 +10,10 @@ import pytest
 from automation_fakes import Clock, FakeKill
 from sqlalchemy import select
 
-from kx.automation.alerts import CallBridge
+from kx.automation._shared.settings import AutomationSettings
+from kx.automation.alerts.service import CallBridge
 from kx.automation.models import CallAttempt
 from kx.automation.repo import suppress
-from kx.automation.settings import AutomationSettings
 from kx.core.errors import RuleViolation
 from kx.core.identity import recipient_hash
 from kx.core.settings import LogicalDb

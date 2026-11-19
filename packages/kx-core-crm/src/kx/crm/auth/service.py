@@ -8,7 +8,7 @@ Flow (platform docs: Recommendation "Staff login + MFA", Fallback plan "Staff lo
 3. Access token: RS256, 15 minutes. Refresh token: random, only its hash stored, rotated on every use.
 * 5 wrong passwords or codes from one client IP lock that IP out of the account for 15 minutes; 50 from all
   IPs lock the account (M3: one attacker cannot keep a staff member out from everywhere). Sign-in, the email
-  code and password recovery have per-IP and per-account rate limits (`kx.crm.throttle`). Every login,
+  code and password recovery have per-IP and per-account rate limits (`kx.crm.auth.throttle`). Every login,
   failure, lock and MFA change is audited.
 * A break-glass admin still needs its TOTP (no MFA bypass) and every use notifies the MD and the manager.
 

@@ -16,7 +16,7 @@ from kx.crm.models.base import DB_DEFAULT, TOUCHED, TZ, Base, created_at, ref, u
 
 class Deal(Base):
     """One sales opportunity. `version` is the optimistic lock: every UPDATE bumps it and a stale
-    writer gets StaleDataError (mapped to 409 Conflict by kx.crm.services.deals)."""
+    writer gets StaleDataError (mapped to 409 Conflict by kx.crm.deals.service)."""
 
     __tablename__ = "deals"
 

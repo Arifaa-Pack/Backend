@@ -1,5 +1,5 @@
 """18 Nov: editable message texts (the AI's fixed phrases, buyer messages, staff alerts). Thin: rules in
-`kx.crm.services.texts` and `kx.core.texts`. Screen flow: list -> edit the English text -> (AI translates)."""
+`kx.crm.texts.service` and `kx.core.texts`. Screen flow: list -> edit the English text -> (AI translates)."""
 
 # No `from __future__ import annotations` here: FastAPI must evaluate the closure-local `Session`
 # alias; PEP 649 (Python 3.14) lazy annotations resolve it, string annotations would not.
@@ -48,7 +48,8 @@ class TextIn(BaseModel):
 
 class ChangeOut(BaseModel):
     # Two response models are called ChangeOut, so the OpenAPI component name carries the module path; it is
-    # pinned to the pre-ADR-0001 path (an alias of this module) so the published schema names do not change.
+    # pinned to the pre-ADR-0001 module path (the module itself is gone) so the published schema names do
+    # not change.
     __module__ = "kx.crm.api.texts"
     model_config = ConfigDict(from_attributes=True)
 

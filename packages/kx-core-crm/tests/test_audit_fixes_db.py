@@ -22,7 +22,7 @@ from kx.core.settings import LogicalDb
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import CrmGatewayImpl
 from kx.crm.models import AuditEvent, OutboxEvent
-from kx.crm.services import scheduled_reports
+from kx.crm.reports import scheduled as scheduled_reports
 
 pytestmark = [pytest.mark.db, pytest.mark.usefixtures("cost_mode")]
 Api = tuple[httpx.AsyncClient, Auth]

@@ -10,9 +10,9 @@ import pytest
 from pydantic import SecretStr
 
 from arifaa_pack.container import check_secrets, quote_pdf_store
-from kx.automation.media import S3MediaStore
+from kx.automation._shared.media import S3MediaStore
 from kx.core.settings import Environment
-from kx.crm.pdf import S3PdfUploader, pdf_key
+from kx.crm.quotes.pdf import S3PdfUploader, pdf_key
 
 
 class FakeS3:

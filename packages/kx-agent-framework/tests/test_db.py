@@ -8,11 +8,11 @@ from typing import Any
 import pytest
 from sqlalchemy import text
 
-from kx.agents.knowledge import KbSource, KnowledgeBase, KnowledgeIndexer
-from kx.agents.memory import open_checkpointer
-from kx.agents.models import ModelRouter
+from kx.agents.knowledge.service import KbSource, KnowledgeBase, KnowledgeIndexer
+from kx.agents.llm.service import ModelRouter
+from kx.agents.memory.service import open_checkpointer
 from kx.agents.orm import Base
-from kx.agents.service import AgentService, InboundTurn
+from kx.agents.runtime.service import AgentService, InboundTurn
 from kx.agents.testing import FakeCrmGateway, HashEmbedder, ScriptedChatModel, make_deal
 from kx.core.contracts import DealStage
 from kx.core.settings import LogicalDb

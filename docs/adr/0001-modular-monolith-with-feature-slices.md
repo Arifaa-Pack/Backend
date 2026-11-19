@@ -52,7 +52,8 @@ working while the inside is reorganised.
 - Every change must keep passing the gates: ruff, `mypy --strict`, import-linter, the full suite on PostgreSQL,
   an unchanged OpenAPI, and a `kx map` output that changes only in file paths.
 - The shims are temporary debt: they are removed only where `grep` shows no importer left in this repo, and the
-  removals are announced to the Arifaa Auto team.
+  removals are announced to the Arifaa Auto team. **19 Nov:** all removed (Phase 2c) once the tests had moved to
+  the new paths; the old → new table for Arifaa Auto is `docs/ARIFAA_AUTO_NOTES.md` §3.
 - The baseline of cross-slice imports is visible in `.importlinter`/`pyproject.toml`; it can only shrink.
 - If slices keep needing each other's internals (the baseline grows, or most changes touch three slices), the
   slice cut is wrong and should be revisited with a new ADR.

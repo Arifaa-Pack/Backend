@@ -24,17 +24,15 @@ from kx.core.contracts import AiRole, ContactPatch
 from kx.core.db import Databases
 from kx.core.money import display
 from kx.crm import models as m
+from kx.crm._shared.journal import Actor
+from kx.crm.approvals import service as approvals
+from kx.crm.assignment import service as assignment
+from kx.crm.change_requests import service as change_requests
+from kx.crm.deals import lost_proposals
+from kx.crm.negotiation import service as negotiation
+from kx.crm.orders import service as orders
 from kx.crm.pricing.price_list import discount_from_list_pct
-from kx.crm.services import (
-    approvals,
-    assignment,
-    change_requests,
-    lost_proposals,
-    negotiation,
-    orders,
-    quotes,
-)
-from kx.crm.services.journal import Actor
+from kx.crm.quotes import service as quotes
 
 from .world import CRM, World, crm_conftest, dubai
 
@@ -467,8 +465,8 @@ async def test_scenario_9_the_buyer_goes_silent(world: World) -> None:
 
 # ---------------------------------------------------------------- 10. the buyer tries to trick the AI
 async def test_scenario_10_the_buyer_tries_to_trick_the_ai(world: World) -> None:
-    from kx.agents.models import ModelRouter
-    from kx.agents.service import AgentService, InboundTurn
+    from kx.agents.llm.service import ModelRouter
+    from kx.agents.runtime.service import AgentService, InboundTurn
     from kx.agents.testing import ScriptedChatModel
 
     w = world

@@ -8,10 +8,10 @@ from typing import Any
 
 import pytest
 
-from kx.agents.models import ModelRouter
-from kx.agents.service import AgentService, InboundTurn, StopReading
+from kx.agents.llm.service import ModelRouter
+from kx.agents.runtime.service import AgentService, InboundTurn, StopReading
 from kx.agents.testing import FakeCrmGateway, ScriptedChatModel, make_deal
-from kx.agents.voice import voice_stop
+from kx.agents.voice.service import voice_stop
 from kx.core.contracts import DealStage
 
 pytestmark = pytest.mark.db

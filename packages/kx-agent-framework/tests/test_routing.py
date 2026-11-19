@@ -3,12 +3,12 @@ from __future__ import annotations
 import pytest
 
 from kx.agents.evals.harness import load_scenarios, run_scenario
-from kx.agents.language import detect_script_language, reply_language
-from kx.agents.models import AnthropicApiProvider, ModelRouter
-from kx.agents.orchestrator import route
-from kx.agents.registry import AgentRegistry, ModelTier
+from kx.agents.llm.service import AnthropicApiProvider, ModelRouter
+from kx.agents.roles.language import detect_script_language, reply_language
+from kx.agents.roles.registry import AgentRegistry, ModelTier
+from kx.agents.router.service import route
 from kx.agents.testing import make_deal
-from kx.agents.voice import VoiceRouter
+from kx.agents.voice.service import VoiceRouter
 from kx.core.contracts import AiRole, DealStage
 
 ISSUED = [("0.25", "line 1 unit price")]
@@ -71,7 +71,7 @@ def test_paid_voice_is_deepgram_and_elevenlabs_with_the_free_engines_as_fallback
 
 
 def test_free_voice_uses_our_speech_server_and_tamil_needs_elevenlabs() -> None:
-    from kx.agents.voice import voice_routes
+    from kx.agents.voice.service import voice_routes
     from kx.core.platform import resolve_modes
 
     free = resolve_modes("free", {})
@@ -88,7 +88,7 @@ def test_the_voice_session_gets_an_llm_so_llm_node_runs() -> None:
     notice was heard). The placeholder must be a real LiveKit LLM that is never called."""
     from livekit.agents import llm as lk_llm
 
-    from kx.agents.voice import graph_llm
+    from kx.agents.voice.service import graph_llm
 
     model = graph_llm()
     assert isinstance(model, lk_llm.LLM)
@@ -125,7 +125,7 @@ async def test_eval_scenarios_scripted(scenario: object) -> None:
 
 
 def test_handover_routes_to_the_salesperson_and_acknowledges_only_after_hours() -> None:
-    from kx.agents.orchestrator import route as route_
+    from kx.agents.router.service import route as route_
 
     deal = make_deal(DealStage.READY_TO_CLOSE).model_copy(
         update={"ai_enabled": False, "ai_paused_reason": "handover"}
@@ -142,8 +142,8 @@ def test_handover_routes_to_the_salesperson_and_acknowledges_only_after_hours() 
 
 def test_repeat_sales_is_v2_and_off() -> None:
     """§18 / D14: won customers are answered by the salesperson in v1."""
-    from kx.agents.orchestrator import route as route_
-    from kx.agents.registry import AgentRegistry
+    from kx.agents.roles.registry import AgentRegistry
+    from kx.agents.router.service import route as route_
 
     registry = AgentRegistry()
     assert registry.disabled() == frozenset({AiRole.REPEAT_SALES})
@@ -160,7 +160,7 @@ def test_claude_request_has_no_sampling_parameters_and_sets_effort(tier: ModelTi
     from langchain_core.messages import HumanMessage
     from pydantic import SecretStr
 
-    from kx.agents.models import DEFAULT_OPTIONS
+    from kx.agents.llm.service import DEFAULT_OPTIONS
 
     model = ModelRouter([AnthropicApiProvider(SecretStr("test-key"))]).for_tier(tier).primary
     payload = model._get_request_payload([HumanMessage("hello")])  # type: ignore[attr-defined]
@@ -171,7 +171,7 @@ def test_claude_request_has_no_sampling_parameters_and_sets_effort(tier: ModelTi
 
 
 def test_effort_settings_override_one_tier_only() -> None:
-    from kx.agents.models import DEFAULT_OPTIONS, tier_options
+    from kx.agents.llm.service import DEFAULT_OPTIONS, tier_options
 
     opts = tier_options(smart="high")
     assert opts[ModelTier.SMART].effort == "high"
@@ -197,7 +197,7 @@ def test_gemini_standby_builds_for_every_tier_and_effort(tier: ModelTier, effort
     that leaves room for the reply."""
     from pydantic import SecretStr
 
-    from kx.agents.models import DEFAULT_OPTIONS, GeminiApiProvider, ModelOptions
+    from kx.agents.llm.service import DEFAULT_OPTIONS, GeminiApiProvider, ModelOptions
 
     base = DEFAULT_OPTIONS[tier]
     opts = ModelOptions(effort, base.max_tokens, base.timeout_s, base.max_retries)  # type: ignore[arg-type]
@@ -213,7 +213,7 @@ def test_a_gemini_failure_counts_as_every_model_failing() -> None:
     """D-1: with the standby last in line, its error must lead to the safe reply, not an HTTP 500."""
     from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
 
-    from kx.agents.service import is_model_error
+    from kx.agents.runtime.service import is_model_error
 
     assert is_model_error(ChatGoogleGenerativeAIError("429 quota"))
     assert not is_model_error(KeyError("bug in our code"))
@@ -222,7 +222,7 @@ def test_a_gemini_failure_counts_as_every_model_failing() -> None:
 def test_every_website_visitor_who_gave_one_identifier_is_asked_for_the_other() -> None:
     """D-4 (client rule 18 Nov): linking to a known buyer needs the phone AND the email, so the AI casually
     asks for the missing one. It depends only on what the visitor typed, so it reveals nothing about us."""
-    from kx.agents.tools import _ask_for_the_other
+    from kx.agents.tools.service import _ask_for_the_other
     from kx.core.contracts import ContactPatch
 
     assert "email address" in _ask_for_the_other("web_chat", ContactPatch(phone="+971501234567"))

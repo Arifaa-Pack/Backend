@@ -41,7 +41,7 @@ class CrmDeps:
     # ---- §14 the salesperson writes to the buyer from the CRM inbox (through OutboundService)
     sender: MessageSender | None = None
     caller: ClickToCall | None = None  # §14 click-to-call through the company number
-    fx_source: FxSource | None = None  # 18 Nov automatic daily FX rates (kx.crm.services.fx)
+    fx_source: FxSource | None = None  # 18 Nov automatic daily FX rates (kx.crm.pricing.fx)
     kill_switch: KillSwitchLadder | None = None  # D35 ladder, set from the admin screen
 
     def now(self) -> datetime:

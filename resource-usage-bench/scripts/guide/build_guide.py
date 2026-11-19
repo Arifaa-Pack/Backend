@@ -520,7 +520,7 @@ card({
     "emoji": "🗄️", "name": "PostgreSQL 18 + pgvector (the database)",
     "facts": [["Version tested", "PostgreSQL 18 with pgvector (`pgvector/pgvector:pg18`)"], ["Licence", "PostgreSQL Licence (open source)"],
               ["Image size", "631 MB"], ["Databases inside", "crm, automation, agents, cms, phoenix (5)"],
-              ["Where in the code", "every change goes through `kx.crm.services.journal.record()` (audit + timeline + outbox in one transaction)"]],
+              ["Where in the code", "every change goes through `kx.crm._shared.journal.record()` (audit + timeline + outbox in one transaction)"]],
     "what": ["PostgreSQL is the most trusted open-source database in the world: more than 35 years old and used by banks, "
              "governments and most software companies. It keeps data in tables and guarantees that every change is either "
              "fully saved or not saved at all (a \"transaction\"), even if the power goes off halfway.",

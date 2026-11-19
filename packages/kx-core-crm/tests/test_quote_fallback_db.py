@@ -19,7 +19,7 @@ from kx.core.settings import LogicalDb
 from kx.crm import models as m
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import CrmGatewayImpl
-from kx.crm.services import issuing
+from kx.crm.quotes import issuing
 
 pytestmark = [pytest.mark.db, pytest.mark.usefixtures("price_list")]
 

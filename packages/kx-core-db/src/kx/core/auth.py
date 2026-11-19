@@ -1,6 +1,6 @@
 """Authentication (11 Nov, D26: in-house RS256 tokens; Cognito removed) and role checks.
 
-Tokens are issued by the CRM's staff login (`kx.crm.services.auth`) and signed with the company's RSA key;
+Tokens are issued by the CRM's staff login (`kx.crm.auth.service`) and signed with the company's RSA key;
 every API process verifies them with the public key (or, for another issuer, a JWKS URL). `mfa` is true only
 after the authenticator-app (TOTP) step: an email-code login lets a person in but is not MFA for approvals,
 price edits or settings (NIST SP 800-63B-4; OPEN_QUESTIONS #49).

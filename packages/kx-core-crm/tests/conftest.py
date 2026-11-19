@@ -280,9 +280,9 @@ def uploader() -> FakeUploader:
 
 @pytest.fixture
 def deps(uploader: FakeUploader) -> object:
+    from kx.crm._shared.settings import SettingsService
     from kx.crm.deps import CrmDeps
-    from kx.crm.pdf import Letterhead
-    from kx.crm.services.settings import SettingsService
+    from kx.crm.quotes.pdf import Letterhead
 
     return CrmDeps(
         uploader=uploader,

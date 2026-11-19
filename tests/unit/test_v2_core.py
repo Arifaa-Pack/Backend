@@ -247,7 +247,7 @@ def test_gemini_standby_joins_after_claude_only_when_switched_on() -> None:
 
     from arifaa_pack.config import AppSettings
     from arifaa_pack.container import _model_router
-    from kx.agents.registry import ModelTier
+    from kx.agents.roles.registry import ModelTier
     from kx.core.platform import resolve_modes
 
     keys = AppSettings(anthropic_api_key=SecretStr("a"), gemini_api_key=SecretStr("g"))

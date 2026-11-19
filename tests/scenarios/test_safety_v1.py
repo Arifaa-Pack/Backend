@@ -13,7 +13,7 @@ from hypothesis import strategies as st
 from sqlalchemy import select
 
 from kx.agents.graphs.deal import BuyerAsk
-from kx.agents.orchestrator import PAYMENT_TOPIC, route
+from kx.agents.router.service import PAYMENT_TOPIC, route
 from kx.agents.testing import make_deal
 from kx.core.auth import Principal, Role
 from kx.core.contracts import AllowedPrice, DealStage
@@ -22,9 +22,12 @@ from kx.core.errors import Forbidden
 from kx.core.identity import recipient_hash
 from kx.core.price_guard import check_prices
 from kx.crm import models as m
+from kx.crm._shared import access
+from kx.crm._shared.journal import Actor
+from kx.crm.approvals import service as approvals
+from kx.crm.assignment import service as assignment
 from kx.crm.gateway import GrantConsumerImpl
-from kx.crm.services import access, approvals, assignment, quotes
-from kx.crm.services.journal import Actor
+from kx.crm.quotes import service as quotes
 
 from .world import CRM, World, crm_conftest, dubai
 

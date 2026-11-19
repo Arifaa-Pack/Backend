@@ -201,7 +201,7 @@ def test_structural_conformance(cls: type, ok: bool) -> None:
 
 
 def test_package_of() -> None:
-    assert featuremap.package_of("kx.crm.services.quotes") == "crm"
+    assert featuremap.package_of("kx.crm.quotes.service") == "crm"
     assert featuremap.package_of("kx.core") == "core"
     assert featuremap.package_of("arifaa_pack.container") == "app"
     assert featuremap.package_of("kx.crmx") == "external"

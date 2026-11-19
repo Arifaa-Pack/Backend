@@ -23,15 +23,16 @@ from typing import Any
 from langgraph.checkpoint.memory import InMemorySaver
 from sqlalchemy import select, text, update
 
-from kx.agents.context import AgentContext
-from kx.agents.models import ModelRouter
-from kx.agents.orchestrator import route
-from kx.agents.registry import AgentRegistry, DefaultPromptStore
-from kx.agents.service import GraphRunner
+from kx.agents.llm.service import ModelRouter
+from kx.agents.roles.registry import AgentRegistry, DefaultPromptStore
+from kx.agents.router.service import route
+from kx.agents.runtime.context import AgentContext
+from kx.agents.runtime.service import GraphRunner
 from kx.agents.testing import ScriptedChatModel
-from kx.automation.alerts import ApprovalLadder, LadderTicket, PauseAlerts, VoiceAlerts
-from kx.automation.handlers import EventHandlers, FollowUps
-from kx.automation.settings import AutomationSettings
+from kx.automation._shared.settings import AutomationSettings
+from kx.automation.alerts.service import ApprovalLadder, LadderTicket, PauseAlerts, VoiceAlerts
+from kx.automation.followups.service import FollowUps
+from kx.automation.handlers import EventHandlers
 from kx.core.contracts import PRICED_KINDS, AiRole, ContactPatch, OutboundRequest, RequirementPatch
 from kx.core.db import Databases
 from kx.core.event_payloads import DealNextActionSet, NegotiationPaused
@@ -40,10 +41,10 @@ from kx.core.identity import recipient_hash
 from kx.core.price_guard import check_prices
 from kx.core.settings import LogicalDb
 from kx.crm import models as m
+from kx.crm._shared.settings import SettingsService
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import ApprovalStatusReaderImpl, CrmGatewayImpl, GrantConsumerImpl
-from kx.crm.pdf import Letterhead
-from kx.crm.services.settings import SettingsService
+from kx.crm.quotes.pdf import Letterhead
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 CRM = LogicalDb.CRM

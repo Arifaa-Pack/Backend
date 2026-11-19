@@ -25,11 +25,17 @@ from kx.core.identity import priced_content_sha256, recipient_hash, sha256_hex
 from kx.core.jobs import RetryLater
 from kx.core.settings import LogicalDb
 from kx.crm import models as m
+from kx.crm._shared.journal import Actor
+from kx.crm.approvals import service as approvals
+from kx.crm.deals import service as deals
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import ApprovalStatusReaderImpl, CrmGatewayImpl, GrantConsumerImpl
+from kx.crm.inbox import service as inbox
 from kx.crm.jobs import HANDLERS, CrmRuntime, dispatch, run_approval_sweep, run_price_staleness, run_retention
-from kx.crm.services import approvals, deals, inbox, negotiation, orders, price_proposals, quotes
-from kx.crm.services.journal import Actor
+from kx.crm.negotiation import service as negotiation
+from kx.crm.orders import service as orders
+from kx.crm.pricing import proposals as price_proposals
+from kx.crm.quotes import service as quotes
 
 pytestmark = [pytest.mark.db, pytest.mark.usefixtures("cost_mode")]
 CRM = LogicalDb.CRM

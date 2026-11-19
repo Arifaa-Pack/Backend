@@ -22,11 +22,11 @@ from pydantic import SecretStr
 from sqlalchemy import text
 from test_auto_whatsapp import meta_payload, text_message
 
-from kx.automation.alerts import VoiceAlerts, callback_urls
-from kx.automation.channels.feedback import parse_feedback
-from kx.automation.inbound import record_mail_event
-from kx.automation.settings import AutomationSettings
-from kx.automation.webhooks import WebhookDeps, build_router
+from kx.automation._shared.settings import AutomationSettings
+from kx.automation.alerts.service import VoiceAlerts, callback_urls
+from kx.automation.email.feedback import parse_feedback
+from kx.automation.inbound.service import record_mail_event
+from kx.automation.webhooks.router import WebhookDeps, build_router
 from kx.core.errors import install_problem_handlers
 from kx.core.identity import hmac_sha256_hex, recipient_hash
 from kx.core.settings import LogicalDb

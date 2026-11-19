@@ -17,7 +17,7 @@ from structlog.testing import capture_logs
 
 import arifaa_pack.celery_app as worker
 from arifaa_pack.errorlog import LogUnhandled
-from kx.automation.channels import ChannelError
+from kx.automation._shared.channels import ChannelError
 from kx.core.logging import _trace_processor
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]

@@ -9,8 +9,8 @@ import pytest
 from test_quote_document import DOC
 
 from kx.core.errors import RuleViolation
-from kx.crm.pdf import Letterhead, QuoteRenderer
-from kx.crm.services.company import BankDetails, CompanyProfile, effective, iban_ok, logo_data_uri
+from kx.crm.company.service import BankDetails, CompanyProfile, effective, iban_ok, logo_data_uri
+from kx.crm.quotes.pdf import Letterhead, QuoteRenderer
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
 YAML = Letterhead(

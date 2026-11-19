@@ -18,8 +18,8 @@ Kairox platform: a reusable B2B sales system (CRM + automation + AI agents). The
 - `packages/kx-core-db` → `kx.core`: shared core, contracts, price guard, auth tokens, job store, fallback/circuit breaker.
 - `packages/kx-core-crm` → `kx.crm`: the CRM, one folder per feature (ADR-0001: `quotes/`, `deals/`, `approvals/`,
   `pricing/` …, shared code in `_shared/`, ORM in `models/`; map in `docs/arch/CRM_SLICES.md`); the app imports only
-  `kx.crm` (its public surface). Staff login in `kx/crm/auth/service.py`. `kx/crm/services/*` and some
-  `kx/crm/api/*` are alias shims for the old paths: never add code there.
+  `kx.crm` (its public surface). Staff login in `kx/crm/auth/service.py`. The pre-ADR-0001 paths
+  (`kx/crm/services/*` …) are gone: import a feature from its own module.
 - `packages/kx-core-db` → `kx.core` also holds the platform modes (`kx.core.platform`: paid / free order per field) and retention helpers (`kx.core.retention`).
 - `packages/kx-core-automation` → `kx.automation`: one folder per feature (`outbound/` the gate, `inbound/`,
   `webhooks/`, `optout/`, `whatsapp/`, `email/` Stalwart → SES, `calls/` Telnyx, `alerts/`, `followups/`, `scraping/`,

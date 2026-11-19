@@ -9,7 +9,7 @@ Fixes the three bench findings (R2b) that stopped every call:
    before any call is routed to it (`num_idle_processes` keep processes ready); the container (DB engines,
    HTTP client, agent graphs) is built once per process on its first call and reused (it needs the job's
    event loop, which does not exist yet in `prewarm`).
-3. **An LLM on the session** (`kx.agents.voice.graph_llm`): without one LiveKit skipped every reply.
+3. **An LLM on the session** (`kx.agents.voice.service.graph_llm`): without one LiveKit skipped every reply.
 
 Jobs run in processes, not threads: the container's engines and HTTP client belong to one event loop.
 """

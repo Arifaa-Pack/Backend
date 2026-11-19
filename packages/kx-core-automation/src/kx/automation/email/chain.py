@@ -15,7 +15,7 @@ from typing import Any
 from kx.automation._shared.channels import ChannelError, EmailTransport
 from kx.core.fallback import AllVendorsFailed, FallbackChain
 
-EmailVendor = EmailTransport  # review D1: the one email Protocol lives in kx.automation.channels
+EmailVendor = EmailTransport  # review D1: the one email Protocol lives in kx.automation._shared.channels
 
 
 class EmailChain:

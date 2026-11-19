@@ -14,11 +14,11 @@ from sqlalchemy import text
 from test_auto_outbound_db import BUYER, Env, open_session, req
 from test_auto_outbound_db import env as env  # noqa: PLC0414 - re-export the fixture
 
-from kx.automation import optout
-from kx.automation.channels.email import build_mime
+from kx.automation._shared.settings import AutomationSettings
+from kx.automation.email.channel import build_mime
 from kx.automation.handlers import stop_after_no_answer
-from kx.automation.settings import AutomationSettings
-from kx.automation.unsubscribe import PATH, UnsubscribeDeps, UnsubscribeLinks, build_router, read_token
+from kx.automation.optout import service as optout
+from kx.automation.optout.router import PATH, UnsubscribeDeps, UnsubscribeLinks, build_router, read_token
 from kx.core.contracts import OutboundKind
 from kx.core.errors import RuleViolation
 from kx.core.event_payloads import StopUnclear

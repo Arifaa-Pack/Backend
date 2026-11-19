@@ -10,7 +10,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from kx.agents.tracing import Tracer, _SpanHandler
+from kx.agents.tracing.service import Tracer, _SpanHandler
 
 
 async def test_span_carries_model_tokens_and_masked_text() -> None:

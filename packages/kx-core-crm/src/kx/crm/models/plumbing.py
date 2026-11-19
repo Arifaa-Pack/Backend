@@ -28,7 +28,7 @@ class RptDailyMetric(Base):
 
 
 class AuditEvent(Base):
-    """Append-only (a trigger refuses UPDATE/DELETE). Written through kx.crm.services.journal only."""
+    """Append-only (a trigger refuses UPDATE/DELETE). Written through kx.crm._shared.journal only."""
 
     __tablename__ = "audit_events"
 

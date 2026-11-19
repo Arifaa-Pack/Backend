@@ -77,7 +77,7 @@ class CrmRuntime:
 
 # ---------------------------------------------------------------- job bodies (plain async, testable)
 async def run_fx_update(rt: CrmRuntime) -> dict[str, int]:
-    """18 Nov: daily automatic FX rates (kx.crm.services.fx). Without a source configured, nothing happens."""
+    """18 Nov: daily automatic FX rates (kx.crm.pricing.fx). Without a source configured, nothing happens."""
     source = rt.deps.fx_source
     if source is None:
         return {"skipped": 1}

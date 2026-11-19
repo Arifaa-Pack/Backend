@@ -16,9 +16,9 @@ from kx.core.errors import RuleViolation
 from kx.core.events import Event
 from kx.core.settings import LogicalDb
 from kx.core.texts import TEXTS
+from kx.crm._shared.journal import Actor
 from kx.crm.models import MessageText, OutboxEvent
-from kx.crm.services import texts
-from kx.crm.services.journal import Actor
+from kx.crm.texts import service as texts
 
 pytestmark = pytest.mark.db
 MANAGER = Actor.system("test_manager")

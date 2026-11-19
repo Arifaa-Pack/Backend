@@ -1,5 +1,5 @@
 """18 Nov: the product workbook (one Excel file for products, prices and categories). Thin: the rules are in
-`kx.crm.services.workbook`. Screen flow: Download -> edit in Excel -> Upload (preview) -> Apply."""
+`kx.crm.catalogue.workbook`. Screen flow: Download -> edit in Excel -> Upload (preview) -> Apply."""
 
 # No `from __future__ import annotations` here: FastAPI must evaluate the closure-local `Session`
 # alias; PEP 649 (Python 3.14) lazy annotations resolve it, string annotations would not.

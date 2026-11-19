@@ -103,7 +103,7 @@ class StorageSettings(BaseModel):
 
 class RetentionSettings(BaseModel):
     """D48 nightly retention of the Interactions tier (`KX_RETENTION__*`, OPEN #73). Business data follows
-    the §22 rules in `kx.crm.services.retention`, not these values."""
+    the §22 rules in `kx.crm.retention`, not these values."""
 
     plumbing_days: int = Field(
         default=30, ge=7

@@ -10,11 +10,11 @@ from typing import Any
 
 import pytest
 
-from kx.agents.context import RunLog
-from kx.agents.guard import AI_CHECK, PriceGuard, PriceSecondOpinion, PriceVerdict
-from kx.agents.models import ModelRouter, ModelSet
-from kx.agents.registry import AgentRegistry, DefaultPromptStore
-from kx.agents.service import AgentService
+from kx.agents.guard.service import AI_CHECK, PriceGuard, PriceSecondOpinion, PriceVerdict
+from kx.agents.llm.service import ModelRouter, ModelSet
+from kx.agents.roles.registry import AgentRegistry, DefaultPromptStore
+from kx.agents.runtime.context import RunLog
+from kx.agents.runtime.service import AgentService
 from kx.agents.testing import FakeCrmGateway, ScriptedChatModel, make_deal
 from kx.core.contracts import AiRole, AllowedPrice
 

@@ -17,9 +17,9 @@ from kx.core import events as ev
 from kx.core.errors import Conflict, RuleViolation
 from kx.core.settings import LogicalDb
 from kx.crm import models as m
-from kx.crm.services import workbook as wbk
-from kx.crm.services.journal import Actor
-from kx.crm.services.pricing import current_tiers
+from kx.crm._shared.journal import Actor
+from kx.crm.catalogue import workbook as wbk
+from kx.crm.pricing.service import current_tiers
 
 pytestmark = [pytest.mark.db, pytest.mark.usefixtures("price_list")]
 ACTOR = Actor("user", str(MGR_ID), MGR_ID)

@@ -11,8 +11,8 @@ from conftest import Seed
 
 from kx.core.event_payloads import ProductPublished
 from kx.core.settings import LogicalDb
+from kx.crm.catalogue import service as catalogue
 from kx.crm.models import Product, ProductCategory
-from kx.crm.services import catalogue
 
 pytestmark = pytest.mark.db
 

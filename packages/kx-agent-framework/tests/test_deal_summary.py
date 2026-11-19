@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from kx.agents.memory import deal_summary_due
+from kx.agents.memory.service import deal_summary_due
 
 
 @pytest.mark.parametrize(

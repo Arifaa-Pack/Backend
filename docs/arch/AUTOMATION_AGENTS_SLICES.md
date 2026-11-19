@@ -1,7 +1,8 @@
 # `kx.automation` and `kx.agents` feature slices: the map (ADR-0001 Phases 2 and 2b)
 
 Same method as `CRM_SLICES.md`. Each feature was moved with `git mv`, and an old import path that stopped existing
-got an alias shim. `src/` imports were rewritten, and tests stayed on the old paths. Every gate ran after every
+got an alias shim. `src/` imports were rewritten, and tests stayed on the old paths until Phase 2c (19 Nov) moved
+them and removed every shim. Every gate ran after every
 move, with one commit and one tag per slice (`arch-slice/automation-*`, `arch-slice/agents-*`). Log:
 `docs/arch/PROGRESS.md` §2b.
 
@@ -13,8 +14,8 @@ modules (`outbound/`, `inbound/`, `optout/`). Phase 2b (19 Nov, on request) gave
 
 - a slice's main code is `service.py`. A slice that is mainly HTTP routes has `router.py` instead (`admin/`,
   `webhooks/`, `website/`). A channel adapter is `channel.py` (`whatsapp/`, `email/`, `calls/`);
-- when the folder took the name of the old module (`alerts.py` → `alerts/`), the folder's `__init__.py`
-  re-exports `service.py` / `router.py`. Every old import path and name still works, private helpers too;
+- when the folder took the name of the old module (`alerts.py` → `alerts/`), the folder's `__init__.py` only
+  describes the feature (its re-exports were removed in Phase 2c): import from `service.py` / `router.py`;
 - code that several slices use lives in `_shared/`. The ORM (`models.py`, `orm.py`) and the query module
   (`repo.py`) are the data layer under every slice;
 - the app imports each package only through its public surface (`kx/automation/__init__.py`, 33 names;
@@ -96,15 +97,16 @@ Each rule was proved to fail on a planted import (PROGRESS §2b.28).
 
 ## Old import paths
 
-The table of every old path, its new path and whether it still works is in `docs/ARIFAA_AUTO_NOTES.md` §3.
+None of them works any more. The table of every old path and its new path is in `docs/ARIFAA_AUTO_NOTES.md` §3.
 
-- **Removed** (nothing in the repository imported them): `kx.agents.middleware`,
-  `kx.automation.channels.email_chain`, `kx.automation.inbound.webhooks`, `kx.automation.optout.unsubscribe`,
-  `kx.automation.outbox`, `kx.automation.ports`.
-- **Alias shims kept** (tests still import them): `kx.agents.context`, `.language`, `.models`, `.orchestrator`,
-  `.registry`, `.runs`, `.service`; `kx.automation.admin_api`, `.media`, `.settings`, `.contact_hours`,
-  `.killswitch`, `.ratelimit`, `.unsubscribe`, `kx.automation.channels` and its five modules. Move the tests to
-  the new paths, then delete them.
+- **Phase 2b removed** the 6 that nothing imported: `kx.agents.middleware`, `kx.automation.channels.email_chain`,
+  `kx.automation.inbound.webhooks`, `kx.automation.optout.unsubscribe`, `kx.automation.outbox`,
+  `kx.automation.ports`.
+- **Phase 2c (19 Nov) removed the rest**, after the tests, the frontend-doc generator and the bench scripts moved
+  to the new paths: the alias modules `kx.agents.context`, `.language`, `.models`, `.orchestrator`, `.registry`,
+  `.runs`, `.service`; `kx.automation.admin_api`, `.media`, `.settings`, `.contact_hours`, `.killswitch`,
+  `.ratelimit`, `.unsubscribe`, the whole `kx.automation.channels` package; the re-exports in the 14 folder
+  `__init__.py` files; and `FollowUps` on `kx.automation.handlers`.
 
 ## Reviewing one feature
 

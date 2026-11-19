@@ -1,5 +1,5 @@
 """§21 dashboard figures shared by the dashboards API and the scheduled reports (one definition each;
-the formulas the SRS leaves open are OPEN_QUESTIONS #63, documented in kx/crm/api/reports.py)."""
+the formulas the SRS leaves open are OPEN_QUESTIONS #63, documented in kx/crm/reports/router.py)."""
 
 from __future__ import annotations
 

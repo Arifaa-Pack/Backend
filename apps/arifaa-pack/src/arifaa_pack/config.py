@@ -53,7 +53,7 @@ class AppSettings(BaseSettings):
     # ---- AI (D27, D51: Claude API direct; Gemini standby via KX_PLATFORM__LLM_STANDBY)
     anthropic_api_key: SecretStr | None = None
     gemini_api_key: SecretStr | None = None
-    llm_effort_fast: Effort | None = None  # None = kx.agents.models.DEFAULT_OPTIONS (OPEN_QUESTIONS #76)
+    llm_effort_fast: Effort | None = None  # None = kx.agents.llm.service.DEFAULT_OPTIONS (OPEN_QUESTIONS #76)
     llm_effort_smart: Effort | None = None
     llm_effort_judge: Effort | None = None
     # M7 layer 3: a FAST-model second opinion on replies that talk about money or quantities but passed the

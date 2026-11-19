@@ -25,10 +25,11 @@ from kx.core.db import Databases
 from kx.core.errors import Forbidden
 from kx.core.settings import LogicalDb
 from kx.crm import models as m
+from kx.crm._shared.journal import Actor
+from kx.crm.assignment import service as assignment
+from kx.crm.deals import service as deals
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import CrmGatewayImpl
-from kx.crm.services import assignment, deals
-from kx.crm.services.journal import Actor
 
 pytestmark = [pytest.mark.db, pytest.mark.usefixtures("price_list")]
 CRM = LogicalDb.CRM
