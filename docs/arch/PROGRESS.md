@@ -156,3 +156,44 @@ Baseline before any change (`ed9e32e`): ruff clean, 334 files formatted, mypy cl
 - **Next:** Phase 1 on branch `arch/slices`: `docs/arch/CRM_SLICES.md`, then one slice per commit.
 
 **Phase 0: COMPLETED.**
+
+## Rebase onto the 19 Nov fix round — COMPLETED
+
+- **Done:** `arch/phase0-tooling` rebased onto `fix/live-test-defects` (`bdf2735`). The fix round had removed
+  `EventBus.subscribers` as unused (`d177e23`); `kx map` reads it, so it is restored with its caller named
+  (`782f53b`). `docs/FEATURE_MAP.md` regenerated; `CURRENT_STATE.md` model counts recounted (9 model modules).
+- **Gates:** `kx map --check docs/FEATURE_MAP.md` PASS; ruff / mypy on the touched file PASS; the full suite is
+  in the 0.4 entry (run on the Phase 0 head).
+- **Deviations:** none. **Found, not fixed:** none. **Questions:** none.
+
+## 0.3 Review routing — COMPLETED
+
+- **Done:** `.github/CODEOWNERS` (one line per package; `contracts*`, `event_payloads*`, `events.py` need every
+  owner; placeholders `@OWNER_CORE`, `@OWNER_CRM`, `@OWNER_AUTOMATION`, `@OWNER_AGENTS`, `@OWNER_APP`),
+  `.github/pull_request_template.md` (packages touched, contract changed Y/N, payload version changed Y/N,
+  migration in which DB, FEATURE_MAP / OpenAPI refreshed, tests run), `.github/workflows/pr-labels.yml` (adds
+  `cross-package` when a PR touches more than one `packages/kx-*` folder or a contract / event file, removes it
+  otherwise).
+- **Deviations:** the label workflow uses no third-party action at all (only `gh` on the runner), so there is
+  nothing to pin; it runs on `pull_request_target` without checking out the PR, so the write token never runs PR
+  code. `tests/unit/test_no_removed_vendors.py` admits `pr-labels.yml` in its workflow set.
+- **Gates:** see 0.4 (one gate run covers 0.3 and 0.4; 0.3 changed one test and CI files only).
+
+## 0.4 Decision records — COMPLETED
+
+- **Done:** `docs/adr/README.md` (index), `0000-template.md`, `0001-modular-monolith-with-feature-slices.md`
+  (accepted), `0002-split-contracts-and-publish-packages.md` (proposed, future Phase 3); one paragraph in
+  `docs/ARCHITECTURE.md` §2 links ADR-0001 and `FEATURE_MAP.md`. No other doc rewritten.
+- **Gates** (on `e46558e`, the Phase 0 head):
+  - `ruff check .` PASS: All checks passed!
+  - `ruff format --check .` PASS: 362 files already formatted
+  - `mypy` PASS: Success: no issues found in 207 source files
+  - `lint-imports` PASS: Contracts: 3 kept, 0 broken.
+  - `pytest tests/unit/test_no_removed_vendors.py` PASS: 13 passed
+  - full suite (Linux image, own Postgres) PASS: tests="982" failures="0" errors="0" skipped="4", exit=0
+  - OpenAPI PASS: `scripts/gen_frontend_docs.py` then `git diff docs/frontend` empty
+  - `kx map --check docs/FEATURE_MAP.md` PASS: "docs/FEATURE_MAP.md is current"; the JSON output of this head is
+    the baseline for Phase 1
+- **Deviations:** none. **Found, not fixed:** none. **Questions:** none.
+
+**Phase 0: COMPLETED.** Next: Phase 1 on `arch/slices` (branched from here), starting with `docs/arch/CRM_SLICES.md`.
