@@ -56,7 +56,7 @@ def test_every_contract_protocol_is_mapped_to_its_implementation(fmap: dict[str,
     assert impl_of["kx.core.contracts:CrmGateway"] == ["kx.crm.gateway:CrmGatewayImpl"]
     assert impl_of["kx.core.contracts:GrantConsumer"] == ["kx.crm.gateway:GrantConsumerImpl"]
     # the only way out (CONTRACTS.md §3): exactly one sender is wired
-    assert impl_of["kx.core.contracts:MessageSender"] == ["kx.automation.outbound:OutboundService"]
+    assert impl_of["kx.core.contracts:MessageSender"] == ["kx.automation.outbound.service:OutboundService"]
     sender = mapped["kx.core.contracts:MessageSender"]["implementations"][0]
     assert (
         len(sender["injected_at"]) == 1

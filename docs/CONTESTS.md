@@ -68,6 +68,6 @@ embeddings, monitoring, login, background jobs) is recorded in the read-only pla
 | Background jobs | Celery 5.7 + Celery Beat (accepted with conditions) | Procrastinate (previous) | `kx.core.jobs`, `arifaa_pack.celery_app` (WP20) |
 | Staff login | In-house, TOTP first (accepted with conditions) | Amazon Cognito (previous) | `kx.crm.auth.service`, `kx.core.auth` (WP21) |
 | Monitoring | Better Stack for uptime, errors, logs, on-call | CloudWatch alarms + SNS email | `arifaa_pack.observability` (WP24) |
-| AI brain | Claude mix: Sonnet 5.5 on money turns, Haiku 5.5 on the rest (24/30) | Gemini backups only after the suite passes and Arifa agrees | `kx.agents.models` (WP22) |
-| Alert calls | Telnyx after live du/Etisalat tests (2–1) | Twilio | `kx.automation.channels.telnyx` (WP25) |
+| AI brain | Claude mix: Sonnet 5.5 on money turns, Haiku 5.5 on the rest (24/30) | Gemini backups only after the suite passes and Arifa agrees | `kx.agents.llm.service` (WP22) |
+| Alert calls | Telnyx after live du/Etisalat tests (2–1) | Twilio | `kx.automation.calls` (WP25) |
 | AI tracing | Arize Phoenix self-hosted in the UAE (3–0) | CloudWatch logs | `kx.agents.tracing` (WP24) |

@@ -25,18 +25,19 @@ from typing import Any, Final, Protocol
 
 from sqlalchemy import func, select
 
-from kx.automation import inbound
-from kx.automation.alerts import ApprovalLadder, LadderTicket, PauseAlerts
-from kx.automation.channels.email import parse_inbound
-from kx.automation.channels.feedback import parse_feedback
-from kx.automation.channels.stalwart import MailboxPoller, raw_key
-from kx.automation.handlers import EventHandlers, FollowUps, stop_after_no_answer
+from kx.automation._shared.outbox import emit
+from kx.automation._shared.ports import MediaStore, SweepCallback, TaskScheduler
+from kx.automation._shared.settings import AutomationSettings
+from kx.automation.alerts.service import ApprovalLadder, LadderTicket, PauseAlerts
+from kx.automation.email.channel import parse_inbound
+from kx.automation.email.feedback import parse_feedback
+from kx.automation.email.stalwart import MailboxPoller, raw_key
+from kx.automation.followups.service import FollowUps
+from kx.automation.handlers import EventHandlers, stop_after_no_answer
+from kx.automation.inbound import service as inbound
 from kx.automation.models import SCHEMA, ChannelAccount, OutboundMessage
-from kx.automation.outbound import STUCK_ERROR, OutboundService, TransientDeliveryError
-from kx.automation.outbox import emit
-from kx.automation.ports import MediaStore, SweepCallback, TaskScheduler
-from kx.automation.scraping import PriceScraper
-from kx.automation.settings import AutomationSettings
+from kx.automation.outbound.service import STUCK_ERROR, OutboundService, TransientDeliveryError
+from kx.automation.scraping.service import PriceScraper
 from kx.core.db import Databases
 from kx.core.event_payloads import DealNextActionSet, MessageStatus, NegotiationPaused, StopUnclear
 from kx.core.events import Event, Publisher, relay_once
@@ -321,7 +322,7 @@ async def _ingest_email(rt: AutomationRuntime, key: str) -> None:
 
 # ---------------------------------------------------------------- TaskScheduler over the schedule table
 class JobScheduler:
-    """`kx.automation.ports.TaskScheduler` over `kx.core.jobs.JobStore` (API and worker alike)."""
+    """`kx.automation._shared.ports.TaskScheduler` over `kx.core.jobs.JobStore` (API and worker alike)."""
 
     def __init__(self, store: JobStore) -> None:
         self.store = store

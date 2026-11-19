@@ -14,18 +14,18 @@ Paths are relative to each package's `src/` folder (`kx/crm/...` is `packages/kx
 
 | SRS | Feature | Main code | Events | Slice (ADR-0001) |
 | --- | --- | --- | --- | --- |
-| §8 | Lead capture and qualification; §8.1 opt-out; §8.2 phone status; Requirement Summary | `kx/crm/deals/service.py`, `kx/crm/rules.py`, `kx/crm/contacts/consent.py`, `kx/crm/contacts/phone.py`, `kx/crm/deals/summary.py`, `kx/crm/gateway.py` (`try_qualify`, `record_opt_out`); `kx/core/optout.py`, `kx/automation/optout/__init__.py`, `kx/automation/optout/unsubscribe.py`; `kx/agents/graphs/conversation.py` | `deal.qualified.v1`, `consent.opted_out.v1`, `consent.stop_unclear.v1`, `deal.requirement_summary.v1` | crm `deals/`, `contacts/`; automation `optout/` |
+| §8 | Lead capture and qualification; §8.1 opt-out; §8.2 phone status; Requirement Summary | `kx/crm/deals/service.py`, `kx/crm/rules.py`, `kx/crm/contacts/consent.py`, `kx/crm/contacts/phone.py`, `kx/crm/deals/summary.py`, `kx/crm/gateway.py` (`try_qualify`, `record_opt_out`); `kx/core/optout.py`, `kx/automation/optout/service.py`, `kx/automation/optout/router.py`; `kx/agents/graphs/conversation.py` | `deal.qualified.v1`, `consent.opted_out.v1`, `consent.stop_unclear.v1`, `deal.requirement_summary.v1` | crm `deals/`, `contacts/`; automation `optout/`; agents `graphs/` |
 | §9 | Deal assignment (round robin, rules, backup, takeover, hand-back) | `kx/crm/assignment/service.py`, `kx/crm/_shared/staff.py`, `kx/crm/assignment/router.py`, `kx/crm/admin/router.py` (availability) | `deal.assigned.v1` | crm `assignment/` |
-| §10–11 | Price list and quotation (build, approve, issue, send) | `kx/crm/pricing/price_list.py`, `kx/crm/pricing/engine.py`, `kx/crm/pricing/service.py`, `kx/crm/pricing/price_list_service.py`, `kx/crm/quotes/service.py`, `kx/crm/approvals/service.py`, `kx/crm/quotes/issuing.py`, `kx/crm/quotes/grants.py`, `kx/crm/quotes/pdf.py`, `kx/crm/quotes/router.py`, `kx/crm/deals/router.py`, `kx/crm/screens/router.py`; `kx/automation/outbound/__init__.py`; `kx/agents/graphs/quotation.py` | `quote.submitted.v1`, `quote.approved.v1`, `quote.rejected.v1`, `quote.correction_requested.v1`, `quote.not_delivered.v1`, `quote.resend_requested.v1` | crm `pricing/`, `quotes/`, `approvals/` |
-| §12 | Negotiation inside the range (AI) | `kx/crm/pricing/engine.py` (`ladder_between`, `evaluate_ladder_counter`), `kx/crm/negotiation/service.py`, `kx/crm/gateway.py` (`evaluate_counter`); `kx/agents/graphs/deal.py`, `kx/agents/guard.py`; `kx/core/price_guard.py` | `negotiation.paused.v1` | crm `negotiation/`; agents `graphs/`, `guard.py` |
-| §13 | Change requests (to the salesperson) | `kx/crm/change_requests/service.py`, `kx/crm/change_requests/router.py`, `kx/crm/gateway.py` (`raise_change_request`); `kx/agents/tools.py`; `kx/automation/handlers.py` + `kx/automation/alerts.py` (`ApprovalLadder`) | `change_request.raised.v1`, `change_request.closed.v1` | crm `change_requests/` |
-| §14 | Final quotation and handover (AI off, staff reply, click-to-call) | `kx/crm/deals/service.py` (`hand_over`), `kx/crm/handover/service.py`, `kx/crm/deals/actions_router.py`; `kx/automation/alerts.py` (`CallBridge`); `kx/agents/orchestrator.py` | `quote.approved.v1` (final) | crm `handover/`, `deals/` |
+| §10–11 | Price list and quotation (build, approve, issue, send) | `kx/crm/pricing/price_list.py`, `kx/crm/pricing/engine.py`, `kx/crm/pricing/service.py`, `kx/crm/pricing/price_list_service.py`, `kx/crm/quotes/service.py`, `kx/crm/approvals/service.py`, `kx/crm/quotes/issuing.py`, `kx/crm/quotes/grants.py`, `kx/crm/quotes/pdf.py`, `kx/crm/quotes/router.py`, `kx/crm/deals/router.py`, `kx/crm/screens/router.py`; `kx/automation/outbound/service.py`; `kx/agents/graphs/quotation.py` | `quote.submitted.v1`, `quote.approved.v1`, `quote.rejected.v1`, `quote.correction_requested.v1`, `quote.not_delivered.v1`, `quote.resend_requested.v1` | crm `pricing/`, `quotes/`, `approvals/`; automation `outbound/`; agents `graphs/` |
+| §12 | Negotiation inside the range (AI) | `kx/crm/pricing/engine.py` (`ladder_between`, `evaluate_ladder_counter`), `kx/crm/negotiation/service.py`, `kx/crm/gateway.py` (`evaluate_counter`); `kx/agents/graphs/deal.py`, `kx/agents/guard/service.py`; `kx/core/price_guard.py` | `negotiation.paused.v1` | crm `negotiation/`; agents `graphs/`, `guard/` |
+| §13 | Change requests (to the salesperson) | `kx/crm/change_requests/service.py`, `kx/crm/change_requests/router.py`, `kx/crm/gateway.py` (`raise_change_request`); `kx/agents/tools/service.py`; `kx/automation/handlers.py` + `kx/automation/alerts/service.py` (`ApprovalLadder`) | `change_request.raised.v1`, `change_request.closed.v1` | crm `change_requests/`; agents `tools/`; automation `alerts/` |
+| §14 | Final quotation and handover (AI off, staff reply, click-to-call) | `kx/crm/deals/service.py` (`hand_over`), `kx/crm/handover/service.py`, `kx/crm/deals/actions_router.py`; `kx/automation/alerts/service.py` (`CallBridge`); `kx/agents/router/service.py` | `quote.approved.v1` (final) | crm `handover/`, `deals/`; automation `alerts/`; agents `router/` |
 | §15 | Payment, WON, orders and stock; LOST proposals | `kx/crm/orders/service.py`, `kx/crm/deals/lost_proposals.py`, `kx/crm/deals/actions_router.py`, `kx/crm/screens/router.py` (stock) | `deal.won.v1`, `order.status_changed.v1` | crm `orders/`, `deals/` |
-| §16 | Follow-ups and reminders (day 2/5/10; 30/60/120-minute ladder) | `kx/automation/handlers.py` (`FollowUps`), `kx/automation/jobs.py`, `kx/automation/alerts.py`, `kx/automation/outbound/contact_hours.py`; `kx/crm/rules.py`, `kx/crm/approvals/service.py` (`sweep_overdue`) | `deal.next_action_set.v1`, `deal.stage_changed.v1` | automation `handlers.py` (`FollowUps`), `alerts.py` |
-| §17 | Notifications matrix (event → recipients) | `kx/automation/handlers.py` (`EventHandlers.registry()`), `kx/automation/alerts.py` (`notify_staff`); table test `packages/kx-core-automation/tests/test_notifications_matrix_db.py` | every event in "Events: who reacts" below | automation `alerts.py` |
+| §16 | Follow-ups and reminders (day 2/5/10; 30/60/120-minute ladder) | `kx/automation/followups/service.py` (`FollowUps`; wired in `kx/automation/handlers.py`), `kx/automation/jobs.py`, `kx/automation/alerts/service.py`, `kx/automation/outbound/contact_hours.py`; `kx/crm/rules.py`, `kx/crm/approvals/service.py` (`sweep_overdue`) | `deal.next_action_set.v1`, `deal.stage_changed.v1` | automation `followups/`, `alerts/`, `outbound/` |
+| §17 | Notifications matrix (event → recipients) | `kx/automation/handlers.py` (`EventHandlers.registry()`), `kx/automation/alerts/service.py` (`notify_staff`); table test `packages/kx-core-automation/tests/test_notifications_matrix_db.py` | every event in "Events: who reacts" below | automation `alerts/` |
 
-"Planned slice" names follow the brief's suggestions; Phase 1 / 2 fix them in `docs/arch/CRM_SLICES.md` and the
-other mapping files, and this table is updated with each move.
+The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in `docs/arch/CRM_SLICES.md` and
+`docs/arch/AUTOMATION_AGENTS_SLICES.md`); this table is updated with each move.
 
 ---
 
@@ -35,11 +35,11 @@ other mapping files, and this table is updated with each move.
 
 | Protocol | Implemented by | File |
 | --- | --- | --- |
-| `kx.core.contracts:BlobStore` | `kx.automation.media:S3MediaStore` | `packages/kx-core-automation/src/kx/automation/media.py` |
-| `kx.core.contracts:ClickToCall` | `kx.automation.alerts:CallBridge` | `packages/kx-core-automation/src/kx/automation/alerts.py` |
+| `kx.core.contracts:BlobStore` | `kx.automation._shared.media:S3MediaStore` | `packages/kx-core-automation/src/kx/automation/_shared/media.py` |
+| `kx.core.contracts:ClickToCall` | `kx.automation.alerts.service:CallBridge` | `packages/kx-core-automation/src/kx/automation/alerts/service.py` |
 | `kx.core.contracts:CrmGateway` | `kx.crm.gateway:CrmGatewayImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
 | `kx.core.contracts:GrantConsumer` | `kx.crm.gateway:GrantConsumerImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
-| `kx.core.contracts:MessageSender` | `kx.automation.outbound:OutboundService` | `packages/kx-core-automation/src/kx/automation/outbound/__init__.py` |
+| `kx.core.contracts:MessageSender` | `kx.automation.outbound.service:OutboundService` | `packages/kx-core-automation/src/kx/automation/outbound/service.py` |
 | `kx.core.contracts:StaffMailer` | `arifaa_pack.adapters:StaffCodeMailer` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 
 ## Other ports (Protocols inside a package)
@@ -48,27 +48,27 @@ other mapping files, and this table is updated with each move.
 | --- | --- | --- |
 | `kx.agents.handlers:MessageBurst` | `arifaa_pack.adapters:ThreadBurst` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.handlers:ReplyAddressBook` | `arifaa_pack.adapters:ThreadAddressBook` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
-| `kx.agents.knowledge:ContentSource` | `arifaa_pack.adapters:PayloadContentSource` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
-| `kx.agents.knowledge:Embedder` | `arifaa_pack.adapters:HttpEmbedder` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
-| `kx.agents.knowledge:KnowledgeSearch` | `kx.agents.knowledge:KnowledgeBase` | `packages/kx-agent-framework/src/kx/agents/knowledge.py` |
-| `kx.agents.models:ModelProvider` | `kx.agents.models:AnthropicApiProvider`<br>`kx.agents.models:GeminiApiProvider` | `packages/kx-agent-framework/src/kx/agents/models.py`<br>`packages/kx-agent-framework/src/kx/agents/models.py` |
-| `kx.agents.registry:PromptStore` | `kx.agents.registry:DefaultPromptStore` | `packages/kx-agent-framework/src/kx/agents/registry.py` |
-| `kx.agents.voice:VoicePlugins` | `arifaa_pack.adapters:PlatformVoicePlugins` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
-| `kx.agents.website:HumanCheck` | `arifaa_pack.adapters:TurnstileVerifier` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
-| `kx.agents.website:PublicLimits` | `arifaa_pack.adapters:PublicLimiter` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
-| `kx.automation.alerts:Caller` | `kx.automation.channels.calls:TelnyxCaller` | `packages/kx-core-automation/src/kx/automation/channels/calls.py` |
-| `kx.automation.alerts:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
-| `kx.automation.channels.email:SesV2Client` | - | - |
-| `kx.automation.channels:EmailTransport` | `kx.automation.channels.email:EmailSender`<br>`kx.automation.channels.email_chain:EmailChain`<br>`kx.automation.channels.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/channels/email.py`<br>`packages/kx-core-automation/src/kx/automation/channels/email_chain.py`<br>`packages/kx-core-automation/src/kx/automation/channels/stalwart.py` |
-| `kx.automation.jobs:MediaDownloader` | `kx.automation.channels.whatsapp:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/channels/whatsapp.py` |
-| `kx.automation.media:S3Client` | - | - |
-| `kx.automation.outbound:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
-| `kx.automation.outbound:RateLimiter` | `kx.automation.outbound.ratelimit:TokenBucketLimiter` | `packages/kx-core-automation/src/kx/automation/outbound/ratelimit.py` |
-| `kx.automation.outbound:TemplateSpend` | `kx.core.spend:SpendMeter` | `packages/kx-core-db/src/kx/core/spend.py` |
-| `kx.automation.outbound:WhatsAppTransport` | `kx.automation.channels.whatsapp:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/channels/whatsapp.py` |
-| `kx.automation.ports:ApprovalStatusReader` | `kx.crm.gateway:ApprovalStatusReaderImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
-| `kx.automation.ports:MediaStore` | `kx.automation.media:S3MediaStore` | `packages/kx-core-automation/src/kx/automation/media.py` |
-| `kx.automation.ports:TaskScheduler` | `kx.automation.jobs:JobScheduler` | `packages/kx-core-automation/src/kx/automation/jobs.py` |
+| `kx.agents.knowledge.service:ContentSource` | `arifaa_pack.adapters:PayloadContentSource` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.knowledge.service:Embedder` | `arifaa_pack.adapters:HttpEmbedder` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.knowledge.service:KnowledgeSearch` | `kx.agents.knowledge.service:KnowledgeBase` | `packages/kx-agent-framework/src/kx/agents/knowledge/service.py` |
+| `kx.agents.llm.service:ModelProvider` | `kx.agents.llm.service:AnthropicApiProvider`<br>`kx.agents.llm.service:GeminiApiProvider` | `packages/kx-agent-framework/src/kx/agents/llm/service.py`<br>`packages/kx-agent-framework/src/kx/agents/llm/service.py` |
+| `kx.agents.roles.registry:PromptStore` | `kx.agents.roles.registry:DefaultPromptStore` | `packages/kx-agent-framework/src/kx/agents/roles/registry.py` |
+| `kx.agents.voice.service:VoicePlugins` | `arifaa_pack.adapters:PlatformVoicePlugins` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.website.router:HumanCheck` | `arifaa_pack.adapters:TurnstileVerifier` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.website.router:PublicLimits` | `arifaa_pack.adapters:PublicLimiter` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.automation._shared.channels:EmailTransport` | `kx.automation.email.chain:EmailChain`<br>`kx.automation.email.channel:EmailSender`<br>`kx.automation.email.stalwart:StalwartSender` | `packages/kx-core-automation/src/kx/automation/email/chain.py`<br>`packages/kx-core-automation/src/kx/automation/email/channel.py`<br>`packages/kx-core-automation/src/kx/automation/email/stalwart.py` |
+| `kx.automation._shared.media:S3Client` | - | - |
+| `kx.automation._shared.ports:ApprovalStatusReader` | `kx.crm.gateway:ApprovalStatusReaderImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
+| `kx.automation._shared.ports:MediaStore` | `kx.automation._shared.media:S3MediaStore` | `packages/kx-core-automation/src/kx/automation/_shared/media.py` |
+| `kx.automation._shared.ports:TaskScheduler` | `kx.automation.jobs:JobScheduler` | `packages/kx-core-automation/src/kx/automation/jobs.py` |
+| `kx.automation.alerts.service:Caller` | `kx.automation.calls.channel:TelnyxCaller` | `packages/kx-core-automation/src/kx/automation/calls/channel.py` |
+| `kx.automation.alerts.service:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
+| `kx.automation.email.channel:SesV2Client` | - | - |
+| `kx.automation.jobs:MediaDownloader` | `kx.automation.whatsapp.channel:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/whatsapp/channel.py` |
+| `kx.automation.outbound.service:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
+| `kx.automation.outbound.service:RateLimiter` | `kx.automation.outbound.ratelimit:TokenBucketLimiter` | `packages/kx-core-automation/src/kx/automation/outbound/ratelimit.py` |
+| `kx.automation.outbound.service:TemplateSpend` | `kx.core.spend:SpendMeter` | `packages/kx-core-db/src/kx/core/spend.py` |
+| `kx.automation.outbound.service:WhatsAppTransport` | `kx.automation.whatsapp.channel:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/whatsapp/channel.py` |
 | `kx.core.jobs:Kicker` | `arifaa_pack.jobqueue:CeleryKicker` | `apps/arifaa-pack/src/arifaa_pack/jobqueue.py` |
 | `kx.crm.auth.throttle:AuthThrottle` | `arifaa_pack.adapters:RedisAuthThrottle`<br>`kx.crm.auth.throttle:MemoryThrottle` | `apps/arifaa-pack/src/arifaa_pack/adapters.py`<br>`packages/kx-core-crm/src/kx/crm/auth/throttle.py` |
 | `kx.crm.pricing.fx:FxSource` | `arifaa_pack.adapters:OpenRatesFx` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
@@ -120,13 +120,13 @@ other mapping files, and this table is updated with each move.
 | GET | `/.well-known/jwks.json` | `arifaa_pack.api:create_app.<locals>.jwks` | - |
 | GET | `/healthz` | `arifaa_pack.api:create_app.<locals>.healthz` | - |
 | GET | `/healthz/beat` | `arifaa_pack.api:create_app.<locals>.healthz_beat` | `arifaa_pack.telemetry:beat_health` |
-| GET | `/v1/admin/channel-accounts` | `kx.automation.admin_api:build_router.<locals>.accounts` | - |
-| PATCH | `/v1/admin/channel-accounts/{account_id}` | `kx.automation.admin_api:build_router.<locals>.edit_account` | - |
+| GET | `/v1/admin/channel-accounts` | `kx.automation.admin.router:build_router.<locals>.accounts` | - |
+| PATCH | `/v1/admin/channel-accounts/{account_id}` | `kx.automation.admin.router:build_router.<locals>.edit_account` | - |
 | GET | `/v1/admin/kill-switch` | `kx.crm.operations.router:router.<locals>.get_level` | - |
 | PUT | `/v1/admin/kill-switch` | `kx.crm.operations.router:router.<locals>.set_level` | `kx.crm._shared.journal:record` |
-| GET | `/v1/admin/message-templates` | `kx.automation.admin_api:build_router.<locals>.templates` | - |
-| PUT | `/v1/admin/message-templates` | `kx.automation.admin_api:build_router.<locals>.upsert_template` | - |
-| POST | `/v1/admin/message-templates/{template_id}/status` | `kx.automation.admin_api:build_router.<locals>.template_status` | - |
+| GET | `/v1/admin/message-templates` | `kx.automation.admin.router:build_router.<locals>.templates` | - |
+| PUT | `/v1/admin/message-templates` | `kx.automation.admin.router:build_router.<locals>.upsert_template` | - |
+| POST | `/v1/admin/message-templates/{template_id}/status` | `kx.automation.admin.router:build_router.<locals>.template_status` | - |
 | GET | `/v1/approvals` | `kx.crm.quotes.router:router.<locals>.list_approvals` | `kx.crm._shared.pagination:keyset`<br>`kx.crm._shared.pagination:page_of` |
 | POST | `/v1/approvals/{approval_id}/decision` | `kx.crm.quotes.router:router.<locals>.decide` | `kx.crm.approvals.service:decide` |
 | POST | `/v1/auth/login` | `kx.crm.auth.router:router.<locals>.login` | `kx.crm.auth.service:login` |
@@ -206,12 +206,12 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/products/{product_id}/history` | `kx.crm.screens.router:router.<locals>.product_history` | - |
 | GET | `/v1/products/{product_id}/price-tiers` | `kx.crm.screens.router:router.<locals>.tiers` | `kx.crm.pricing.price_list_service:tiers_for` |
 | POST | `/v1/products/{product_id}/price-tiers` | `kx.crm.screens.router:router.<locals>.add_tier` | `kx.crm.pricing.price_list_service:add_tier` |
-| POST | `/v1/public/sessions` | `kx.agents.website:build_router.<locals>.start` | `kx.agents.language:normalise_language` |
-| POST | `/v1/public/sessions/{session_id}/identify` | `kx.agents.website:build_router.<locals>.identify` | - |
-| POST | `/v1/public/sessions/{session_id}/messages` | `kx.agents.website:build_router.<locals>.message` | - |
-| POST | `/v1/public/sessions/{session_id}/voice` | `kx.agents.website:build_router.<locals>.voice` | - |
-| GET | `/v1/public/unsubscribe` | `kx.automation.optout.unsubscribe:build_router.<locals>.unsubscribe_page` | - |
-| POST | `/v1/public/unsubscribe` | `kx.automation.optout.unsubscribe:build_router.<locals>.unsubscribe` | `kx.automation.optout:apply_stop` |
+| POST | `/v1/public/sessions` | `kx.agents.website.router:build_router.<locals>.start` | `kx.agents.roles.language:normalise_language` |
+| POST | `/v1/public/sessions/{session_id}/identify` | `kx.agents.website.router:build_router.<locals>.identify` | - |
+| POST | `/v1/public/sessions/{session_id}/messages` | `kx.agents.website.router:build_router.<locals>.message` | - |
+| POST | `/v1/public/sessions/{session_id}/voice` | `kx.agents.website.router:build_router.<locals>.voice` | - |
+| GET | `/v1/public/unsubscribe` | `kx.automation.optout.router:build_router.<locals>.unsubscribe_page` | - |
+| POST | `/v1/public/unsubscribe` | `kx.automation.optout.router:build_router.<locals>.unsubscribe` | `kx.automation.optout.service:apply_stop` |
 | GET | `/v1/quote-versions/{version_id}` | `kx.crm.quotes.router:router.<locals>.get_version` | `kx.crm._shared.access:check_view`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.quotes.issuing:lines_of` |
 | GET | `/v1/quote-versions/{version_id}/costs` | `kx.crm.quotes.router:router.<locals>.get_costs` | `kx.crm.quotes.service:costs_of` |
 | GET | `/v1/settings` | `kx.crm.admin.router:router.<locals>.list_settings` | - |
@@ -229,11 +229,11 @@ other mapping files, and this table is updated with each move.
 | PUT | `/v1/users/{user_id}/availability` | `kx.crm.admin.router:router.<locals>.availability` | `kx.crm.assignment.service:set_availability` |
 | POST | `/v1/users/{user_id}/reset-mfa` | `kx.crm.auth.users_router:router.<locals>.reset_mfa` | `kx.crm.auth.service:reset_mfa` |
 | POST | `/v1/users/{user_id}/unlock` | `kx.crm.auth.users_router:router.<locals>.unlock` | `kx.crm.auth.service:unlock` |
-| POST | `/webhooks/cms` | `kx.automation.cms:build_router.<locals>.cms_published` | `kx.automation.outbox:emit`<br>`kx.automation.repo:first_receipt` |
-| POST | `/webhooks/telnyx/gather/{attempt_id}` | `kx.automation.inbound.webhooks:_telnyx_routes.<locals>.telnyx_gather` | `kx.automation.channels.calls:gather_reply_texml`<br>`kx.automation.channels.calls:verify_signature` |
-| POST | `/webhooks/telnyx/status/{attempt_id}` | `kx.automation.inbound.webhooks:_telnyx_routes.<locals>.telnyx_status` | `kx.automation.channels.calls:verify_signature` |
-| GET | `/webhooks/whatsapp` | `kx.automation.inbound.webhooks:_whatsapp_routes.<locals>.whatsapp_verify` | `kx.automation.channels.whatsapp:verify_challenge` |
-| POST | `/webhooks/whatsapp` | `kx.automation.inbound.webhooks:_whatsapp_routes.<locals>.whatsapp_events` | `kx.automation.channels.whatsapp:parse_webhook`<br>`kx.automation.channels.whatsapp:verify_signature`<br>`kx.automation.inbound:record_whatsapp` |
+| POST | `/webhooks/cms` | `kx.automation.cms.service:build_router.<locals>.cms_published` | `kx.automation._shared.outbox:emit`<br>`kx.automation.repo:first_receipt` |
+| POST | `/webhooks/telnyx/gather/{attempt_id}` | `kx.automation.webhooks.router:_telnyx_routes.<locals>.telnyx_gather` | `kx.automation.calls.channel:gather_reply_texml`<br>`kx.automation.calls.channel:verify_signature` |
+| POST | `/webhooks/telnyx/status/{attempt_id}` | `kx.automation.webhooks.router:_telnyx_routes.<locals>.telnyx_status` | `kx.automation.calls.channel:verify_signature` |
+| GET | `/webhooks/whatsapp` | `kx.automation.webhooks.router:_whatsapp_routes.<locals>.whatsapp_verify` | `kx.automation.whatsapp.channel:verify_challenge` |
+| POST | `/webhooks/whatsapp` | `kx.automation.webhooks.router:_whatsapp_routes.<locals>.whatsapp_events` | `kx.automation.inbound.service:record_whatsapp`<br>`kx.automation.whatsapp.channel:parse_webhook`<br>`kx.automation.whatsapp.channel:verify_signature` |
 
 ## Background jobs (task table)
 
@@ -245,8 +245,8 @@ other mapping files, and this table is updated with each move.
 | `automation.alert_negotiation_paused` | `kx.automation.jobs:register_jobs.<locals>.pause_alert` | - |
 | `automation.deliver_outbound` | `kx.automation.jobs:register_jobs.<locals>.deliver` | - |
 | `automation.handle_event` | `kx.automation.jobs:register_jobs.<locals>.event` | - |
-| `automation.ingest_inbound_email` | `kx.automation.jobs:register_jobs.<locals>.email` | `kx.automation.channels.email:parse_inbound`<br>`kx.automation.channels.feedback:parse_feedback`<br>`kx.automation.inbound:record_email`<br>`kx.automation.inbound:record_mail_event` |
-| `automation.ingest_whatsapp_media` | `kx.automation.jobs:register_jobs.<locals>.media` | `kx.automation.inbound:attach_media`<br>`kx.automation.inbound:media_id_of` |
+| `automation.ingest_inbound_email` | `kx.automation.jobs:register_jobs.<locals>.email` | `kx.automation.email.channel:parse_inbound`<br>`kx.automation.email.feedback:parse_feedback`<br>`kx.automation.inbound.service:record_email`<br>`kx.automation.inbound.service:record_mail_event` |
+| `automation.ingest_whatsapp_media` | `kx.automation.jobs:register_jobs.<locals>.media` | `kx.automation.inbound.service:attach_media`<br>`kx.automation.inbound.service:media_id_of` |
 | `automation.optout_no_answer` | `kx.automation.jobs:register_jobs.<locals>.optout_check` | `kx.automation.handlers:stop_after_no_answer` |
 | `automation.quote_delivery_check` | `kx.automation.jobs:register_jobs.<locals>.quote_check` | - |
 | `automation.run_approval_ladder` | `kx.automation.jobs:register_jobs.<locals>.ladder` | - |
@@ -259,9 +259,9 @@ other mapping files, and this table is updated with each move.
 | --- | --- | --- | --- |
 | `app.heartbeat` | 0:00:30 | `arifaa_pack.container:_periodic.<locals>.beat_heartbeat` | `arifaa_pack.telemetry:heartbeat` |
 | `app.retention` | <crontab: 11 23 * * * (m/h/dM/MY/d)> | `arifaa_pack.container:_periodic.<locals>.retention_plumbing` | `kx.agents.retention:plumbing_rules`<br>`kx.agents.retention:run_retention`<br>`kx.automation.retention:plumbing_rules`<br>`kx.crm.retention.service:plumbing_rules` |
-| `automation.mail_poll` | 0:00:30 | `kx.automation.jobs:periodic_jobs.<locals>.mail_poll` | `kx.automation.channels.stalwart:raw_key` |
+| `automation.mail_poll` | 0:00:30 | `kx.automation.jobs:periodic_jobs.<locals>.mail_poll` | `kx.automation.email.stalwart:raw_key` |
 | `automation.price_scrapes` | <crontab: 0 2 * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.scrapes` | - |
-| `automation.requeue_outbound` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.requeue` | `kx.automation.outbox:emit` |
+| `automation.requeue_outbound` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.requeue` | `kx.automation._shared.outbox:emit` |
 | `crm.approval_sweep` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.sweep` | `kx.crm.approvals.service:sweep_overdue`<br>`kx.crm.change_requests.service:sweep_escalations` |
 | `crm.fx_rates` | <crontab: 5 2 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.fx_rates` | `kx.crm.pricing.fx:update_rates`<br>`kx.crm.pricing.fx:wanted` |
 | `crm.lost_proposals` | <crontab: 7 4 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.lost` | `kx.crm.deals.lost_proposals:propose_lost` |

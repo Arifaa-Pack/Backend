@@ -2,7 +2,7 @@
 
 For the developer building the **CRM screens** (staff web app, desktop and mobile) against a mock first, then
 the real API. Everything below is taken from the code (the slice routers under `packages/kx-core-crm/src/kx/crm/`,
-`kx/automation/admin_api.py`) and the business flow (SRS §3, §7A, §14, §15, §20, §21). The endpoint reference
+`kx/automation/admin/router.py`) and the business flow (SRS §3, §7A, §14, §15, §20, §21). The endpoint reference
 in the second half is **generated from the code** (FastAPI OpenAPI), so names, types and limits are exact.
 
 Companion files in this folder:

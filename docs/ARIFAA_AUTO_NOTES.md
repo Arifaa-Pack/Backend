@@ -8,31 +8,71 @@ that work starts again. Nothing else in the repository is written for Auto.
 
 The packages were reorganised by feature (ADR-0001, `docs/adr/0001-modular-monolith-with-feature-slices.md`):
 the CRM code moved from `kx/crm/services/*` and `kx/crm/api/*` into one folder per feature
-(`kx/crm/quotes/`, `kx/crm/deals/` ...), and three automation features got folders (`outbound/`, `inbound/`,
-`optout/`). Behaviour did not change. Full maps: `docs/arch/CRM_SLICES.md`,
+(`kx/crm/quotes/`, `kx/crm/deals/` ...); then automation and agents got the same layout (`kx/automation/outbound/`,
+`email/`, `followups/` ..., `kx/agents/runtime/`, `guard/`, `llm/` ...). Behaviour did not change. Full maps: `docs/arch/CRM_SLICES.md`,
 `docs/arch/AUTOMATION_AGENTS_SLICES.md`.
 
 ## 2. What to do in the Auto backend
 
-1. **Import the CRM's public surface**, not its modules: `from kx.crm import build_router, CrmDeps,
-   CrmGatewayImpl, SettingsService, jobs, ...` (the 21 names in `kx/crm/__init__.py`, `__all__`). An app never
-   imports an ORM or query module (`kx.crm.models`, `kx.automation.models`, `kx.automation.repo`,
-   `kx.agents.orm`); import-linter enforces it (`pyproject.toml`).
+1. **Import each package's public surface**, not its modules: `from kx.crm import build_router, CrmDeps, ...`
+   (the 21 names in `kx/crm/__init__.py`), `from kx.automation import OutboundService, EmailChain, ...` (33 names
+   in `kx/automation/__init__.py`), `from kx.agents import AgentService, ModelRouter, ...` (25 names in
+   `kx/agents/__init__.py`); each list is the module's `__all__`, and `apps/arifaa-pack` shows the wiring. An app
+   never imports an automation or agents slice module, nor an ORM or query module (`kx.crm.models`,
+   `kx.automation.models`, `kx.automation.repo`, `kx.agents.orm`); import-linter enforces both (`pyproject.toml`).
 2. **Replace the removed paths** (table below, "no: removed"): they no longer exist.
 3. **Move off the temporary aliases** ("yes"): they still work (the old module name is the same module object)
    but are deleted once nothing in either project uses them.
-4. `kx.automation.outbound`, `kx.automation.inbound` and `kx.automation.optout` keep their names (each is now a
-   folder whose `__init__.py` is the old module).
+4. A feature that became a folder of the same name keeps its import path ("the package re-exports it"):
+   `kx.automation.outbound`, `.inbound`, `.optout`, `.alerts`, `.scraping`, `.cms`, `.webhooks`, `kx.agents.guard`,
+   `.knowledge`, `.memory`, `.tools`, `.tracing`, `.voice`, `.website` still give every name, now from the folder's
+   `service.py` / `router.py`. `FollowUps` moved from `kx.automation.handlers` to `kx.automation.followups`
+   (`kx.automation.handlers.FollowUps` still works).
 
 ## 3. Old → new import paths
 
 | Old import path | New import path | Old path still works? |
 | --- | --- | --- |
+| `kx.agents.context` | `kx.agents.runtime.context` | yes (alias, temporary) |
+| `kx.agents.guard` | `kx.agents.guard.service` | yes (the package re-exports it) |
+| `kx.agents.knowledge` | `kx.agents.knowledge.service` | yes (the package re-exports it) |
+| `kx.agents.language` | `kx.agents.roles.language` | yes (alias, temporary) |
+| `kx.agents.memory` | `kx.agents.memory.service` | yes (the package re-exports it) |
+| `kx.agents.middleware` | `kx.agents.runtime.middleware` | **no: removed** |
+| `kx.agents.models` | `kx.agents.llm.service` | yes (alias, temporary) |
+| `kx.agents.orchestrator` | `kx.agents.router.service` | yes (alias, temporary) |
+| `kx.agents.registry` | `kx.agents.roles.registry` | yes (alias, temporary) |
+| `kx.agents.runs` | `kx.agents.runtime.runs` | yes (alias, temporary) |
+| `kx.agents.service` | `kx.agents.runtime.service` | yes (alias, temporary) |
+| `kx.agents.tools` | `kx.agents.tools.service` | yes (the package re-exports it) |
+| `kx.agents.tracing` | `kx.agents.tracing.service` | yes (the package re-exports it) |
+| `kx.agents.voice` | `kx.agents.voice.service` | yes (the package re-exports it) |
+| `kx.agents.website` | `kx.agents.website.router` | yes (the package re-exports it) |
+| `kx.automation.admin_api` | `kx.automation.admin.router` | yes (alias, temporary) |
+| `kx.automation.alerts` | `kx.automation.alerts.service` | yes (the package re-exports it) |
+| `kx.automation.channels` | `kx.automation._shared.channels` | yes (the package re-exports it) |
+| `kx.automation.channels.calls` | `kx.automation.calls.channel` | yes (alias, temporary) |
+| `kx.automation.channels.email` | `kx.automation.email.channel` | yes (alias, temporary) |
+| `kx.automation.channels.email_chain` | `kx.automation.email.chain` | **no: removed** |
+| `kx.automation.channels.feedback` | `kx.automation.email.feedback` | yes (alias, temporary) |
+| `kx.automation.channels.stalwart` | `kx.automation.email.stalwart` | yes (alias, temporary) |
+| `kx.automation.channels.whatsapp` | `kx.automation.whatsapp.channel` | yes (alias, temporary) |
+| `kx.automation.cms` | `kx.automation.cms.service` | yes (the package re-exports it) |
 | `kx.automation.contact_hours` | `kx.automation.outbound.contact_hours` | yes (alias, temporary) |
+| `kx.automation.inbound` | `kx.automation.inbound.service` | yes (the package re-exports it) |
+| `kx.automation.inbound.webhooks` | `kx.automation.webhooks.router` | **no: removed** |
 | `kx.automation.killswitch` | `kx.automation.outbound.killswitch` | yes (alias, temporary) |
+| `kx.automation.media` | `kx.automation._shared.media` | yes (alias, temporary) |
+| `kx.automation.optout` | `kx.automation.optout.service` | yes (the package re-exports it) |
+| `kx.automation.optout.unsubscribe` | `kx.automation.optout.router` | **no: removed** |
+| `kx.automation.outbound` | `kx.automation.outbound.service` | yes (the package re-exports it) |
+| `kx.automation.outbox` | `kx.automation._shared.outbox` | **no: removed** |
+| `kx.automation.ports` | `kx.automation._shared.ports` | **no: removed** |
 | `kx.automation.ratelimit` | `kx.automation.outbound.ratelimit` | yes (alias, temporary) |
-| `kx.automation.unsubscribe` | `kx.automation.optout.unsubscribe` | yes (alias, temporary) |
-| `kx.automation.webhooks` | `kx.automation.inbound.webhooks` | yes (alias, temporary) |
+| `kx.automation.scraping` | `kx.automation.scraping.service` | yes (the package re-exports it) |
+| `kx.automation.settings` | `kx.automation._shared.settings` | yes (alias, temporary) |
+| `kx.automation.unsubscribe` | `kx.automation.optout.router` | yes (alias, temporary) |
+| `kx.automation.webhooks` | `kx.automation.webhooks.router` | yes (the package re-exports it) |
 | `kx.crm.api.admin` | `kx.crm.admin.router` | **no: removed** |
 | `kx.crm.api.assignment` | `kx.crm.assignment.router` | **no: removed** |
 | `kx.crm.api.auth` | `kx.crm.auth.router` | **no: removed** |

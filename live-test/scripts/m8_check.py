@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import envload  # noqa: E402
 from kxclient import JMAP, SP  # noqa: E402
 
-from kx.automation.channels.email import sender_verified  # noqa: E402
+from kx.automation.email.channel import sender_verified  # noqa: E402
 
 envload.load()
 BUYER = "muhammadhamthan660@gmail.com"

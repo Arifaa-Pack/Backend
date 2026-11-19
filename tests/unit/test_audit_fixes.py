@@ -97,7 +97,7 @@ def test_emitted_metric_names_are_the_ones_signoz_alerts_on() -> None:
     """D46: SigNoz alert rules watch these names (docs/PLATFORM_MODES.md, infra/server/README.md)."""
     for src in (
         "packages/kx-core-db/src/kx/core/fallback.py",
-        "packages/kx-agent-framework/src/kx/agents/service.py",
+        "packages/kx-agent-framework/src/kx/agents/runtime/service.py",
     ):
         assert '"VendorSwitch"' in (ROOT / src).read_text(encoding="utf-8")
     assert '"SpendCap"' in (ROOT / "packages/kx-core-db/src/kx/core/spend.py").read_text(encoding="utf-8")

@@ -43,39 +43,56 @@ from arifaa_pack.adapters import (
 from arifaa_pack.config import AppSettings, Company, app_settings, company
 from arifaa_pack.jobqueue import CeleryKicker
 from arifaa_pack.telemetry import heartbeat
-from kx.agents import retention as agents_retention
-from kx.agents.handlers import AgentHandlers
-from kx.agents.knowledge import KnowledgeBase, KnowledgeIndexer
-from kx.agents.memory import open_checkpointer
-from kx.agents.models import (
+from kx.agents import (
+    AgentHandlers,
+    AgentService,
     AnthropicApiProvider,
     GeminiApiProvider,
+    KnowledgeBase,
+    KnowledgeIndexer,
+    LiveKitConfig,
     ModelProvider,
     ModelRouter,
+    Tracer,
+    VoiceRoute,
+    VoiceRouter,
+    WebsiteDeps,
+    open_checkpointer,
     tier_options,
+    voice_routes,
 )
-from kx.agents.service import AgentService
-from kx.agents.tracing import Tracer
-from kx.agents.voice import VoiceRoute, VoiceRouter, voice_routes
-from kx.agents.website import LiveKitConfig, WebsiteDeps
+from kx.agents import retention as agents_retention
+from kx.automation import (
+    ApprovalLadder,
+    AutomationRuntime,
+    AutomationSettings,
+    Bucket,
+    CallBridge,
+    EmailChain,
+    EmailSender,
+    EmailVendor,
+    EventHandlers,
+    FollowUps,
+    JmapClient,
+    JobScheduler,
+    KillSwitch,
+    MailboxPoller,
+    OptOutSettings,
+    OutboundService,
+    PauseAlerts,
+    PriceScraper,
+    S3MediaStore,
+    StalwartSender,
+    TelnyxCaller,
+    TokenBucketLimiter,
+    UnsubscribeDeps,
+    UnsubscribeLinks,
+    VoiceAlerts,
+    WebhookDeps,
+    WhatsAppClient,
+)
 from kx.automation import jobs as auto_jobs
 from kx.automation import retention as automation_retention
-from kx.automation.alerts import ApprovalLadder, CallBridge, PauseAlerts, VoiceAlerts
-from kx.automation.channels.calls import TelnyxCaller
-from kx.automation.channels.email import EmailSender
-from kx.automation.channels.email_chain import EmailChain, EmailVendor
-from kx.automation.channels.stalwart import JmapClient, MailboxPoller, StalwartSender
-from kx.automation.channels.whatsapp import WhatsAppClient
-from kx.automation.handlers import EventHandlers, FollowUps
-from kx.automation.inbound.webhooks import WebhookDeps
-from kx.automation.jobs import AutomationRuntime, JobScheduler
-from kx.automation.media import S3MediaStore
-from kx.automation.optout.unsubscribe import UnsubscribeDeps, UnsubscribeLinks
-from kx.automation.outbound import OutboundService
-from kx.automation.outbound.killswitch import KillSwitch
-from kx.automation.outbound.ratelimit import Bucket, TokenBucketLimiter
-from kx.automation.scraping import PriceScraper
-from kx.automation.settings import AutomationSettings, OptOutSettings
 from kx.core import events as ev
 from kx.core.auth import TokenIssuer
 from kx.core.db import Databases

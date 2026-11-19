@@ -1,13 +1,14 @@
 # Architecture restructuring (ADR-0001): final report
 
-Phases 0–2 of the restructuring brief, 19 Nov 2026. The details of every step, with the real gate output, are in
+Phases 0–2 and 2b of the restructuring brief, 19 Nov 2026. The details of every step, with the real gate output, are in
 `docs/arch/PROGRESS.md`. **No behaviour change:** moves, import-path renames and new tooling only.
 
 ## Done
 
-**Branches.** `arch/phase0-tooling` (Phase 0, no file moves) and `arch/slices` (branched from it; Phases 1–2,
-one commit per slice). 25 tags, one per completed slice: `arch-slice/crm-<slice>` (22) and
-`arch-slice/automation-<slice>` (3).
+**Branches.** `arch/phase0-tooling` (Phase 0, no file moves) and `arch/slices` (branched from it; Phases 1–2b,
+one commit per slice). 49 tags, one per completed slice: `arch-slice/crm-<slice>` (22),
+`arch-slice/automation-<slice>` (16: 3 from Phase 2 and 13 from Phase 2b; the three features moved again carry a
+`-2b` suffix) and `arch-slice/agents-<slice>` (11).
 
 **Phase 0: make the wiring visible.**
 - `docs/arch/CURRENT_STATE.md`: the recon (inventory, Protocol → implementation, event → handlers, route →
@@ -44,18 +45,33 @@ one commit per slice). 25 tags, one per completed slice: `arch-slice/crm-<slice>
   Three deliberate violations were checked to break them.
 - 19 shims had no importer left in the repository and were removed. 38 are kept.
 
+**Phase 2b: every automation and agents feature in its own folder** (on request, so each feature can be reviewed
+on its own; map: `docs/arch/AUTOMATION_AGENTS_SLICES.md`).
+- `kx.automation`: 13 slice moves: `scraping/`, `cms/`, `admin/`, `calls/`, `whatsapp/`, `email/`, `alerts/`,
+  `followups/`, `webhooks/`, `inbound/`, `optout/`, `outbound/` (their code now in `service.py` / `router.py` /
+  `channel.py`), and `_shared/`. Public surface `kx/automation/__init__.py`: 33 names.
+- `kx.agents`: 11 slice moves: `tracing/`, `memory/`, `knowledge/`, `guard/`, `tools/`, `voice/`, `website/`, `llm/`,
+  `router/`, `roles/`, `runtime/` (`graphs/` and `evals/` were already folders). Public surface
+  `kx/agents/__init__.py`: 25 names.
+- The app imports both packages only through those surfaces.
+- Contracts 10 → 12: both packages are layered (the automation one replaces the Phase 2 independence contract), and
+  the app may not import a slice module. Five planted imports were caught.
+- 6 more shims had no importer and were removed; 52 alias shims remain (33 CRM, 12 automation, 7 agents), all
+  still imported by tests.
+
 ## Gates
 
-Each gate was run on every commit. Shown here: the final head (`f89f9cb`), plus the documentation commit after it.
+Each gate was run on every commit. Shown here: the final head (`d078e5a`, Phase 2b), plus the documentation
+commit after it.
 
 | Gate | Result |
 | --- | --- |
 | `ruff check .` | PASS: All checks passed! |
-| `ruff format --check .` | PASS: 423 files already formatted |
-| `mypy` (strict, 5 source trees) | PASS: no issues found in 266 source files |
-| `lint-imports` | PASS: Contracts: 10 kept, 0 broken |
-| `pytest tests/unit` | PASS: 124 passed |
-| Full suite (Linux app image, own PostgreSQL) | PASS: tests=982, failures=0, errors=0, skipped=4 (they need `redis-server`). The same result on every one of the 25 slice commits and on 1.23, 2.4 and 2.5 |
+| `ruff format --check .` | PASS: 470 files already formatted |
+| `mypy` (strict, 5 source trees) | PASS: no issues found in 308 source files |
+| `lint-imports` | PASS: Contracts: 12 kept, 0 broken |
+| `pytest tests/unit` | PASS: 131 passed |
+| Full suite (Linux app image, own PostgreSQL) | PASS: tests=992, failures=0, errors=0, skipped=4 (they need `redis-server`). Every slice commit passed its own full suite before the next one was committed: 982 tests in Phases 1–2, 992 in Phase 2b (round-2 tests added in between); each result is in `PROGRESS.md` |
 | OpenAPI (`scripts/gen_frontend_docs.py` + `git diff docs/frontend`) | PASS: `openapi-crm.json` and `openapi-website.json` byte-identical on every commit (see Deviations for how) |
 | `kx map --check docs/FEATURE_MAP.md` | PASS |
 | `kx map --format json`, compared after applying the renames | PASS: path-only on every commit, with 1 explained exception (below) |
@@ -80,8 +96,12 @@ Each gate was run on every commit. Shown here: the final head (`f89f9cb`), plus 
 3. **The ORM stays one shared layer** (`kx/crm/models/`), not split per slice. Splitting it would turn about 200
    imported names into rule-5 violations and make nothing easier to read. There are no `repository.py` modules yet, so
    the per-slice `layers` contract has two layers: routers above the service-side code.
-4. **Automation and agents get fewer folders** than the brief lists. A feature that is one file stays one file.
-   `followups/` is not created: the follow-ups are part of the one handler table in `kx/automation/handlers.py`.
+4. **Automation and agents folders differ from the brief's list in names, not in intent.** Phase 2 first kept
+   one-file features as files; Phase 2b reversed that on request, so every feature now has a folder, including
+   `followups/` (the `FollowUps` class was cut out of `handlers.py` unchanged; the handler table stays there).
+   Differences from the brief: the LLM model factory is `llm/`, not `models/` (in the other packages `models` is
+   the ORM). There are also folders the brief does not list: `inbound/`, `scraping/`, `cms/`, `_shared/`,
+   `runtime/` (the turn engine), `roles/` and `tracing/`.
 5. **Three public names in `kx.crm` are renamed aliases:** `company_letterhead`, `retention_rules` and
    `load_text_edits` / `save_text_translation`. The plain module names collide with the slice folders.
 6. **History is kept through copy detection.** Each old path still exists as a shim, so git records the new file
@@ -94,17 +114,23 @@ Each gate was run on every commit. Shown here: the final head (`f89f9cb`), plus 
 - `packages/kx-core-crm/src/kx/crm/_shared/schemas.py` imports `kx.crm.quotes.service`, and `_shared/settings.py`
   imports `kx.crm.company.service`. Shared code depends on two slices; this is the `_shared` baseline.
 - `kx/crm/handover/service.py` imports `kx.crm.gateway`: a slice depending on the package's outward-facing gateway.
+- `kx/automation/_shared/sending.py` imports `TRANSIENT_REASONS` from `outbound.service`: shared code depending on a
+  slice. Moving the constant into `_shared/` removes the baseline line (a code change, so not done here).
+- The `runtime/` slice of `kx.agents` spans layers: `runtime.service` (the turn engine) is near the top, while
+  `runtime.context` sits under the graphs, tools and guard that read it. The contract names the modules, not the
+  folder.
 - The rule-5 baseline has 74 lines: 68 direct service-level imports between CRM slices, and 6 edges through
   `deps`, `_shared` and `gateway`. The busiest targets are `quotes` (18), `deals` (16) and `pricing` (13), so a
   narrow read API in those slices would remove most of the baseline.
 - From the recon, still open:
-  - a type-only import cycle between `kx.automation.ports` and `alerts`;
+  - a type-only import cycle between `kx.automation._shared.ports` and `alerts.service` (a line of the automation
+    baseline);
   - six events have no subscriber;
   - `docs/REUSE_CATALOGUE.md` gave a stale payload count (now corrected to 33).
 
 ## Questions for the lead
 
 1. **Owners:** done (19 Nov): `@muhammadhamthan` owns the backend in `.github/CODEOWNERS`.
-2. **Removed shims:** Arifaa Auto is parked (19 Nov); what it will need is in `docs/ARIFAA_AUTO_NOTES.md`. Should the remaining 38 be removed once the tests move to the new paths?
+2. **Removed shims:** Arifaa Auto is parked (19 Nov); what it will need is in `docs/ARIFAA_AUTO_NOTES.md`. Should the remaining 52 alias shims be removed once the tests move to the new paths?
 3. **Model names:** do you want the two `ChangeOut` / `CompanyIn` pairs renamed to unique names? That changes four
    OpenAPI component names (a frontend-visible change), but it removes the `__module__` pins.

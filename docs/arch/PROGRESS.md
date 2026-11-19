@@ -712,3 +712,530 @@ fails without it, every gate run, and the full suite:
 | `6a8a3c3` | NUL bytes refused with 400 before PostgreSQL (was 500); security headers on every answer; no API docs in production | tests=989, failures=0, errors=0, skipped=4 |
 
 `kx map` stayed path-only identical and the OpenAPI changed only in the logout description (`2810330`).
+
+---
+
+# Phase 2b — the full slice layout for `kx.automation` and `kx.agents` (client decision, 19 Nov)
+
+The client asked for the brief's slices exactly, so the whole codebase can be reviewed one feature at a time
+(the 2.0 mapping had kept one-file features as files). Rules, the same in the three packages: one feature, one
+folder (`router.py` for HTTP, `service.py` for logic, helpers when needed); the data layer at the package root
+(`models.py` / `repo.py`, `orm.py`); shared code in `_shared/`; only wiring at the root; no logic in
+`__init__.py`. Map: `docs/arch/AUTOMATION_AGENTS_SLICES.md` (rewritten at the end of this phase). Same method and
+gates as Phase 1, with a new `kx map` baseline (the head of Phase 2, `917648d`).
+
+When a folder takes the name of the old module (`scraping.py` → `scraping/`), the file moves into the folder and
+the folder's `__init__.py` re-exports it (star import for public names, module `__getattr__` for private ones),
+so the old import path keeps working; every name of the moved module is checked to be reachable on the old path.
+
+## 2b.1 slice `scraping` — TESTING (COMPLETED when tagged `arch-slice/automation-scraping`)
+
+- **Moved:** `scraping.py` → `scraping/service.py`; `scraping/__init__.py` re-exports it (old path checked: 36 of 36 names reachable); imports rewritten in `jobs.py`, `arifaa_pack/container.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 430 files already formatted
+  - mypy: Success: no issues found in 268 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 21.77s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** n/a (first slice of 2b; the previous head `917648d` passed: 992 tests)
+
+## 2b.2 slice `cms` — TESTING (COMPLETED when tagged `arch-slice/automation-cms`)
+
+- **Moved:** `cms.py` → `cms/service.py`; `cms/__init__.py` re-exports it (old path checked: 34 of 34 names); import rewritten in `arifaa_pack/api.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 431 files already formatted
+  - mypy: Success: no issues found in 269 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 23.61s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `scraping` @ `34e6b67`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-scraping`, COMPLETED
+
+## 2b.3 slice `admin` — TESTING (COMPLETED when tagged `arch-slice/automation-admin`)
+
+- **Moved:** `admin_api.py` → `admin/router.py`; alias shim at `admin_api.py` (old path checked: 36 of 36 names); import rewritten in `arifaa_pack/api.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 433 files already formatted
+  - mypy: Success: no issues found in 271 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 21.67s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `cms` @ `3c0f7d2`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-cms`, COMPLETED
+
+## 2b.4 slice `calls` — TESTING (COMPLETED when tagged `arch-slice/automation-calls`)
+
+- **Moved:** `channels/calls.py` → `calls/channel.py`; alias shim at the old path (40 of 40 names); imports rewritten in `alerts.py`, `inbound/webhooks.py`, `arifaa_pack/container.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 435 files already formatted
+  - mypy: Success: no issues found in 273 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 19.71s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `admin` @ `ace553a`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-admin`, COMPLETED
+
+## 2b.5 slice `whatsapp` — TESTING (COMPLETED when tagged `arch-slice/automation-whatsapp`)
+
+- **Moved:** `channels/whatsapp.py` → `whatsapp/channel.py`; alias shim at the old path (58 of 58 names); imports rewritten in `inbound`, `inbound/webhooks.py`, `outbound` (import line only), `arifaa_pack/container.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 437 files already formatted
+  - mypy: Success: no issues found in 275 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 21.49s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `calls` @ `b29e430`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-calls`, COMPLETED
+
+## 2b.6 slice `email` — TESTING (COMPLETED when tagged `arch-slice/automation-email`)
+
+- **Moved:** `channels/email.py` → `email/channel.py`, `channels/stalwart.py` → `email/stalwart.py`, `channels/email_chain.py` → `email/chain.py`, `channels/feedback.py` → `email/feedback.py`; alias shims at the four old paths (all names reachable); 11 imports rewritten. The standard library `email` imports inside the folder still resolve to the standard library (absolute imports).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 442 files already formatted
+  - mypy: Success: no issues found in 280 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 18.72s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `whatsapp` @ `d76293e`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-whatsapp`, COMPLETED
+
+## 2b.7 slice `alerts` — TESTING (COMPLETED when tagged `arch-slice/automation-alerts`)
+
+- **Moved:** `alerts.py` → `alerts/service.py`; `alerts/__init__.py` re-exports it (67 of 67 names); imports rewritten in `handlers.py`, `inbound/webhooks.py`, `jobs.py`, `ports.py` (type-only), `arifaa_pack/container.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 443 files already formatted
+  - mypy: Success: no issues found in 281 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 19.94s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `email` @ `59f475e`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-email`, COMPLETED
+
+## 2b.8 slice `followups` — TESTING (COMPLETED when tagged `arch-slice/automation-followups`)
+
+- **Moved:** the `FollowUps` class moved out of `handlers.py` into `followups/service.py`, and its send helper `_send_or_skip` (used by the other handlers too) into `_shared/sending.py`. Code unchanged: all 8 top-level definitions compare equal (syntax tree) before and after. `handlers.py` imports `FollowUps` back, so `from kx.automation.handlers import FollowUps` keeps working; `jobs.py` and `arifaa_pack/container.py` import it from the slice. The one exception to whole-file moves, as agreed (client decision 19 Nov).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 447 files already formatted
+  - mypy: Success: no issues found in 285 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 17.23s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `alerts` @ `9b7342b`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-alerts`, COMPLETED
+
+## 2b.9 slice `webhooks` — TESTING (COMPLETED when tagged `arch-slice/automation-webhooks`)
+
+- **Moved:** `inbound/webhooks.py` → `webhooks/router.py`; alias shim at `inbound/webhooks.py`; the old root alias file `webhooks.py` gave way to the folder, whose `__init__.py` re-exports the router (both old paths checked: 26 of 26 names); imports rewritten in `arifaa_pack/{api,container}.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 448 files already formatted
+  - mypy: Success: no issues found in 286 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 17.97s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `followups` @ `58559e2`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-followups`, COMPLETED
+
+## 2b.10 slice `inbound` — TESTING (COMPLETED when tagged `arch-slice/automation-inbound`)
+
+- **Moved:** the code of `inbound/__init__.py` → `inbound/service.py` (byte-identical); `inbound/__init__.py` re-exports it (52 of 52 names); imports rewritten in `jobs.py`, `webhooks/router.py`; the automation independence baseline line names the importer `inbound.service` now.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 449 files already formatted
+  - mypy: Success: no issues found in 287 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 16.57s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `webhooks` @ `06ca020`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-webhooks`, COMPLETED
+
+## 2b.11 slice `optout` — TESTING (COMPLETED when tagged `arch-slice/automation-optout`)
+
+- **Moved:** the code of `optout/__init__.py` → `optout/service.py` (byte-identical), `optout/unsubscribe.py` → `optout/router.py`; `optout/__init__.py` re-exports the service, alias shims at `optout/unsubscribe.py` and `unsubscribe.py` (all three old paths checked); 5 imports rewritten; baseline line names `optout.service`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 451 files already formatted
+  - mypy: Success: no issues found in 289 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 18.07s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `inbound` @ `7c622da`: tests=992, failures=0, errors=0, skipped=4, exit=0 → tagged `arch-slice/automation-inbound-2b` (the first-round tag `arch-slice/automation-inbound` stays), COMPLETED
+
+## 2b.12 slice `outbound` — TESTING (COMPLETED when tagged `arch-slice/automation-outbound`)
+
+- **Moved:** the code of `outbound/__init__.py` (OutboundService) → `outbound/service.py` (byte-identical); `outbound/__init__.py` re-exports it (78 of 78 names); 4 imports rewritten; `tests/unit/test_featuremap.py` asserts the new implementation path of MessageSender (kx map names the real module).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 452 files already formatted
+  - mypy: Success: no issues found in 290 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed (after the path update of tests/unit/test_featuremap.py) =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `optout` @ `8cad49c`: tests=992, failures=0, errors=0, skipped=4, exit=0 → tagged `arch-slice/automation-optout-2b`, COMPLETED
+
+## 2b.13 slice `_shared` — TESTING (COMPLETED when tagged `arch-slice/automation-_shared`)
+
+- **Moved:** `outbox.py`, `ports.py`, `settings.py`, `media.py` → `_shared/`; the helpers in `channels/__init__.py` (ChannelError, the email transport Protocol, HTTP retry) → `_shared/channels.py` (`channels/__init__.py` re-exports them; its adapters' old paths stay alias shims); `_shared/sending.py` came with `followups`. All five old paths checked (every name reachable); 35 imports rewritten. Docstrings of `channels/__init__.py` and `_shared/channels.py` say where things are now.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 457 files already formatted
+  - mypy: Success: no issues found in 295 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 19.80s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `outbound` @ `b6a0d44`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-outbound-2b`, COMPLETED
+
+## 2b.14 automation public surface `kx/automation/__init__.py` — TESTING
+
+- **Previous slice's full suite:** `_shared` @ `855014e`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-_shared`, COMPLETED.
+- **Done:** `kx/automation/__init__.py` names the 33 things the app uses (explicit `__all__`, lazy PEP 562
+  resolution, `TYPE_CHECKING` imports for mypy): the wiring (`jobs`, `retention`, `AutomationRuntime`,
+  `JobScheduler`, `EventHandlers`, settings, `S3MediaStore`), sending (`OutboundService`, `KillSwitch`, the
+  rate limiter, the WhatsApp / email / Telnyx clients), `ApprovalLadder` / `CallBridge` / `PauseAlerts` /
+  `VoiceAlerts`, `FollowUps`, `PriceScraper`, and the four routers under distinct names (`webhook_router`,
+  `unsubscribe_router`, `cms_router`, `admin_router`). The app (`adapters.py`, `api.py`, `container.py`)
+  now imports automation only through it (22 imports pointed at it; nothing left unexported).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 457 files already formatted
+  - mypy: Success: no issues found in 295 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 17.02s =============================
+  - full suite: run on this commit; result logged in the next entry
+
+## 2b.15 slice `tracing` — TESTING (COMPLETED when tagged `arch-slice/agents-tracing`)
+
+- **Moved:** `tracing.py` → `tracing/service.py`; `tracing/__init__.py` re-exports it (17 of 17 names); imports rewritten in `service.py`, `arifaa_pack/container.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 458 files already formatted
+  - mypy: Success: no issues found in 296 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 26.44s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `automation public surface` @ `d5a5e1e`: errors=0, failures=0, skipped=4, tests=992, exit=0 → no tag (not a slice), COMPLETED
+
+## 2b.16 slice `memory` — TESTING (COMPLETED when tagged `arch-slice/agents-memory`)
+
+- **Moved:** `memory.py` → `memory/service.py`; `memory/__init__.py` re-exports it (51 of 51 names; old LangGraph checkpoints that name a class by its old module path still resolve); 4 imports rewritten (incl. `arifaa_pack/migrations`). Also corrects the log line of 2b.15 (no tag for the automation public surface).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 459 files already formatted
+  - mypy: Success: no issues found in 297 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 20.99s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `tracing` @ `195b3d6`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-tracing`, COMPLETED
+
+## 2b.17 slice `knowledge` — TESTING (COMPLETED when tagged `arch-slice/agents-knowledge`)
+
+- **Moved:** `knowledge.py` → `knowledge/service.py`; `knowledge/__init__.py` re-exports it (43 of 43 names); 5 imports rewritten (incl. the app's `adapters.py` and `container.py`).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 460 files already formatted
+  - mypy: Success: no issues found in 298 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 21.00s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `memory` @ `22eb7f4`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-memory`, COMPLETED
+
+## 2b.18 slice `guard` — TESTING (COMPLETED when tagged `arch-slice/agents-guard`)
+
+- **Moved:** `guard.py` → `guard/service.py`; `guard/__init__.py` re-exports it (46 of 46 names); 4 imports rewritten.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 461 files already formatted
+  - mypy: Success: no issues found in 299 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 20.58s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `knowledge` @ `7a932b1`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-knowledge`, COMPLETED
+
+## 2b.19 slice `tools` — TESTING (COMPLETED when tagged `arch-slice/agents-tools`)
+
+- **Moved:** `tools.py` → `tools/service.py`; `tools/__init__.py` re-exports it (32 of 32 names); 1 import rewritten (`graphs/conversation.py`).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 462 files already formatted
+  - mypy: Success: no issues found in 300 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 21.93s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `guard` @ `ad0cc41`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-guard`, COMPLETED
+
+## 2b.20 slice `voice` — TESTING (COMPLETED when tagged `arch-slice/agents-voice`)
+
+- **Moved:** `voice.py` → `voice/service.py`; `voice/__init__.py` re-exports it (45 of 45 names); 4 imports rewritten (incl. the app's `container.py` and `voice_worker.py`).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 463 files already formatted
+  - mypy: Success: no issues found in 301 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 22.58s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `tools` @ `0c97799`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-tools`, COMPLETED
+
+## 2b.21 slice `website` — TESTING (COMPLETED when tagged `arch-slice/agents-website`)
+
+- **Moved:** `website.py` → `website/router.py`; `website/__init__.py` re-exports it (58 of 58 names); 3 imports rewritten (incl. the app's `api.py` and `container.py`); OpenAPI unchanged.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 464 files already formatted
+  - mypy: Success: no issues found in 302 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 19.36s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `voice` @ `ce85e89`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-voice`, COMPLETED
+
+## 2b.22 slice `llm` — TESTING (COMPLETED when tagged `arch-slice/agents-llm`)
+
+- **Moved:** `models.py` → `llm/service.py` (the model factory: tier → chat model, provider fallback); `models.py` is now an alias shim (36 of 36 names); 12 imports rewritten (incl. the app's `cli.py`, `config.py`, `container.py`, `texts_sync.py`). The rewriter had dropped one `# noqa: PLC0415` on a multi-line import in `cli.py`: restored, the tool fixed, the whole history checked (no other case).
+- **Gates:**
+  - ruff check: Found 1 error.
+  - ruff format: 466 files already formatted
+  - mypy: Success: no issues found in 304 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 18.41s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `website` @ `df1fc35`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-website`, COMPLETED
+
+## 2b.23 slice `router` — TESTING (COMPLETED when tagged `arch-slice/agents-router`)
+
+- **Moved:** `orchestrator.py` → `router/service.py` (the deterministic router, the Orchestrator role); `orchestrator.py` is now an alias shim (24 of 24 names); 3 imports rewritten.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 468 files already formatted
+  - mypy: Success: no issues found in 306 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 19.86s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `llm` @ `6b6c4a6`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-llm`, COMPLETED
+
+## 2b.24 slice `roles` — TESTING (COMPLETED when tagged `arch-slice/agents-roles`)
+
+- **Moved:** `registry.py` → `roles/registry.py` (the 12 sales roles as data) and `language.py` → `roles/language.py` (buyer languages); both old files are alias shims (38 of 38 and 10 of 10 names); 18 imports rewritten.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 471 files already formatted
+  - mypy: Success: no issues found in 309 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 23.29s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `router` @ `888b132`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-router`, COMPLETED
+
+## 2b.25 slice `runtime` — TESTING (COMPLETED when tagged `arch-slice/agents-runtime`)
+
+- **Moved:** `service.py` (AgentService, GraphRunner), `runs.py`, `context.py`, `middleware.py` → `runtime/`; the four old files are alias shims (77, 37, 24, 26 names, none missing); 19 imports rewritten. `tests/unit/test_audit_fixes.py` read the VendorSwitch metric name from the old file path: pointed at `runtime/service.py` (test-only path change).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 476 files already formatted
+  - mypy: Success: no issues found in 314 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ======================= 1 failed, 130 passed in 26.95s ======================== (before the test path fix above; re-run after it: 131 passed, exit 0; the fix is in the same commit)
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `roles` @ `23489e6`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-roles`, COMPLETED
+
+## 2b.26 agents public surface `kx/agents/__init__.py` — TESTING
+
+- **Previous slice's full suite:** `runtime` @ `60b4c7d`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-runtime`, COMPLETED.
+- **Done:** `kx/agents/__init__.py` names the 25 things the app uses (explicit `__all__`, lazy PEP 562
+  resolution, `TYPE_CHECKING` imports for mypy): the wiring (`retention`, `AgentHandlers`, `ReplyAddress`,
+  `AgentService`, `Tracer`, `open_checkpointer`), the models (`ModelRouter`, `ModelProvider`, the Anthropic and
+  Gemini providers, `Effort`, `tier_options`, `ModelTier`, `run_suite`), the knowledge base (`KbSource`,
+  `KnowledgeBase`, `KnowledgeIndexer`), voice (`VoiceRoute`, `VoiceRouter`, `voice_routes`,
+  `make_livekit_entrypoint`) and the website API (`LiveKitConfig`, `PublicScope`, `WebsiteDeps`,
+  `website_router`). The app (`adapters.py`, `api.py`, `cli.py`, `config.py`, `container.py`,
+  `migrations/__init__.py`, `texts_sync.py`, `voice_worker.py`) now imports agents only through it (20 imports
+  pointed at it; nothing left unexported; no `kx.agents.<module>` import left in the app). `import kx.agents`
+  loads no submodule and no LangGraph (checked).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 476 files already formatted
+  - mypy: Success: no issues found in 314 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 24.00s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+
+## 2b.27 Phase 2b shims removed where nothing imports them — TESTING
+
+- **Previous step's full suite:** `agents public surface` @ `380072d`: errors=0, failures=0, skipped=4, tests=992, exit=0 → no tag (not a slice), COMPLETED.
+- **Done:** every Phase 2b old path searched (AST imports and string references such as `mock.patch` targets, in
+  `packages/`, `apps/`, `tests/`, `scripts/`, `services/`, `infra/`, `docs/`). Removed the 6 alias shims that no
+  file uses: `kx.agents.middleware`, `kx.automation.channels.email_chain`, `kx.automation.inbound.webhooks`,
+  `kx.automation.optout.unsubscribe`, `kx.automation.outbox`, `kx.automation.ports`.
+  **The Arifaa Auto team must switch these imports to the new paths** (table in `docs/ARIFAA_AUTO_NOTES.md`).
+- **Kept (still imported, by tests or by `scripts/gen_frontend_docs.py`):** the alias shims `kx.agents.context`,
+  `.language`, `.models`, `.orchestrator`, `.registry`, `.runs`, `.service`; `kx.automation.admin_api`,
+  `.media`, `.settings`, `kx.automation.channels` and `channels.calls`, `.email`, `.feedback`, `.stalwart`,
+  `.whatsapp`. The slice packages that took an old module's name (`kx.agents.guard`, `kx.automation.alerts` ...)
+  keep re-exporting their `service` / `router`: that is the slice's front door, not a shim to remove.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 470 files already formatted
+  - mypy: Success: no issues found in 308 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 23.30s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+
+## 2b.28 contracts for the automation and agents slices — COMPLETED (full suite in 2b.30)
+
+- **Previous step's full suite:** `shims-2b` @ `2383234`: errors=0, failures=0, skipped=4, tests=992, exit=0 → COMPLETED.
+- **Done (`pyproject.toml`, import-linter; 10 → 12 contracts):**
+  - `automation: the slices are layered`: `jobs` > `handlers` > entry points (`webhooks | admin | cms |
+    scraping`) > features (`inbound | outbound | alerts | followups`) > `optout` > channels (`whatsapp | email |
+    calls`) > `_shared` > `repo` > `models`; slices on one line are independent. Baseline: 3 lines from
+    `_shared` (the send helper's `TRANSIENT_REASONS` import from `outbound`, and two `TYPE_CHECKING`-only
+    imports). It replaces the Phase 2 independence contract of `outbound / inbound / optout` (stricter; its one
+    baseline line `inbound -> optout` is now an allowed downward import).
+  - `agents: the slices are layered`: `handlers | evals` > `website` > `voice` > `runtime.service` > `graphs` >
+    `tools | guard | router` > `runtime.runs | runtime.middleware | memory` > `runtime.context` > `knowledge |
+    llm | tracing` > `roles`. No baseline: today's code already follows it.
+  - `rule 3: the app imports automation and agents only through their public surface`: `arifaa_pack` may not
+    import any automation or agents slice module (only `kx.automation`, `kx.agents`, and the `jobs` /
+    `retention` modules they export). No baseline.
+- **They bite (checked, then reverted):** five temporary imports, each caught:
+  `email.channel -> outbound.service` (a channel importing a feature), `outbound.service -> inbound.service`
+  (two features), `roles.registry -> runtime.service` (bottom importing the turn engine), `tools.service ->
+  guard.service` (two siblings), `arifaa_pack.config -> kx.agents.runtime.service` (the app reaching past the
+  public surface). Result: `Contracts: 9 kept, 3 broken`, the five lines named; files restored, `git status` clean.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 470 files already formatted
+  - mypy: Success: no issues found in 308 source files
+  - lint-imports: Contracts: 12 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 17.27s =============================
+  - full suite: not needed for a lint-only change (`pyproject.toml` import-linter section); the final full suite covers it
+
+## 2b.29 documentation: the new paths in the living docs — COMPLETED (full suite in 2b.30)
+
+- **Done:**
+  - `docs/arch/AUTOMATION_AGENTS_SLICES.md` rewritten: the rule (every feature its own folder), a table per
+    package (slice, what it is, files, old path), the layer diagram of the two contracts, the old-path policy,
+    how to review one feature;
+  - `CLAUDE.md` (layout lines), `CONTRACTS.md` §1 (the new rules), `docs/ARCHITECTURE.md` §2 (three public
+    surfaces), `docs/REUSE_CATALOGUE.md` (14 paths, plus rows for follow-ups, the slice folders and the public
+    surfaces), `docs/FEATURE_MAP.md` (SRS table: paths and slice column; generated part unchanged),
+    `docs/DELIVERY.md`, `docs/CONTESTS.md` (also `kx.automation.channels.telnyx`, a path that never existed →
+    `kx.automation.calls`);
+  - `docs/ARIFAA_AUTO_NOTES.md`: §1–§2 text, and the §3 table regenerated (92 rows; "still works?" decided by
+    importing each old path);
+  - `scripts/gen_frontend_docs.py` imports `kx.agents` / `kx.automation` public names; the two frontend heads
+    name the new files. `docs/frontend/CRM_API.md` and `WEBSITE_API.md` regenerated: head text only (3 lines);
+    `openapi-crm.json` and `openapi-website.json` unchanged.
+  - Dated history (`V1_PROGRESS.md`, `OPEN_QUESTIONS.md`, `V1_CHANGE_PLAN.md`, `CURRENT_STATE.md`) keeps the paths
+    of its time.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 470 files already formatted
+  - mypy: Success: no issues found in 308 source files
+  - lint-imports: Contracts: 12 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: the two Markdown heads only (3 lines); both OpenAPI JSON files unchanged
+  - unit: ============================ 131 passed in 16.37s =============================
+  - full suite: run on this commit (the final code state); result logged in the next entry
+
+## 2b.30 final report — COMPLETED
+
+- **Full suite (2b.28 contracts and 2b.29 docs, the final code state):** `d078e5a`: errors=0, failures=0,
+  skipped=4, tests=992, exit=0 → COMPLETED.
+- **Done:** `docs/arch/REPORT.md` updated for Phase 2b: what moved, 49 tags, gates at the final head, deviation 4
+  rewritten (every feature now has a folder; names that differ from the brief), new found-not-fixed items
+  (`_shared.sending -> outbound.service`; `runtime/` spans layers), the shim question (52 left). Also: the
+  live-test scripts `m8_check.py` and `mail_channel.py` import the new email / settings paths (they are outside the
+  shim scan and the repo lint, by design; checked: every name resolves, both compile), and a `jobs.py` docstring
+  names `kx.automation._shared.ports`.
+- **Gates** (docs, two script import lines, one docstring):
+  - ruff check: All checks passed!
+  - ruff format: 470 files already formatted
+  - mypy: Success: no issues found in 308 source files
+  - lint-imports: Contracts: 12 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 16.63s =============================
+
+**Phase 2b: COMPLETED. ADR-0001 Phases 0–2b: COMPLETED.**

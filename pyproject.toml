@@ -307,17 +307,79 @@ ignore_imports = [
     "kx.crm.handover.service -> kx.crm.gateway",
 ]  # baseline 2026-11-19: may only shrink
 
+# Phase 2b (docs/arch/AUTOMATION_AGENTS_SLICES.md): a slice imports only the layers below it; slices on one line
+# ("|") are independent of each other. Today's code needs no exception except the three _shared lines below.
 [[tool.importlinter.contracts]]
-name = "automation: feature slices are independent"
-type = "independence"
-modules = [
-    "kx.automation.outbound",
-    "kx.automation.inbound",
+name = "automation: the slices are layered (entry points > features > opt-out > channels > _shared > ORM)"
+type = "layers"
+layers = [
+    "kx.automation.jobs",
+    "kx.automation.handlers",
+    "kx.automation.webhooks | kx.automation.admin | kx.automation.cms | kx.automation.scraping",
+    "kx.automation.inbound | kx.automation.outbound | kx.automation.alerts | kx.automation.followups",
     "kx.automation.optout",
+    "kx.automation.whatsapp | kx.automation.email | kx.automation.calls",
+    "kx.automation._shared",
+    "kx.automation.repo",
+    "kx.automation.models",
 ]
 ignore_imports = [
-    "kx.automation.inbound -> kx.automation.optout",
-]  # baseline 2026-11-19: may only shrink
+    "kx.automation._shared.sending -> kx.automation.outbound.service",
+    "kx.automation._shared.channels -> kx.automation.email.channel",
+    "kx.automation._shared.ports -> kx.automation.alerts.service",
+]  # baseline 2026-11-19: may only shrink (the last two are TYPE_CHECKING-only imports)
+
+[[tool.importlinter.contracts]]
+name = "agents: the slices are layered (entry points > turn engine > graphs > tools/guard/router > models > roles)"
+type = "layers"
+layers = [
+    "kx.agents.handlers | kx.agents.evals",
+    "kx.agents.website",
+    "kx.agents.voice",
+    "kx.agents.runtime.service",
+    "kx.agents.graphs",
+    "kx.agents.tools | kx.agents.guard | kx.agents.router",
+    "kx.agents.runtime.runs | kx.agents.runtime.middleware | kx.agents.memory",
+    "kx.agents.runtime.context",
+    "kx.agents.knowledge | kx.agents.llm | kx.agents.tracing",
+    "kx.agents.roles",
+]
+
+[[tool.importlinter.contracts]]
+name = "rule 3: the app imports automation and agents only through their public surface"
+type = "forbidden"
+source_modules = ["arifaa_pack"]
+forbidden_modules = [
+    "kx.automation._shared",
+    "kx.automation.admin",
+    "kx.automation.alerts",
+    "kx.automation.calls",
+    "kx.automation.cms",
+    "kx.automation.email",
+    "kx.automation.followups",
+    "kx.automation.handlers",
+    "kx.automation.inbound",
+    "kx.automation.optout",
+    "kx.automation.outbound",
+    "kx.automation.scraping",
+    "kx.automation.webhooks",
+    "kx.automation.whatsapp",
+    "kx.agents.evals",
+    "kx.agents.graphs",
+    "kx.agents.guard",
+    "kx.agents.handlers",
+    "kx.agents.knowledge",
+    "kx.agents.llm",
+    "kx.agents.memory",
+    "kx.agents.roles",
+    "kx.agents.router",
+    "kx.agents.runtime",
+    "kx.agents.tools",
+    "kx.agents.tracing",
+    "kx.agents.voice",
+    "kx.agents.website",
+]
+allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
 name = "rule 3: the app imports no ORM or query module (only the packages' public code)"

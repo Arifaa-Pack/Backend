@@ -1,0 +1,170 @@
+"""Agent tools: thin async wrappers over the injected `CrmGateway` and the KB.
+
+Every tool takes the deal from `ToolRuntime.context` (never from model arguments) and returns only
+`kx.core.contracts` DTOs, which by construction carry no cost, markup, margin range or floor.
+"""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+from typing import Final
+
+from langchain.tools import ToolRuntime, tool
+from langchain_core.tools import BaseTool
+
+from kx.agents.roles.registry import Phrase, team_member
+from kx.agents.runtime.context import AgentContext
+from kx.core.contracts import ChangeField, ChangeType, ContactPatch, DealStage, RequirementPatch
+
+Runtime = ToolRuntime[AgentContext]
+_MAX_FOLLOW_UP: Final = timedelta(days=30)
+WEBSITE_CHANNELS: Final = frozenset({"web_chat", "web_voice"})
+
+
+@tool
+async def get_deal_context(runtime: Runtime) -> str:
+    """Current deal: stage, requirements, missing fields, latest quote and the prices you may state."""
+    ctx = runtime.context
+    fresh = await ctx.gateway.deal_context(ctx.deal_id)
+    return fresh.model_dump_json(exclude={"deal_id": True, "contact": {"contact_id"}})
+
+
+@tool
+async def update_requirement(requirement: RequirementPatch, runtime: Runtime) -> str:
+    """Save what the buyer said about product, quantity, unit, application or delivery country/city."""
+    ctx = runtime.context
+    await ctx.gateway.update_requirement(ctx.deal_id, requirement, ctx.spec.role)
+    return "saved"
+
+
+@tool
+async def set_contact(contact: ContactPatch, runtime: Runtime) -> str:
+    """Save the buyer's name, company, phone, email, preferred channel or language. Always pass every detail
+    the buyer has given so far, together."""
+    ctx = runtime.context
+    await ctx.gateway.set_contact(ctx.deal_id, contact, ctx.spec.role)
+    if contact.phone is not None:  # §8.2 step 1: the silent format check
+        kind = (await ctx.gateway.deal_context(ctx.deal_id)).contact.phone_kind
+        if kind in ("landline", "invalid"):
+            ask = ctx.prompts.phrase(Phrase.PHONE_NOT_MOBILE, ctx.language)
+            return f"saved, but the number is {kind}. Ask naturally, in the buyer's language: {ask}"
+    return "saved" + _ask_for_the_other(ctx.channel, contact)
+
+
+def _ask_for_the_other(channel: str, contact: ContactPatch) -> str:
+    """D-4 (client rule 18 Nov): a website visitor is linked to an existing buyer only when the phone AND the
+    email both match. So every website visitor who gave one is asked, casually, for the other. It depends only
+    on what the visitor typed, never on whether we know them, so the question reveals nothing."""
+    if channel not in WEBSITE_CHANNELS or (contact.phone is None) == (contact.email is None):
+        return ""
+    missing = "email address" if contact.email is None else "mobile number"
+    return (
+        f". When it fits naturally, ask for their {missing} too, casually, the way a friendly salesperson "
+        "would (for example, so the quotation can reach them there as well). Never say why, and never "
+        "say whether we know them. When they answer, call set_contact again with every detail together."
+    )
+
+
+@tool
+async def try_qualify(runtime: Runtime) -> str:
+    """Check whether the deal has everything needed for a quotation; lists what is still missing."""
+    ctx = runtime.context
+    return (await ctx.gateway.try_qualify(ctx.deal_id, ctx.spec.role)).model_dump_json()
+
+
+@tool
+async def search_knowledge(query: str, runtime: Runtime) -> str:
+    """Search approved product, factory and FAQ content. Cite the title of what you use."""
+    ctx = runtime.context
+    if ctx.knowledge is None:
+        return "No approved content available; say the team will confirm."
+    result = await ctx.knowledge.search(query, ctx.language)
+    if result.weak:
+        await ctx.knowledge.record_gap(query, ctx.language, ctx.conversation_id)
+        return "No approved answer found. Say our team will confirm this detail."
+    return "\n\n".join(f"[{h.title}] {h.text}" for h in result.hits)
+
+
+@tool
+async def delivery_estimate(runtime: Runtime) -> str:
+    """The usual delivery time for the buyer's product. Never promise a date or a faster delivery: a
+    different delivery request is a change request for the salesperson."""
+    ctx = runtime.context
+    est = await ctx.gateway.delivery_estimate(ctx.deal_id)
+    if est is None:
+        return "No delivery time on file; say our sales team will confirm it on the quotation."
+    if est.lead_time_text is not None:  # v1 (D10): the product's default, confirmed by the salesperson
+        return f"Usual delivery time: {est.lead_time_text}. Say the salesperson confirms it on the quotation."
+    return est.model_dump_json()  # v2: calculated dates (always "estimated, confirmed by our team")
+
+
+@tool
+async def request_quote(runtime: Runtime) -> str:
+    """Ask the team to prepare the quotation (only once the deal is qualified)."""
+    ctx = runtime.context
+    if ctx.deal.stage is not DealStage.QUALIFIED:
+        return f"Not possible at stage {ctx.deal.stage.value}."
+    await ctx.gateway.request_quote(ctx.deal_id, ctx.spec.role)
+    return "Quotation requested; it will be reviewed by the team before it is sent."
+
+
+@tool
+async def schedule_follow_up(due_at: datetime, reason: str, runtime: Runtime) -> str:
+    """Schedule a follow-up the buyer asked for (e.g. 'call me next week'). Max 30 days ahead."""
+    now = datetime.now(UTC)
+    due = due_at if due_at.tzinfo else due_at.replace(tzinfo=UTC)
+    if not now < due <= now + _MAX_FOLLOW_UP:
+        return "Choose a time within the next 30 days."
+    ctx = runtime.context
+    await ctx.gateway.schedule_follow_up(ctx.deal_id, due, reason[:200])
+    return "scheduled"
+
+
+@tool
+async def add_timeline(summary: str, runtime: Runtime) -> str:
+    """Add a short note to the deal timeline for the sales team."""
+    ctx = runtime.context
+    await ctx.gateway.add_timeline(ctx.deal_id, "ai_note", summary[:1000], ctx.spec.role)
+    return "noted"
+
+
+@tool
+async def handoff_to_human(reason: str, runtime: Runtime) -> str:
+    """Hand the conversation to a human (buyer asks for a person, complaint, or anything you cannot do)."""
+    ctx = runtime.context
+    await ctx.gateway.pause_ai(ctx.deal_id, "human_takeover", ctx.spec.role)
+    await ctx.gateway.add_timeline(ctx.deal_id, "ai_handoff", reason[:1000], ctx.spec.role)
+    ctx.log.handoff = True
+    return "handed over; tell the buyer a team member will reply shortly"
+
+
+@tool
+async def raise_change_request(
+    type: ChangeType, buyer_words: str, field: str, requested: str, runtime: Runtime
+) -> str:
+    """The buyer asks for something you may not decide: another product or size, a specification, printing,
+    a quantity change, faster or different delivery, samples, payment, or anything else (certificates,
+    credit, complaints). Pass the buyer's exact words and what they asked for. Promise nothing yourself."""
+    ctx = runtime.context
+    await ctx.gateway.raise_change_request(
+        ctx.deal_id, type, buyer_words, (ChangeField(field=field, requested=requested),), ctx.spec.role
+    )
+    reply = ctx.prompts.phrase(Phrase.CHANGE_REQUEST, ctx.language).format(
+        name=team_member(ctx.deal.salesperson_name, ctx.language), hours=ctx.deal.change_request_hours
+    )
+    return f"raised; tell the buyer exactly: {reply}"
+
+
+ALL_TOOLS: Final[tuple[BaseTool, ...]] = (
+    get_deal_context,
+    update_requirement,
+    set_contact,
+    try_qualify,
+    search_knowledge,
+    delivery_estimate,
+    request_quote,
+    schedule_follow_up,
+    add_timeline,
+    handoff_to_human,
+    raise_change_request,
+)
