@@ -1156,3 +1156,35 @@ so the old import path keeps working; every name of the moved module is checked 
   - OpenAPI diff: empty
   - unit: ============================ 131 passed in 23.30s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
+
+## 2b.28 contracts for the automation and agents slices — TESTING
+
+- **Previous step's full suite:** `shims-2b` @ `2383234`: errors=0, failures=0, skipped=4, tests=992, exit=0 → COMPLETED.
+- **Done (`pyproject.toml`, import-linter; 10 → 12 contracts):**
+  - `automation: the slices are layered`: `jobs` > `handlers` > entry points (`webhooks | admin | cms |
+    scraping`) > features (`inbound | outbound | alerts | followups`) > `optout` > channels (`whatsapp | email |
+    calls`) > `_shared` > `repo` > `models`; slices on one line are independent. Baseline: 3 lines from
+    `_shared` (the send helper's `TRANSIENT_REASONS` import from `outbound`, and two `TYPE_CHECKING`-only
+    imports). It replaces the Phase 2 independence contract of `outbound / inbound / optout` (stricter; its one
+    baseline line `inbound -> optout` is now an allowed downward import).
+  - `agents: the slices are layered`: `handlers | evals` > `website` > `voice` > `runtime.service` > `graphs` >
+    `tools | guard | router` > `runtime.runs | runtime.middleware | memory` > `runtime.context` > `knowledge |
+    llm | tracing` > `roles`. No baseline: today's code already follows it.
+  - `rule 3: the app imports automation and agents only through their public surface`: `arifaa_pack` may not
+    import any automation or agents slice module (only `kx.automation`, `kx.agents`, and the `jobs` /
+    `retention` modules they export). No baseline.
+- **They bite (checked, then reverted):** five temporary imports, each caught:
+  `email.channel -> outbound.service` (a channel importing a feature), `outbound.service -> inbound.service`
+  (two features), `roles.registry -> runtime.service` (bottom importing the turn engine), `tools.service ->
+  guard.service` (two siblings), `arifaa_pack.config -> kx.agents.runtime.service` (the app reaching past the
+  public surface). Result: `Contracts: 9 kept, 3 broken`, the five lines named; files restored, `git status` clean.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 470 files already formatted
+  - mypy: Success: no issues found in 308 source files
+  - lint-imports: Contracts: 12 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 17.27s =============================
+  - full suite: not needed for a lint-only change (`pyproject.toml` import-linter section); the final full suite covers it
