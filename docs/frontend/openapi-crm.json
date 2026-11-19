@@ -488,7 +488,7 @@
           "auth"
         ],
         "summary": "Reset Start",
-        "description": "Recovery: a code to the work address. Always 202 (nobody learns which addresses exist); 429 when\nthe rate limit for this IP or this typed address is reached (the same for unknown addresses, M3).",
+        "description": "Recovery: a code to the work address. Always 202 (nobody learns which addresses exist); 429 when\nthe rate limit for this IP or this typed address is reached (the same for unknown addresses, M3).\nL6: the code is mailed after the response, so a real address answers as fast as an unknown one.",
         "operationId": "reset_start_v1_auth_password_reset_start_post",
         "requestBody": {
           "content": {
