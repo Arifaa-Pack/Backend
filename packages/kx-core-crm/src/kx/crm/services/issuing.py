@@ -22,6 +22,7 @@ from kx.core.event_payloads import QuoteApproved, QuoteNotDelivered, QuoteResend
 from kx.core.identity import priced_content_sha256, sha256_hex
 from kx.crm.company import service as company_svc
 from kx.crm.contacts import phone
+from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import (
     Approval,
@@ -37,7 +38,6 @@ from kx.crm.models import (
     User,
 )
 from kx.crm.pdf import DocLine, QuoteDocument, SalesContact, pdf_key, quote_message
-from kx.crm.services import deals as deal_svc
 from kx.crm.services import staff
 from kx.crm.services.grants import GrantPolicy, SendChannel, issue_grant, recipient
 from kx.crm.services.journal import Actor, Emit, Timeline, record

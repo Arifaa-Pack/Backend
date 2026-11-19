@@ -13,12 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core.auth import Role
 from kx.core.db import get_or_404
 from kx.crm.api.context import ApiContext, Staff
-from kx.crm.api.deals import visible_to
 from kx.crm.api.schemas import ChangeRequestOut, DeclineIn, QuoteEditsIn, QuoteVersionOut, ResolveIn
 from kx.crm.change_requests import service as change_requests
+from kx.crm.deals import service as deal_svc
+from kx.crm.deals.router import visible_to
 from kx.crm.models import ChangeRequest, Deal
 from kx.crm.services import access, quotes
-from kx.crm.services import deals as deal_svc
 from kx.crm.services.journal import Actor
 
 

@@ -144,54 +144,54 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/catalogue/workbook` | `kx.crm.catalogue.router:router.<locals>.download` | `kx.crm.catalogue.workbook:download` |
 | POST | `/v1/catalogue/workbook/apply` | `kx.crm.catalogue.router:router.<locals>.apply` | `kx.crm.catalogue.workbook:apply` |
 | POST | `/v1/catalogue/workbook/preview` | `kx.crm.catalogue.router:router.<locals>.preview` | `kx.crm.catalogue.workbook:preview` |
-| GET | `/v1/change-requests` | `kx.crm.change_requests.router:router.<locals>.inbox` | `kx.crm.api.deals:visible_to` |
-| GET | `/v1/change-requests/{cr_id}` | `kx.crm.change_requests.router:router.<locals>.card` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |
+| GET | `/v1/change-requests` | `kx.crm.change_requests.router:router.<locals>.inbox` | `kx.crm.deals.router:visible_to` |
+| GET | `/v1/change-requests/{cr_id}` | `kx.crm.change_requests.router:router.<locals>.card` | `kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_view` |
 | POST | `/v1/change-requests/{cr_id}/decline` | `kx.crm.change_requests.router:router.<locals>.decline` | `kx.crm.change_requests.service:decline` |
 | POST | `/v1/change-requests/{cr_id}/resolve` | `kx.crm.change_requests.router:router.<locals>.resolve` | `kx.crm.change_requests.service:resolve` |
-| POST | `/v1/change-requests/{cr_id}/revise` | `kx.crm.change_requests.router:router.<locals>.revise` | `kx.crm.change_requests.service:link_revision`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:revise_quote` |
+| POST | `/v1/change-requests/{cr_id}/revise` | `kx.crm.change_requests.router:router.<locals>.revise` | `kx.crm.change_requests.service:link_revision`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.quotes:revise_quote` |
 | POST | `/v1/change-requests/{cr_id}/start` | `kx.crm.change_requests.router:router.<locals>.start` | `kx.crm.change_requests.service:start` |
-| GET | `/v1/companies` | `kx.crm.records.router:router.<locals>.companies` | `kx.crm.api.deals:visible_to`<br>`kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
+| GET | `/v1/companies` | `kx.crm.records.router:router.<locals>.companies` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of`<br>`kx.crm.deals.router:visible_to` |
 | POST | `/v1/companies` | `kx.crm.records.router:router.<locals>.create_company` | `kx.crm.services.journal:record` |
-| PATCH | `/v1/companies/{company_id}` | `kx.crm.records.router:router.<locals>.edit_company` | `kx.crm.api.deals:visible_to`<br>`kx.crm.services.journal:record` |
+| PATCH | `/v1/companies/{company_id}` | `kx.crm.records.router:router.<locals>.edit_company` | `kx.crm.deals.router:visible_to`<br>`kx.crm.services.journal:record` |
 | GET | `/v1/company` | `kx.crm.company.router:router.<locals>.show` | `kx.crm.company.service:letterhead` |
 | PATCH | `/v1/company` | `kx.crm.company.router:router.<locals>.edit` | `kx.crm.company.service:letterhead`<br>`kx.crm.company.service:update` |
 | DELETE | `/v1/company/logo` | `kx.crm.company.router:router.<locals>.remove_logo` | `kx.crm.company.service:letterhead`<br>`kx.crm.company.service:update` |
 | PUT | `/v1/company/logo` | `kx.crm.company.router:router.<locals>.upload_logo` | `kx.crm.company.service:letterhead`<br>`kx.crm.company.service:logo_data_uri`<br>`kx.crm.company.service:update` |
-| GET | `/v1/contacts` | `kx.crm.records.router:router.<locals>.contacts` | `kx.crm.api.deals:visible_to`<br>`kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
-| GET | `/v1/contacts/{contact_id}` | `kx.crm.records.router:router.<locals>.contact` | `kx.crm.api.deals:visible_to` |
-| PATCH | `/v1/contacts/{contact_id}` | `kx.crm.records.router:router.<locals>.edit_contact` | `kx.crm.api.deals:visible_to`<br>`kx.crm.services.journal:record` |
+| GET | `/v1/contacts` | `kx.crm.records.router:router.<locals>.contacts` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of`<br>`kx.crm.deals.router:visible_to` |
+| GET | `/v1/contacts/{contact_id}` | `kx.crm.records.router:router.<locals>.contact` | `kx.crm.deals.router:visible_to` |
+| PATCH | `/v1/contacts/{contact_id}` | `kx.crm.records.router:router.<locals>.edit_contact` | `kx.crm.deals.router:visible_to`<br>`kx.crm.services.journal:record` |
 | GET | `/v1/dashboard/summary` | `kx.crm.admin.router:router.<locals>.summary` | `kx.crm.pricing.proposals:material_freshness` |
 | GET | `/v1/dashboards/manager` | `kx.crm.reports.router:router.<locals>.manager` | `kx.crm.reports.dashboards:manager_board` |
 | GET | `/v1/dashboards/md` | `kx.crm.reports.router:router.<locals>.md` | `kx.crm.reports.dashboards:counts` |
 | GET | `/v1/dashboards/salesperson` | `kx.crm.reports.router:router.<locals>.salesperson` | `kx.crm.reports.dashboards:salesperson_board` |
-| GET | `/v1/deals` | `kx.crm.api.deals:router.<locals>.list_deals` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
-| PATCH | `/v1/deals/orders/{order_id}` | `kx.crm.api.deal_actions:router.<locals>.order_status` | `kx.crm.orders.service:deal_of_order`<br>`kx.crm.orders.service:update_order_status`<br>`kx.crm.services.access:check_edit` |
-| GET | `/v1/deals/{deal_id}` | `kx.crm.api.deals:router.<locals>.get_deal` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:requirements_of` |
-| POST | `/v1/deals/{deal_id}/ai` | `kx.crm.api.deals:router.<locals>.toggle_ai` | `kx.crm.negotiation.service:pause_ai`<br>`kx.crm.negotiation.service:resume_ai`<br>`kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:requirements_of` |
-| POST | `/v1/deals/{deal_id}/call` | `kx.crm.api.deal_actions:router.<locals>.call` | `kx.crm.handover.service:call_buyer`<br>`kx.crm.services.deals:get_deal` |
-| POST | `/v1/deals/{deal_id}/handback` | `kx.crm.assignment.router:router.<locals>.hand_back` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.assignment.service:hand_back` |
-| POST | `/v1/deals/{deal_id}/messages` | `kx.crm.api.deal_actions:router.<locals>.staff_message` | `kx.crm.handover.service:reply`<br>`kx.crm.services.deals:get_deal` |
-| POST | `/v1/deals/{deal_id}/offer` | `kx.crm.api.deals:router.<locals>.manager_offer` | `kx.crm.negotiation.service:manager_offer`<br>`kx.crm.negotiation.service:resume_ai` |
-| POST | `/v1/deals/{deal_id}/opt-out` | `kx.crm.api.deal_actions:router.<locals>.opt_out` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.contacts.consent:record_opt_out`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal` |
-| POST | `/v1/deals/{deal_id}/payments` | `kx.crm.api.deal_actions:router.<locals>.payment` | `kx.crm.orders.service:record_payment`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal` |
-| POST | `/v1/deals/{deal_id}/personal-contact-shared` | `kx.crm.api.deal_actions:router.<locals>.personal_contact_shared` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:personal_contact_shared` |
-| GET | `/v1/deals/{deal_id}/quotes` | `kx.crm.api.deals:router.<locals>.deal_quotes` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |
-| POST | `/v1/deals/{deal_id}/quotes` | `kx.crm.api.deals:router.<locals>.request_quote` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:request_quote` |
-| POST | `/v1/deals/{deal_id}/quotes/manual` | `kx.crm.assignment.router:router.<locals>.manual_quote` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:manual_quote` |
-| POST | `/v1/deals/{deal_id}/quotes/revise` | `kx.crm.api.deals:router.<locals>.revise_quote` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:revise_quote` |
-| POST | `/v1/deals/{deal_id}/reassign` | `kx.crm.assignment.router:router.<locals>.reassign` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.assignment.service:reassign` |
-| POST | `/v1/deals/{deal_id}/reopen` | `kx.crm.api.deal_actions:router.<locals>.reopen` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:reopen` |
-| POST | `/v1/deals/{deal_id}/stage` | `kx.crm.api.deals:router.<locals>.move` | `kx.crm.assignment.service:assign`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:contact_of`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:missing_for`<br>`kx.crm.services.deals:move_stage`<br>`kx.crm.services.deals:requirements_of` |
-| POST | `/v1/deals/{deal_id}/takeover` | `kx.crm.assignment.router:router.<locals>.take_over` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.assignment.service:take_over` |
-| GET | `/v1/deals/{deal_id}/timeline` | `kx.crm.api.deals:router.<locals>.timeline` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of`<br>`kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |
-| POST | `/v1/deals/{deal_id}/won` | `kx.crm.api.deal_actions:router.<locals>.won` | `kx.crm.orders.service:mark_won`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal` |
-| GET | `/v1/exports/{entity}` | `kx.crm.reports.router:router.<locals>.export` | `kx.crm.api.deals:visible_to` |
+| GET | `/v1/deals` | `kx.crm.deals.router:router.<locals>.list_deals` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
+| PATCH | `/v1/deals/orders/{order_id}` | `kx.crm.deals.actions_router:router.<locals>.order_status` | `kx.crm.orders.service:deal_of_order`<br>`kx.crm.orders.service:update_order_status`<br>`kx.crm.services.access:check_edit` |
+| GET | `/v1/deals/{deal_id}` | `kx.crm.deals.router:router.<locals>.get_deal` | `kx.crm.deals.service:contact_of`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.deals.service:missing_for`<br>`kx.crm.deals.service:requirements_of`<br>`kx.crm.services.access:check_view` |
+| POST | `/v1/deals/{deal_id}/ai` | `kx.crm.deals.router:router.<locals>.toggle_ai` | `kx.crm.deals.service:contact_of`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.deals.service:missing_for`<br>`kx.crm.deals.service:requirements_of`<br>`kx.crm.negotiation.service:pause_ai`<br>`kx.crm.negotiation.service:resume_ai` |
+| POST | `/v1/deals/{deal_id}/call` | `kx.crm.deals.actions_router:router.<locals>.call` | `kx.crm.deals.service:get_deal`<br>`kx.crm.handover.service:call_buyer` |
+| POST | `/v1/deals/{deal_id}/handback` | `kx.crm.assignment.router:router.<locals>.hand_back` | `kx.crm.assignment.service:hand_back`<br>`kx.crm.deals.router:deal_detail` |
+| POST | `/v1/deals/{deal_id}/messages` | `kx.crm.deals.actions_router:router.<locals>.staff_message` | `kx.crm.deals.service:get_deal`<br>`kx.crm.handover.service:reply` |
+| POST | `/v1/deals/{deal_id}/offer` | `kx.crm.deals.router:router.<locals>.manager_offer` | `kx.crm.negotiation.service:manager_offer`<br>`kx.crm.negotiation.service:resume_ai` |
+| POST | `/v1/deals/{deal_id}/opt-out` | `kx.crm.deals.actions_router:router.<locals>.opt_out` | `kx.crm.contacts.consent:record_opt_out`<br>`kx.crm.deals.router:deal_detail`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_edit` |
+| POST | `/v1/deals/{deal_id}/payments` | `kx.crm.deals.actions_router:router.<locals>.payment` | `kx.crm.deals.service:get_deal`<br>`kx.crm.orders.service:record_payment`<br>`kx.crm.services.access:check_edit` |
+| POST | `/v1/deals/{deal_id}/personal-contact-shared` | `kx.crm.deals.actions_router:router.<locals>.personal_contact_shared` | `kx.crm.deals.router:deal_detail`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.deals.service:personal_contact_shared`<br>`kx.crm.services.access:check_edit` |
+| GET | `/v1/deals/{deal_id}/quotes` | `kx.crm.deals.router:router.<locals>.deal_quotes` | `kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_view` |
+| POST | `/v1/deals/{deal_id}/quotes` | `kx.crm.deals.router:router.<locals>.request_quote` | `kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.quotes:request_quote` |
+| POST | `/v1/deals/{deal_id}/quotes/manual` | `kx.crm.assignment.router:router.<locals>.manual_quote` | `kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.quotes:manual_quote` |
+| POST | `/v1/deals/{deal_id}/quotes/revise` | `kx.crm.deals.router:router.<locals>.revise_quote` | `kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.quotes:revise_quote` |
+| POST | `/v1/deals/{deal_id}/reassign` | `kx.crm.assignment.router:router.<locals>.reassign` | `kx.crm.assignment.service:reassign`<br>`kx.crm.deals.router:deal_detail` |
+| POST | `/v1/deals/{deal_id}/reopen` | `kx.crm.deals.actions_router:router.<locals>.reopen` | `kx.crm.deals.router:deal_detail`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.deals.service:reopen` |
+| POST | `/v1/deals/{deal_id}/stage` | `kx.crm.deals.router:router.<locals>.move` | `kx.crm.assignment.service:assign`<br>`kx.crm.deals.service:contact_of`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.deals.service:missing_for`<br>`kx.crm.deals.service:move_stage`<br>`kx.crm.deals.service:requirements_of`<br>`kx.crm.services.access:check_edit` |
+| POST | `/v1/deals/{deal_id}/takeover` | `kx.crm.assignment.router:router.<locals>.take_over` | `kx.crm.assignment.service:take_over`<br>`kx.crm.deals.router:deal_detail` |
+| GET | `/v1/deals/{deal_id}/timeline` | `kx.crm.deals.router:router.<locals>.timeline` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_view` |
+| POST | `/v1/deals/{deal_id}/won` | `kx.crm.deals.actions_router:router.<locals>.won` | `kx.crm.deals.service:get_deal`<br>`kx.crm.orders.service:mark_won`<br>`kx.crm.services.access:check_edit` |
+| GET | `/v1/exports/{entity}` | `kx.crm.reports.router:router.<locals>.export` | `kx.crm.deals.router:visible_to` |
 | PUT | `/v1/feature-flags/{key}` | `kx.crm.admin.router:router.<locals>.put_flag` | - |
 | GET | `/v1/fx-rates` | `kx.crm.records.router:router.<locals>.fx_rates` | - |
 | POST | `/v1/fx-rates` | `kx.crm.records.router:router.<locals>.fx_override` | `kx.crm.services.journal:record` |
 | GET | `/v1/inbox` | `kx.crm.screens.router:router.<locals>.my_inbox` | `kx.crm.inbox.service:inbox_for` |
 | GET | `/v1/materials/freshness` | `kx.crm.admin.router:router.<locals>.freshness` | `kx.crm.pricing.proposals:material_freshness` |
-| GET | `/v1/orders` | `kx.crm.records.router:router.<locals>.orders` | `kx.crm.api.deals:visible_to`<br>`kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
+| GET | `/v1/orders` | `kx.crm.records.router:router.<locals>.orders` | `kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of`<br>`kx.crm.deals.router:visible_to` |
 | GET | `/v1/price-list/export` | `kx.crm.screens.router:router.<locals>.export_price_list` | `kx.crm.pricing.price_list_service:export_xlsx` |
 | GET | `/v1/price-list/history` | `kx.crm.screens.router:router.<locals>.price_list_history` | - |
 | POST | `/v1/price-list/import` | `kx.crm.screens.router:router.<locals>.import_price_list` | `kx.crm.pricing.price_list_service:import_xlsx` |
@@ -212,7 +212,7 @@ other mapping files, and this table is updated with each move.
 | POST | `/v1/public/sessions/{session_id}/voice` | `kx.agents.website:build_router.<locals>.voice` | - |
 | GET | `/v1/public/unsubscribe` | `kx.automation.unsubscribe:build_router.<locals>.unsubscribe_page` | - |
 | POST | `/v1/public/unsubscribe` | `kx.automation.unsubscribe:build_router.<locals>.unsubscribe` | `kx.automation.optout:apply_stop` |
-| GET | `/v1/quote-versions/{version_id}` | `kx.crm.api.quotes:router.<locals>.get_version` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.issuing:lines_of` |
+| GET | `/v1/quote-versions/{version_id}` | `kx.crm.api.quotes:router.<locals>.get_version` | `kx.crm.deals.service:get_deal`<br>`kx.crm.services.access:check_view`<br>`kx.crm.services.issuing:lines_of` |
 | GET | `/v1/quote-versions/{version_id}/costs` | `kx.crm.api.quotes:router.<locals>.get_costs` | `kx.crm.services.quotes:costs_of` |
 | GET | `/v1/settings` | `kx.crm.admin.router:router.<locals>.list_settings` | - |
 | PUT | `/v1/settings/{key}` | `kx.crm.admin.router:router.<locals>.put_setting` | - |
@@ -264,7 +264,7 @@ other mapping files, and this table is updated with each move.
 | `automation.requeue_outbound` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.requeue` | `kx.automation.outbox:emit` |
 | `crm.approval_sweep` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.sweep` | `kx.crm.approvals.service:sweep_overdue`<br>`kx.crm.change_requests.service:sweep_escalations` |
 | `crm.fx_rates` | <crontab: 5 2 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.fx_rates` | `kx.crm.pricing.fx:update_rates`<br>`kx.crm.pricing.fx:wanted` |
-| `crm.lost_proposals` | <crontab: 7 4 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.lost` | `kx.crm.services.lost_proposals:propose_lost` |
+| `crm.lost_proposals` | <crontab: 7 4 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.lost` | `kx.crm.deals.lost_proposals:propose_lost` |
 | `crm.price_staleness` | <crontab: 23 5 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.staleness` | `kx.crm.pricing.proposals:emit_stale`<br>`kx.crm.services.quotes:expire_quotes` |
 | `crm.retention` | <crontab: 41 23 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.retention_` | `kx.crm.retention.service:run_retention` |
 | `crm.scheduled_reports` | <crontab: */15 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.reports` | `kx.crm.reports.scheduled:send_due` |

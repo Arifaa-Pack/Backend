@@ -34,7 +34,7 @@ from kx.core.auth import Role
 from kx.core.errors import Forbidden
 from kx.crm.api.context import ApiContext, Manager, Staff
 from kx.crm.api.context import MdOnly as Md
-from kx.crm.api.deals import visible_to
+from kx.crm.deals.router import visible_to
 from kx.crm.models import (
     Company,
     Contact,

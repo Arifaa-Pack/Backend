@@ -29,6 +29,7 @@ from kx.core import events as ev
 from kx.core.contracts import CounterVerdict, CounterVerdictKind, DealStage, RequirementPatch
 from kx.core.errors import RuleViolation
 from kx.core.event_payloads import NegotiationPaused
+from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Deal, MarginRuleRow, NegotiationRound, QuoteLine, QuoteLineCost, QuoteVersion, Task
 from kx.crm.pricing.engine import evaluate_counter as engine_counter
@@ -37,7 +38,6 @@ from kx.crm.pricing.price_list import PriceTier, TierPrice, convert_tier
 from kx.crm.pricing.service import tiers_of_version
 from kx.crm.pricing.types import CostInputs, LadderState, MarginBand, NegotiationState
 from kx.crm.rules import PauseReason, round_verdict
-from kx.crm.services import deals as deal_svc
 from kx.crm.services import quotes, staff
 from kx.crm.services.issuing import local_today
 from kx.crm.services.journal import Actor, Emit, Timeline, record

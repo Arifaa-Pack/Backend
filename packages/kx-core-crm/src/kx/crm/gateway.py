@@ -45,6 +45,7 @@ from kx.crm.approvals import service as approvals
 from kx.crm.assignment import service as assignment
 from kx.crm.change_requests import service as change_requests
 from kx.crm.contacts import consent
+from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import (
     Approval,
@@ -69,7 +70,6 @@ from kx.crm.pricing.service import (
     lead_time_text,
 )
 from kx.crm.rules import pause_reason
-from kx.crm.services import deals as deal_svc
 from kx.crm.services import grants, quotes, staff
 from kx.crm.services.issuing import lines_of
 from kx.crm.services.journal import Actor

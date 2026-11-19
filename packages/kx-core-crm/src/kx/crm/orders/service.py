@@ -26,9 +26,9 @@ from kx.core.db import get_or_404
 from kx.core.errors import Conflict, RuleViolation
 from kx.core.event_payloads import DealWon, OrderStatusChanged
 from kx.core.identity import new_id
+from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Contact, Deal, Order, OrderStatusHistory, Payment, StockItem, StockMovement
-from kx.crm.services import deals as deal_svc
 from kx.crm.services import staff
 from kx.crm.services.grants import recipient
 from kx.crm.services.journal import Actor, Emit, Timeline, record

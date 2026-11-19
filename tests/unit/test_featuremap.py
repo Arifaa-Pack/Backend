@@ -104,7 +104,7 @@ def test_every_event_with_a_handler_is_mapped(fmap: dict[str, Any]) -> None:
 def test_routes_jobs_and_beat_are_mapped(fmap: dict[str, Any]) -> None:
     routes = {(r["method"], r["path"]): r for r in fmap["routes"]}
     revise = routes[("POST", "/v1/deals/{deal_id}/quotes/revise")]
-    assert revise["router"] == "kx.crm.api.deals"
+    assert revise["router"] == "kx.crm.deals.router"
     assert "kx.crm.services.quotes:revise_quote" in revise["calls"]
     assert ("POST", "/webhooks/whatsapp") in routes
     assert ("POST", "/v1/public/sessions") in routes

@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends
 
 from kx.core.db import Databases
 from kx.crm.admin import router as admin
-from kx.crm.api import deal_actions, deals, quotes
+from kx.crm.api import quotes
 from kx.crm.api.context import ApiContext
 from kx.crm.assignment import router as assignment
 from kx.crm.auth import router as auth
@@ -20,6 +20,8 @@ from kx.crm.auth.session_guard import SessionGuard
 from kx.crm.catalogue import router as catalogue_workbook
 from kx.crm.change_requests import router as change_requests
 from kx.crm.company import router as company
+from kx.crm.deals import actions_router as deal_actions
+from kx.crm.deals import router as deals
 from kx.crm.deps import CrmDeps
 from kx.crm.operations import router as operations
 from kx.crm.records import router as records

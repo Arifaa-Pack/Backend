@@ -23,6 +23,7 @@ from kx.core.errors import RuleViolation
 from kx.core.identity import new_id
 from kx.core.money import MONEY_PLACES, display, q
 from kx.crm.approvals import service as approvals
+from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import (
     Approval,
@@ -53,7 +54,6 @@ from kx.crm.pricing.service import (
 )
 from kx.crm.pricing.types import PricedLine
 from kx.crm.rules import QUOTABLE_STAGES
-from kx.crm.services import deals as deal_svc
 from kx.crm.services import grants, staff
 from kx.crm.services.issuing import lines_of, local_today
 from kx.crm.services.journal import Actor, Timeline, record

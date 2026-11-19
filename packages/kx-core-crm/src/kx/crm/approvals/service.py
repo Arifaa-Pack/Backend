@@ -30,10 +30,10 @@ from kx.core.event_payloads import ApprovalOverdue, QuoteCorrectionRequested, Qu
 from kx.core.identity import new_id
 from kx.core.money import display
 from kx.crm.change_requests import service as change_requests
+from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Approval, ApprovalEvent, Deal, Quote, QuoteVersion
 from kx.crm.services import access, staff
-from kx.crm.services import deals as deal_svc
 from kx.crm.services.grants import GrantPolicy
 from kx.crm.services.issuing import issue_to_buyer
 from kx.crm.services.journal import Actor, Emit, Timeline, record

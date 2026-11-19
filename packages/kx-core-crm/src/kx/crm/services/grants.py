@@ -20,9 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.errors import RuleViolation
 from kx.core.identity import new_id, recipient_hash
+from kx.crm.deals import service as deal_svc
 from kx.crm.models import Contact, Deal, Quote, QuoteSendGrant, QuoteVersion
 from kx.crm.rules import next_working_day
-from kx.crm.services import deals as deal_svc
 from kx.crm.services.journal import Actor, Timeline, record
 from kx.crm.services.settings import BusinessSettings
 

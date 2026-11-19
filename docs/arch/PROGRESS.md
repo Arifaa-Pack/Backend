@@ -462,3 +462,18 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 24.24s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `screens` @ `808c859`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-screens`, COMPLETED
+
+## 1.20 slice `deals` — TESTING (COMPLETED when tagged `arch-slice/crm-deals`)
+
+- **Moved:** `services/deals.py` → `deals/service.py`, `services/summary.py` → `deals/summary.py`, `services/lost_proposals.py` → `deals/lost_proposals.py`, `api/deals.py` → `deals/router.py`, `api/deal_actions.py` → `deals/actions_router.py`; shims at the five old paths; 24 imports rewritten across 19 modules; `tests/unit/test_featuremap.py` asserts the new router path (the only test line changed: it checks `kx map` output, which names the real module).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 422 files already formatted
+  - mypy: Success: no issues found in 266 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 22.51s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `admin` @ `c1fe47c`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-admin`, COMPLETED

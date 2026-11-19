@@ -10,11 +10,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.crm.api.context import ApiContext, Manager, MdOnly, Staff
-from kx.crm.api.deals import deal_detail
 from kx.crm.api.schemas import DealDetail, ManualQuoteIn, QuoteVersionOut, ReassignIn
 from kx.crm.assignment import service as assignment
+from kx.crm.deals import service as deal_svc
+from kx.crm.deals.router import deal_detail
 from kx.crm.services import access, quotes
-from kx.crm.services import deals as deal_svc
 from kx.crm.services.journal import Actor
 
 

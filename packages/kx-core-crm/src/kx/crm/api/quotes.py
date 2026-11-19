@@ -17,9 +17,9 @@ from kx.crm.api.context import ApiContext, Manager, MdOnly, Staff
 from kx.crm.api.pagination import Page, keyset, page_of
 from kx.crm.api.schemas import ApprovalOut, DecisionIn, LineCostOut, QuoteLineOut, QuoteVersionOut
 from kx.crm.approvals import service as approvals
+from kx.crm.deals import service as deal_svc
 from kx.crm.models import Approval, Quote, QuoteVersion
 from kx.crm.services import access, quotes
-from kx.crm.services import deals as deal_svc
 from kx.crm.services.issuing import lines_of
 
 # D1: the salesperson, the manager or the MD on takeover; the service checks which deal (access.py)

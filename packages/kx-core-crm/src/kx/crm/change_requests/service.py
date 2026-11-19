@@ -31,10 +31,10 @@ from kx.core.db import get_or_404
 from kx.core.errors import Conflict, RuleViolation
 from kx.core.event_payloads import ChangeRequestClosed, ChangeRequested
 from kx.core.identity import new_id
+from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import ChangeRequest, Deal, Quote, QuoteLine, QuoteVersion
 from kx.crm.services import access, staff
-from kx.crm.services import deals as deal_svc
 from kx.crm.services.issuing import lines_of
 from kx.crm.services.journal import Actor, Emit, Timeline, record
 from kx.crm.services.quotes import latest_version
