@@ -421,7 +421,7 @@ scenario("S6", "Email enquiry", {
   expected: [
     "A deal on the email channel; the AI reply arrives in your test mailbox from the company address, with an unsubscribe link at the bottom.",
     "The reply is in the language of your email and contains no price. It is titled \"Re: Packaging enquiry\" and stays in your email thread.",
-    "A quote e-mail is titled \"Quotation Q-... from ...\", greets you by name (or just \"Hi,\"; never \"Hi Customer\") and its PDF shows your name / address in the \"To\" block.",
+    "A quote e-mail answers in your thread too (\"Re: <your subject>\"); only a buyer who never e-mailed gets a new thread titled \"Quotation Q-... from ...\". It greets you by name (or just \"Hi,\"; never \"Hi Customer\") and its PDF shows your name / address in the \"To\" block.",
   ],
   look: "Your test mailbox; deal timeline.",
 });
