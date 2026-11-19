@@ -1,1 +1,3 @@
-ad55b2f chore: stop tracking two Office lock files and ignore ~$* files
+First live image of the round-2 re-test: ad55b2f (end of the restructure). Rebuilt after each re-test fix; the
+final image (API matrix, security probes, Postman run) was built from 5c23541. The business flows, the email
+and M8 checks and the load matrix ran on the image of ed6b30d (5c23541 only adds the customer-type check).
