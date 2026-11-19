@@ -144,12 +144,12 @@ other mapping files, and this table is updated with each move.
 | GET | `/v1/catalogue/workbook` | `kx.crm.catalogue.router:router.<locals>.download` | `kx.crm.catalogue.workbook:download` |
 | POST | `/v1/catalogue/workbook/apply` | `kx.crm.catalogue.router:router.<locals>.apply` | `kx.crm.catalogue.workbook:apply` |
 | POST | `/v1/catalogue/workbook/preview` | `kx.crm.catalogue.router:router.<locals>.preview` | `kx.crm.catalogue.workbook:preview` |
-| GET | `/v1/change-requests` | `kx.crm.api.change_requests:router.<locals>.inbox` | `kx.crm.api.deals:visible_to` |
-| GET | `/v1/change-requests/{cr_id}` | `kx.crm.api.change_requests:router.<locals>.card` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |
-| POST | `/v1/change-requests/{cr_id}/decline` | `kx.crm.api.change_requests:router.<locals>.decline` | `kx.crm.services.change_requests:decline` |
-| POST | `/v1/change-requests/{cr_id}/resolve` | `kx.crm.api.change_requests:router.<locals>.resolve` | `kx.crm.services.change_requests:resolve` |
-| POST | `/v1/change-requests/{cr_id}/revise` | `kx.crm.api.change_requests:router.<locals>.revise` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.change_requests:link_revision`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:revise_quote` |
-| POST | `/v1/change-requests/{cr_id}/start` | `kx.crm.api.change_requests:router.<locals>.start` | `kx.crm.services.change_requests:start` |
+| GET | `/v1/change-requests` | `kx.crm.change_requests.router:router.<locals>.inbox` | `kx.crm.api.deals:visible_to` |
+| GET | `/v1/change-requests/{cr_id}` | `kx.crm.change_requests.router:router.<locals>.card` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |
+| POST | `/v1/change-requests/{cr_id}/decline` | `kx.crm.change_requests.router:router.<locals>.decline` | `kx.crm.change_requests.service:decline` |
+| POST | `/v1/change-requests/{cr_id}/resolve` | `kx.crm.change_requests.router:router.<locals>.resolve` | `kx.crm.change_requests.service:resolve` |
+| POST | `/v1/change-requests/{cr_id}/revise` | `kx.crm.change_requests.router:router.<locals>.revise` | `kx.crm.change_requests.service:link_revision`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.quotes:revise_quote` |
+| POST | `/v1/change-requests/{cr_id}/start` | `kx.crm.change_requests.router:router.<locals>.start` | `kx.crm.change_requests.service:start` |
 | GET | `/v1/companies` | `kx.crm.records.router:router.<locals>.companies` | `kx.crm.api.deals:visible_to`<br>`kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
 | POST | `/v1/companies` | `kx.crm.records.router:router.<locals>.create_company` | `kx.crm.services.journal:record` |
 | PATCH | `/v1/companies/{company_id}` | `kx.crm.records.router:router.<locals>.edit_company` | `kx.crm.api.deals:visible_to`<br>`kx.crm.services.journal:record` |
@@ -262,7 +262,7 @@ other mapping files, and this table is updated with each move.
 | `automation.mail_poll` | 0:00:30 | `kx.automation.jobs:periodic_jobs.<locals>.mail_poll` | `kx.automation.channels.stalwart:raw_key` |
 | `automation.price_scrapes` | <crontab: 0 2 * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.scrapes` | - |
 | `automation.requeue_outbound` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.automation.jobs:periodic_jobs.<locals>.requeue` | `kx.automation.outbox:emit` |
-| `crm.approval_sweep` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.sweep` | `kx.crm.services.approvals:sweep_overdue`<br>`kx.crm.services.change_requests:sweep_escalations` |
+| `crm.approval_sweep` | <crontab: */5 * * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.sweep` | `kx.crm.change_requests.service:sweep_escalations`<br>`kx.crm.services.approvals:sweep_overdue` |
 | `crm.fx_rates` | <crontab: 5 2 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.fx_rates` | `kx.crm.pricing.fx:update_rates`<br>`kx.crm.pricing.fx:wanted` |
 | `crm.lost_proposals` | <crontab: 7 4 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.lost` | `kx.crm.services.lost_proposals:propose_lost` |
 | `crm.price_staleness` | <crontab: 23 5 * * * (m/h/dM/MY/d)> | `kx.crm.jobs:periodic_jobs.<locals>.staleness` | `kx.crm.pricing.proposals:emit_stale`<br>`kx.crm.services.quotes:expire_quotes` |

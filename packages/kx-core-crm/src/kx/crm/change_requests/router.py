@@ -1,0 +1,84 @@
+"""Change-request inbox and card actions (§13.2 quick actions, §20 "My inbox"). Thin: services do the work."""
+
+# No `from __future__ import annotations` here: FastAPI must evaluate the closure-local `Session`
+# alias; PEP 649 (Python 3.14) lazy annotations resolve it, string annotations would not.
+
+import uuid
+from typing import Annotated, Literal
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from kx.core.auth import Role
+from kx.core.db import get_or_404
+from kx.crm.api.context import ApiContext, Staff
+from kx.crm.api.deals import visible_to
+from kx.crm.api.schemas import ChangeRequestOut, DeclineIn, QuoteEditsIn, QuoteVersionOut, ResolveIn
+from kx.crm.change_requests import service as change_requests
+from kx.crm.models import ChangeRequest, Deal
+from kx.crm.services import access, quotes
+from kx.crm.services import deals as deal_svc
+from kx.crm.services.journal import Actor
+
+
+def router(ctx: ApiContext) -> APIRouter:
+    r = APIRouter(prefix="/change-requests", tags=["change-requests"])
+    Session = Annotated[AsyncSession, Depends(ctx.session)]  # noqa: N806
+    deps = ctx.deps
+
+    @r.get("", response_model=list[ChangeRequestOut])
+    async def inbox(
+        s: Session,
+        p: Staff,
+        status: Literal["open", "closed"] = "open",
+        deal_id: uuid.UUID | None = None,
+        limit: Annotated[int, Query(ge=1, le=200)] = 100,
+    ) -> list[ChangeRequestOut]:
+        """Open cards with SLA timers, oldest due first. A salesperson sees the cards of their own deals."""
+        open_ = change_requests.OPEN
+        stmt = select(ChangeRequest).where(
+            ChangeRequest.status.in_(open_) if status == "open" else ChangeRequest.status.not_in(open_)
+        )
+        if deal_id is not None:
+            stmt = stmt.where(ChangeRequest.deal_id == deal_id)
+        if p.role is Role.SALES:
+            stmt = visible_to(stmt.join(Deal, Deal.id == ChangeRequest.deal_id), p)  # own + covered (§9.3)
+        rows = (await s.execute(stmt.order_by(ChangeRequest.sla_due_at).limit(limit))).scalars()
+        return [ChangeRequestOut.model_validate(c) for c in rows]
+
+    @r.get("/{cr_id}", response_model=ChangeRequestOut)
+    async def card(cr_id: uuid.UUID, s: Session, p: Staff) -> ChangeRequestOut:
+        """§13 change request card: what the buyer asked (their words), current vs requested values, SLA."""
+        cr = await get_or_404(s, ChangeRequest, cr_id, f"change request {cr_id} not found")
+        await access.check_view(s, p, await deal_svc.get_deal(s, cr.deal_id))
+        return ChangeRequestOut.model_validate(cr)
+
+    @r.post("/{cr_id}/start", response_model=ChangeRequestOut)
+    async def start(cr_id: uuid.UUID, s: Session, p: Staff) -> ChangeRequestOut:
+        """Take the change request (starts work; the SLA keeps running)."""
+        return ChangeRequestOut.model_validate(await change_requests.start(s, deps, cr_id, p))
+
+    @r.post("/{cr_id}/revise", response_model=QuoteVersionOut, status_code=201)
+    async def revise(cr_id: uuid.UUID, body: QuoteEditsIn, s: Session, p: Staff) -> QuoteVersionOut:
+        """ "Revise quote": a new version with the edits; approving it resolves the card (§13.3-4)."""
+        cr = await get_or_404(s, ChangeRequest, cr_id, f"change request {cr_id} not found")
+        await access.check_edit(s, p, await deal_svc.get_deal(s, cr.deal_id))
+        edits = body.to_edits(note=body.note or f"Change request ({cr.type})")
+        version = await quotes.revise_quote(s, deps, cr.deal_id, edits, Actor.user(p))
+        await change_requests.link_revision(s, deps, cr_id, version.id, p)
+        return QuoteVersionOut.model_validate(version)
+
+    @r.post("/{cr_id}/resolve", response_model=ChangeRequestOut)
+    async def resolve(cr_id: uuid.UUID, body: ResolveIn, s: Session, p: Staff) -> ChangeRequestOut:
+        """Close the change request as done (a revised quote was sent or the answer given)."""
+        return ChangeRequestOut.model_validate(
+            await change_requests.resolve(s, deps, cr_id, body.version_id, p)
+        )
+
+    @r.post("/{cr_id}/decline", response_model=ChangeRequestOut)
+    async def decline(cr_id: uuid.UUID, body: DeclineIn, s: Session, p: Staff) -> ChangeRequestOut:
+        """Decline the change request with a reason the buyer is told."""
+        return ChangeRequestOut.model_validate(await change_requests.decline(s, deps, cr_id, body.reason, p))
+
+    return r

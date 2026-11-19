@@ -357,3 +357,18 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 22.36s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `handover` @ `eca15e7`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-handover`, COMPLETED
+
+## 1.13 slice `change_requests` — TESTING (COMPLETED when tagged `arch-slice/crm-change_requests`)
+
+- **Moved:** `services/change_requests.py` → `change_requests/service.py`, `api/change_requests.py` → `change_requests/router.py`; shims at both old paths; imports rewritten in 7 modules (`api/__init__.py`, `api/deals.py`, `assignment/service.py`, `gateway.py`, `jobs.py`, `services/approvals.py`, `services/inbox.py`).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 404 files already formatted
+  - mypy: Success: no issues found in 248 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 23.15s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `assignment` @ `158667a`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-assignment`, COMPLETED

@@ -13,8 +13,9 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role
+from kx.crm.change_requests import service as change_requests
 from kx.crm.models import Approval, ChangeRequest, Deal, Quote, QuoteVersion, Task, TimelineEvent, User
-from kx.crm.services import approvals, change_requests
+from kx.crm.services import approvals
 
 ItemKind = Literal[
     "approval",
