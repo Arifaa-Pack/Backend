@@ -15,10 +15,10 @@ from langchain.agents.middleware import ModelCallLimitMiddleware, ToolCallLimitM
 from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.graph.state import CompiledStateGraph
 
-from kx.agents.context import AgentContext
 from kx.agents.guard.service import PriceGuardMiddleware
 from kx.agents.llm.service import ModelSet
-from kx.agents.middleware import RoleMiddleware, ToolAuditMiddleware
+from kx.agents.runtime.context import AgentContext
+from kx.agents.runtime.middleware import RoleMiddleware, ToolAuditMiddleware
 from kx.agents.tools.service import ALL_TOOLS
 
 

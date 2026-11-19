@@ -33,7 +33,7 @@ from pydantic import BaseModel, Field
 
 from kx.agents.orm import Visitor
 from kx.agents.roles.language import normalise_language
-from kx.agents.service import AgentService, InboundTurn
+from kx.agents.runtime.service import AgentService, InboundTurn
 from kx.agents.voice.service import VoiceRouter
 from kx.core.clientip import client_ip as _ip
 from kx.core.contracts import AiRole, ContactPatch, CrmGateway

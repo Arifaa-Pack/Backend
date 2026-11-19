@@ -1093,3 +1093,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 23.29s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `router` @ `888b132`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-router`, COMPLETED
+
+## 2b.25 slice `runtime` — TESTING (COMPLETED when tagged `arch-slice/agents-runtime`)
+
+- **Moved:** `service.py` (AgentService, GraphRunner), `runs.py`, `context.py`, `middleware.py` → `runtime/`; the four old files are alias shims (77, 37, 24, 26 names, none missing); 19 imports rewritten. `tests/unit/test_audit_fixes.py` read the VendorSwitch metric name from the old file path: pointed at `runtime/service.py` (test-only path change).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 476 files already formatted
+  - mypy: Success: no issues found in 314 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ======================= 1 failed, 130 passed in 26.95s ========================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `roles` @ `23489e6`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-roles`, COMPLETED

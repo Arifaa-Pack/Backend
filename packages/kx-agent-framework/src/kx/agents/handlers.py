@@ -23,7 +23,7 @@ from kx.agents.memory.service import TurnStore
 from kx.agents.orm import SCHEMA
 from kx.agents.roles.language import reply_language
 from kx.agents.roles.registry import Phrase
-from kx.agents.service import AgentService, Deliver, InboundTurn
+from kx.agents.runtime.service import AgentService, Deliver, InboundTurn
 from kx.core import events as ev
 from kx.core.contracts import AiRole, MessageSender, OutboundKind, OutboundRequest
 from kx.core.db import Databases
