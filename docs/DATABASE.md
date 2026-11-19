@@ -107,3 +107,21 @@ Order to move: `agents` + `automation` (Interactions) first, then Phoenix, then 
   table is unclassified.
 - Every foreign key column gets an index (the missing `tool_calls(run_id)` index is added by `agents_0004`).
 - Vectors: `agents.kb_chunks.embedding vector(1024)` with HNSW cosine; every chunk stores its `embedding_model`, and search only reads chunks of the configured model.
+
+## 7. Indexes added after the v1 baseline (19 Nov, maintainability review I2–I7)
+
+All built or dropped `CONCURRENTLY`, outside the migration transaction (Alembic `autocommit_block()`), so writes
+never wait; forward-only; `tests/db/test_migrations_v1.py` re-runs each statement to prove it is idempotent.
+
+| Revision | Index | Serves |
+| --- | --- | --- |
+| `crm_0016` | `audit_events (action, at DESC)` | price-list history and the dashboard's action counts (audit is append-only, never partitioned) |
+| `crm_0016` | two partial expression indexes on `audit_events` (price-tier rows, `product_id` after / before) | a product's price history |
+| `crm_0016` | `approvals (assigned_user_id)` for open approvals | the salesperson's inbox, on every load |
+| `crm_0016` | `deals (updated_at DESC, id DESC)` | the unfiltered deals board (keyset pages) |
+| `crm_0016` | `timeline_events (deal_id, id DESC)` | the deal page timeline (keyset by id) |
+| `automation_0010` | `outbound_messages (provider_message_id)` where not null | every WhatsApp / e-mail status webhook finds its message |
+| `agents_0005` | **dropped** `agent_runs_started_idx` | duplicated the baseline `agent_runs_day_idx`: every AI run wrote two identical indexes |
+
+Under load the AI worker's thread pool holds its own connection pool per thread: the live load test saw up to 89
+PostgreSQL connections at 50 users (34 before). Size PgBouncer's `max_db_connections` for it (§3).

@@ -697,3 +697,18 @@ The three feature modules (`outbound.py`, `inbound.py`, `optout.py`) are byte-id
   - unit: ============================ 124 passed in 21.08s =============================
 
 **Phase 2: COMPLETED. ADR-0001 Phases 0–2: COMPLETED.**
+
+---
+
+## After the restructure: fixes found by the 19 Nov live re-test (not part of ADR-0001)
+
+These commits change behaviour, so they are separate `fix:` commits after the restructure, each with a test that
+fails without it, every gate run, and the full suite:
+
+| Commit | Fix | Full suite |
+| --- | --- | --- |
+| `1ebe0dd` | an admin unlock also lifts the account's per-IP sign-in lockouts (M3) | tests=982, failures=0, errors=0, skipped=4 |
+| `520b375` | a known IP is not held back by attempts on the account from elsewhere (M3 lockout DoS); logout ends the access token's session at once (L1) | tests=984, failures=0, errors=0, skipped=4 |
+| `ed6b30d` | NUL bytes refused with 400 before PostgreSQL (was 500); security headers on every answer; no API docs in production | tests=989, failures=0, errors=0, skipped=4 |
+
+`kx map` stayed path-only identical and the OpenAPI changed only in the logout description (`520b375`).
