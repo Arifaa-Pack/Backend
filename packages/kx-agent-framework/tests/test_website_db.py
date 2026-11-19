@@ -150,7 +150,11 @@ async def test_voice_token_carries_the_deal_and_language_for_the_worker(env: Env
     )
     import json
 
-    assert json.loads(claims["metadata"]) == {"deal_ref": str(env.gateway.deal.deal_id), "language": "ar"}
+    assert json.loads(claims["metadata"]) == {
+        "deal_ref": str(env.gateway.deal.deal_id),
+        "language": "ar",
+        "session_id": session["session_id"],  # D58: the voice turn joins the visit's one thread
+    }
 
 
 @pytest.mark.parametrize(

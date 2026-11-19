@@ -44,8 +44,9 @@ from kx.agents.roles.registry import (
 from kx.agents.router.service import Route, route
 from kx.agents.runtime.context import AgentContext, GuardEventRecord, PriceCheck, RunLog
 from kx.agents.runtime.runs import RunStatus, RunStore, UsageMeter
+from kx.agents.site.models import SiteAction, SiteContext
 from kx.agents.tracing.service import Tracer
-from kx.core.contracts import AiRole, Channel, CrmGateway, OptOutScope
+from kx.core.contracts import AiRole, Channel, CrmGateway, OptOutScope, SiteManifest
 from kx.core.db import Databases
 from kx.core.fallback import CircuitBreaker
 from kx.core.logging import get_logger, mask_pii
@@ -83,6 +84,12 @@ class InboundTurn:
     contact_ref: uuid.UUID | None = None
     language: str | None = None
     stop_word: bool = False  # §8.1 step 1: a stop word inside a sentence -> read its meaning first
+    # D55 website turns: where the visitor is, what the site has, where an action goes at once, and the
+    # actions the instant resolver already sent (the agent does not repeat them)
+    site: SiteContext | None = None
+    manifest: SiteManifest | None = None
+    on_action: Callable[[SiteAction], Awaitable[None]] | None = None
+    site_actions: tuple[SiteAction, ...] = ()
 
 
 class StopReading(BaseModel):
@@ -291,7 +298,11 @@ class AgentService:
             conversation_id=conv_id,
             summary=history.summary,
             price_check=self.price_check,
+            site=turn.site,
+            manifest=turn.manifest,
+            on_action=turn.on_action,
         )
+        ctx.log.site_actions.extend(turn.site_actions)
         if looks_like_injection(turn.text):
             # D8: phones and emails are masked before the flag is stored (retention cannot reach every copy)
             flagged = mask_pii(turn.text[:200])

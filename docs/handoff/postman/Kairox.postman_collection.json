@@ -4798,7 +4798,7 @@
                 "messages"
               ]
             },
-            "description": "One chat turn (§6 steps 2-6) through the same agents, guard and router as WhatsApp.\n\n**Who may call it:** A website visitor: header Authorization: Bearer <session_token>\n\n**Expected on success:** HTTP 200",
+            "description": "One chat turn (§6 steps 2-6) through the same agents, guard and router as WhatsApp; the page moves with it (D55). `Accept: text/event-stream` streams `action`, `delta`, `done` / `error`.\n\n**Who may call it:** A website visitor: header Authorization: Bearer <session_token>\n\n**Expected on success:** HTTP 200",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"text\": \"{{web_text}}\",\n  \"language\": \"en\"\n}",
@@ -4910,7 +4910,7 @@
                 "voice"
               ]
             },
-            "description": "A LiveKit room token for live voice (participant metadata: deal_ref, language).\n\n**Who may call it:** A website visitor: header Authorization: Bearer <session_token>\n\n**Expected on success:** HTTP 200",
+            "description": "A LiveKit room token for live voice (participant metadata: deal_ref, language, session_id).\n\n**Who may call it:** A website visitor: header Authorization: Bearer <session_token>\n\n**Expected on success:** HTTP 200",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -4929,6 +4929,165 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Contact",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/public/sessions/{{session_id}}/contact",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "public",
+                "sessions",
+                "{{session_id}}",
+                "contact"
+              ]
+            },
+            "description": "The chat's contact card (D59): details plus the WhatsApp / email opt-ins with their wording. The same rules as identify (a typed phone or email is a claim, D-4) and the same answer.\n\n**Who may call it:** A website visitor: header Authorization: Bearer <session_token>\n\n**Expected on success:** HTTP 200",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QA test\",\n  \"company\": \"QA test\",\n  \"phone\": \"+971500000001\",\n  \"email\": \"qa.buyer@example.com\",\n  \"whatsapp_opt_in\": false,\n  \"email_opt_in\": false,\n  \"consent_wording\": \"QA test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/public/sessions/{{session_id}}/events",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "public",
+                "sessions",
+                "{{session_id}}",
+                "events"
+              ]
+            },
+            "description": "The visitor moved on the site. Their place is saved; the assistant may nudge (rarely, and only after the visitor has spoken: `website/service.py`).\n\n**Who may call it:** A website visitor: header Authorization: Bearer <session_token>\n\n**Expected on success:** HTTP 200",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"page_view\",\n  \"context\": {\n    \"path\": \"/\",\n    \"page\": \"home\",\n    \"locale\": \"en\",\n    \"family\": \"QA test\",\n    \"product_id\": \"{{product_id}}\",\n    \"quick_view_id\": \"{{quick_view_id}}\",\n    \"section\": \"QA test\",\n    \"enquiry_list\": [\n      \"QA test\"\n    ],\n    \"input\": \"text\"\n  },\n  \"seconds\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enquiry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/public/enquiries",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "public",
+                "enquiries"
+              ]
+            },
+            "description": "CT-01 enquiry desk (replaces `mailto:`). With a session token the enquiry joins that visit's deal; without one a Turnstile token is required. The CRM gets English labels (design doc §6).\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 201",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"family\": [\n    \"QA test\"\n  ],\n  \"products\": [\n    \"QA test\"\n  ],\n  \"detail\": \"QA test\",\n  \"size\": \"QA test\",\n  \"quantity\": \"QA test\",\n  \"often\": \"QA test\",\n  \"region\": \"QA test\",\n  \"city\": \"QA test\",\n  \"name\": \"QA test\",\n  \"company\": \"QA test\",\n  \"trade\": \"QA test\",\n  \"channel\": \"email\",\n  \"email\": \"qa.buyer@example.com\",\n  \"phone\": \"+971500000001\",\n  \"extra\": \"QA test\",\n  \"message\": \"QA test\",\n  \"locale\": \"en\",\n  \"whatsapp_opt_in\": false,\n  \"email_opt_in\": false,\n  \"consent_wording\": \"QA test\",\n  \"session_id\": \"{{session_id}}\",\n  \"turnstile_token\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });"
                 ]
               }
             }

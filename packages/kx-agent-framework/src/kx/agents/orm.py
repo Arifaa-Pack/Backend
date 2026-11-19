@@ -62,6 +62,12 @@ class Visitor(Base):
     contact_ref: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     expires_at: Mapped[datetime] = mapped_column(TS, server_default=sql("now() + interval '90 days'"))
     voice_consent_at: Mapped[datetime | None] = mapped_column(TS)  # §6.1 "Enter the factory" pressed
+    # agents_0006 (D55 / D57): the visitor's latest place on the site, and the nudge limits
+    site_context: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    engaged_at: Mapped[datetime | None] = mapped_column(TS)  # the first message: nudges only after it
+    proactive_count: Mapped[int] = mapped_column(SmallInteger, server_default=sql("0"))
+    last_proactive_at: Mapped[datetime | None] = mapped_column(TS)
+    recording_notice_at: Mapped[datetime | None] = mapped_column(TS)  # voice notice: once per visit
 
 
 class Conversation(Base):

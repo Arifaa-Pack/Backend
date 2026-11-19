@@ -1149,4 +1149,25 @@ Branch `feat/website-ai` (from `docs/tester-pack`), one commit per WP, plan `doc
     rows with the words the buyer saw and where.
   - Migration `crm_0018`. Tests: `test_erp_variants.py` (the pasted ERP rows), `test_catalogue_db.py`
     rewritten for variants.
-
+* **WP-C3 (D55, D57, D58, D59): Website API v2** (`kx/agents/website/`).
+  - `MessageIn.context` (`SiteContext`: page, family, product, section, enquiry list, text or voice) and
+    `MessageOut.actions` (at most 3; each has an intent id, its layer and its resolved EN / AR path).
+    The visitor's latest place is saved on the visitor row (`agents_0006`).
+  - The instant resolver runs before the agent: a clear "show me kitchen foil" sends `show_family foil`
+    without waiting for the model. Every action is checked against the site manifest, and the same intent
+    is sent once.
+  - `Accept: text/event-stream`: `action` events first, then the reply in sentence `delta`s, then `done`
+    (an `error` event on failure). The deltas come after the whole reply passed the price guard. Token-by-
+    token streaming with a guard per sentence is still to do.
+  - One thread per visit, `web:{session_id}`, for chat and voice (D58). The voice token metadata carries
+    `session_id`.
+  - `POST /sessions/{id}/events`: the place is saved. Nudges come only after the visitor's first message,
+    at most 3 a visit and 30 s apart: a product open for 20 s, an enquiry-list add (with the contact card
+    when no phone or email is known yet), 45 s idle on Contact. Fixed English and Arabic texts (no model
+    call), quiet while a salesperson has the deal.
+  - `POST /sessions/{id}/contact`: the chat's contact card with the WhatsApp / email opt-ins and their
+    wording (D59).
+  - `POST /enquiries` (CT-01, replaces `mailto:`): the desk's own field names, a session token or
+    Turnstile. `CrmGateway.website_enquiry` opens a `web_form` deal (or joins the visit's deal), applies the
+    contact rule D-4 and the opt-ins, saves the requirement and an English-labelled note, then assigns the
+    salesperson (DEAL_ASSIGNED alert) even when some §5 fields are still missing.

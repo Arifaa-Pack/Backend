@@ -251,6 +251,17 @@ class VariantView(_Frozen):
     quotable: bool = True  # False: the salesperson prices it (no approved price list yet)
 
 
+class WebEnquiry(_Frozen):
+    """CT-01 (WP-C3): the website's enquiry desk as the CRM records it. The contact is a claim (the D-4 rules
+    decide whether it is a known buyer); the summary carries English labels for the salesperson (design doc
+    §6) with the values as the visitor typed them."""
+
+    contact: ContactPatch
+    requirement: RequirementPatch | None = None
+    summary: str = Field(max_length=4000)
+    website_products: tuple[str, ...] = ()  # the enquiry list (website product ids)
+
+
 # ---------------- protocols implemented by packages, wired by the app -----------------------------
 OptOutScope = Literal["all", "whatsapp", "email", "phone"]
 
@@ -282,6 +293,11 @@ class CrmGateway(Protocol):
     async def delivery_estimate(self, deal_id: uuid.UUID) -> DeliveryEstimateView | None: ...
     async def product_variants(self, website_product_id: str) -> tuple[VariantView, ...]:
         """D61: the sellable variants (ERP items) linked to a website product, for the AI to explain."""
+        ...
+
+    async def website_enquiry(self, visitor_ref: uuid.UUID, enquiry: WebEnquiry) -> uuid.UUID:
+        """CT-01: record the enquiry desk on the visit's deal (or a new `web_form` deal), assign it and alert
+        the salesperson; the deal id. A phone or email that cannot be read is refused (RuleViolation)."""
         ...
 
     async def add_timeline(self, deal_id: uuid.UUID, kind: str, summary: str, actor: AiRole) -> None: ...

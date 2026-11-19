@@ -38,6 +38,7 @@ from kx.core.contracts import (
     RequirementPatch,
     RequirementView,
     VariantView,
+    WebEnquiry,
 )
 from kx.core.db import Databases
 from kx.core.identity import phone_kind
@@ -255,6 +256,22 @@ class CrmGatewayImpl:
             return await variants.variants_of(
                 s, website_product_id, limited_below=settings.stock_limited_below, now=self._deps.now()
             )
+
+    async def website_enquiry(self, visitor_ref: uuid.UUID, enquiry: WebEnquiry) -> uuid.UUID:
+        """CT-01 (WP-C3): the enquiry desk in one transaction. A person who fills in the form asked to be
+        contacted, so the deal gets its salesperson (and the DEAL_ASSIGNED alert) even when some §5 fields are
+        still missing; the salesperson completes them."""
+        actor = Actor.system("website_enquiry")
+        async with self._tx() as s:
+            deal = await deal_svc.open_web_enquiry(s, visitor_ref, actor)
+            await deal_svc.patch_contact(s, deal, enquiry.contact, actor)
+            if enquiry.requirement is not None:
+                await deal_svc.patch_requirement(s, deal, enquiry.requirement, actor)
+            await deal_svc.add_note(s, deal, "enquiry", enquiry.summary, actor)
+            await deal_svc.try_qualify(s, deal, actor, self._deps.now())
+            if deal.owner_user_id is None:
+                await assignment.assign(s, self._deps, deal, Actor.system("assignment"))
+            return deal.id
 
     async def add_timeline(self, deal_id: uuid.UUID, kind: str, summary: str, actor: AiRole) -> None:
         async with self._tx() as s:

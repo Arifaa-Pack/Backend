@@ -175,6 +175,30 @@ async def resolve_deal(
     return await create_deal(session, contact, source=channel, actor=actor)
 
 
+WEB_FORM: Final = "web_form"  # the deal source of the website's enquiry desk (CT-01)
+
+
+async def open_web_enquiry(session: AsyncSession, visitor_ref: uuid.UUID, actor: Actor) -> Deal:
+    """The deal a website enquiry belongs to: the visit's open deal when the visitor chatted first, else a new
+    form contact with a `web_form` deal (§5 step 1: one person = one record; the D-4 rules in `patch_contact`
+    then decide whether the typed phone / email is a known buyer)."""
+    contact = await find_contact(session, None, None, visitor_ref)
+    if contact is not None:
+        stmt = (
+            select(Deal)
+            .where(Deal.primary_contact_id == contact.id, Deal.stage.in_([s.value for s in OPEN_STAGES]))
+            .order_by(Deal.created_at.desc())
+            .limit(1)
+            .with_for_update()
+        )
+        if (deal := (await session.execute(stmt)).scalar_one_or_none()) is not None:
+            return deal
+    else:
+        contact = await _insert_contact(session, "web_chat", None, None, visitor_ref)
+        contact.source = "form"
+    return await create_deal(session, contact, source=WEB_FORM, actor=actor)
+
+
 async def create_deal(session: AsyncSession, contact: Contact, *, source: str, actor: Actor) -> Deal:
     deal = Deal(
         id=new_id(),

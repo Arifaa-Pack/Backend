@@ -43,6 +43,7 @@ from kx.core.contracts import (
     QuoteView,
     RequirementPatch,
     VariantView,
+    WebEnquiry,
 )
 
 
@@ -232,6 +233,10 @@ class FakeCrmGateway:
 
     async def schedule_follow_up(self, deal_id: uuid.UUID, due_at: datetime, reason: str) -> None:
         self.calls.append(("schedule_follow_up", due_at))
+
+    async def website_enquiry(self, visitor_ref: uuid.UUID, enquiry: WebEnquiry) -> uuid.UUID:
+        self.calls.append(("website_enquiry", enquiry))
+        return self.deal.deal_id
 
     async def product_variants(self, website_product_id: str) -> tuple[VariantView, ...]:
         return self.variants.get(website_product_id, ())

@@ -95,6 +95,7 @@ from kx.automation import retention as automation_retention
 from kx.cms import CmsDeps, ContentService, ManifestCache, WebsiteRevalidator, save_product_draft
 from kx.core import events as ev
 from kx.core.auth import TokenIssuer
+from kx.core.contracts import SiteManifestSource
 from kx.core.db import Databases
 from kx.core.event_payloads import ProductContentChanged
 from kx.core.events import Event, relay_once
@@ -652,6 +653,7 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
                 kill_switch=kill_switch,
                 routes=routes,
                 slots=slots,
+                manifest=site_manifest,
             ),
             spend=spend,
             redis=redis,
@@ -731,6 +733,7 @@ def _website(
     kill_switch: KillSwitch,
     routes: dict[str, VoiceRoute],
     slots: VoiceSlots,
+    manifest: SiteManifestSource,
 ) -> WebsiteDeps:
     """§6 public website API (D53): Turnstile + per-IP/per-session limits + the daily AI spend cap; voice also
     needs the voice-minute cap, the kill switch below `text_only` and a free-version call slot (D52)."""
@@ -769,6 +772,7 @@ def _website(
         voice=VoiceRouter(routes),
         livekit=livekit,
         trusted_ip_header=core.trusted_client_ip_header,
+        site_manifest=manifest,  # D55: the published site map (kx.cms), for site actions
     )
 
 

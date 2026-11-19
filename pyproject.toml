@@ -70,6 +70,8 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Query", 
 "packages/kx-core-db/src/kx/core/optout.py" = ["RUF001"]
 # M7 number words and money words in Arabic, Hindi and Chinese are the point of this module
 "packages/kx-core-db/src/kx/core/price_words.py" = ["RUF001"]
+# D57: the site navigation words in Arabic, Hindi, Tamil, Chinese and Sinhala are the point of this module
+"packages/kx-agent-framework/src/kx/agents/site/resolver.py" = ["RUF001"]
 
 [tool.mypy]
 python_version = "3.14"
@@ -263,7 +265,7 @@ layers = [
     "kx.agents.runtime.runs | kx.agents.runtime.middleware | kx.agents.memory",
     "kx.agents.runtime.context",
     "kx.agents.knowledge | kx.agents.llm | kx.agents.tracing",
-    "kx.agents.roles",
+    "kx.agents.roles | kx.agents.site",
 ]
 
 # D54: the CMS package (docs/adr/0003-cms-package.md). Routers sit above the services; shared code imports no slice.

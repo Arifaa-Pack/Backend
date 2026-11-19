@@ -58,9 +58,22 @@ text-only**: `voice_available` is `false` for `si`, so hide the voice button and
    * `turnstile_token`: from the Cloudflare Turnstile widget on the page (D39).
    * Keep `session_token` in memory (or sessionStorage) and send it as `Authorization: Bearer <session_token>`
      on the other calls. It lasts 2 hours; on `401` start a new session.
-2. Chat turn: `POST /v1/public/sessions/{id}/messages` `{text, language?}` ->
-   `{reply, language, handed_over}`. `reply` can be `null` (the conversation is with a person now): show
-   nothing new, or the hand-over line. Show `reply` as plain text (it may contain line breaks).
+2. Chat turn: `POST /v1/public/sessions/{id}/messages` `{text, language?, context?}` ->
+   `{reply, language, handed_over, actions}`. `reply` can be `null` (the conversation is with a person now):
+   show nothing new, or the hand-over line. Show `reply` as plain text (it may contain line breaks).
+   * `context` (`SiteContext`): where the visitor is (`path`, `page`, `locale`, `family`, `product_id`,
+     `quick_view_id`, `section`, `enquiry_list`, `input`). Send it with every message; omitted, the last one
+     sent is used.
+   * `actions` (at most 3, in order): what the assistant asks the page to do: `show_family`, `show_product`,
+     `navigate`, `scroll_to`, `factory_tour`, `add_to_enquiry`, `fill_enquiry`, `ask_contact`. Each has an
+     `id` (the same intent always has the same id: do it once, even if it arrives twice), `layer` (`instant`
+     or `agent`) and `resolved` (`path_en`, `path_ar`, `anchor`; use the one of the **page** locale). Map them
+     to the site's own functions (`showFamily`, `showProduct`, `goQuote` / `arifa:quote-fill`, `goFactory`,
+     `lenis.scrollTo`). Every action was checked against the site map; none carries a selector or a price.
+   * `Accept: text/event-stream` streams the turn: `event: action` (the page can move at once, before the
+     reply), `event: delta` `{text}` (the reply, a sentence at a time), `event: done`
+     `{language, handed_over}`, or `event: error` `{status, code, message}` instead of `done`.
+   * The same conversation continues in voice: chat and voice of one visit share one thread.
 3. Voice: `POST /v1/public/sessions/{id}/voice` -> `{livekit_url, token, room, language, expires_at}`.
    Join with the LiveKit browser SDK (`livekit-client`): `room.connect(livekit_url, token)`, publish the
    microphone, play the agent's audio track. The token admits this one room only; ask for a new one if it
@@ -70,6 +83,20 @@ text-only**: `voice_available` is `false` for `si`, so hide the voice button and
      `voice_consent: true` after the visitor presses it.
 4. Identify: `POST /v1/public/sessions/{id}/identify` `{phone?, email?, name?}` -> `{ok: true}` always (it does
    not reveal whether the buyer was known). `422 reason: "invalid"` = the phone or email does not look right.
+5. Contact card (the `ask_contact` action): `POST /v1/public/sessions/{id}/contact`
+   `{name?, company?, phone?, email?, whatsapp_opt_in, email_opt_in, consent_wording?}` -> `{ok: true}`.
+   The two ticks are separate and never pre-ticked; send the words shown next to them as `consent_wording`.
+6. Moves: `POST /v1/public/sessions/{id}/events` `{type, context, seconds?}` with `type` one of `page_view`,
+   `product_open`, `product_dwell` (with `seconds` on the product), `enquiry_add`, `idle` (with `seconds`).
+   -> `{reply, actions}`: usually empty; sometimes a short message from the assistant (show it as an
+   assistant message). The assistant speaks first only after the visitor has written or spoken, at most 3
+   times a visit: after 20 s on a product, on an enquiry-list add, after 45 s idle on Contact.
+7. Enquiry desk (CT-01, instead of `mailto:`): `POST /v1/public/enquiries` with the desk's own fields
+   (`family[]`, `products[]` = the enquiry list, `detail`, `size`, `quantity`, `often`, `region`, `city`,
+   `name`, `company`, `trade`, `channel`, `email`, `phone`, `extra`, `message`, `locale`, the two opt-ins and
+   `consent_wording`), plus `session_id` with the session token when a chat is open, else `turnstile_token`.
+   -> `201 {ok, reference}` (show "We have your enquiry (W-3F9A2C)"). A phone or an email is required
+   (`422 reason: "empty"`).
 
 When the visitor says "stop" in voice, the agent stops talking and listens (§8.1: on voice "stop" means
 "wait"); nothing for the site to do.
@@ -111,6 +138,7 @@ the CRM API.
 | `voice_consent` | boolean | no | default `false` |
 | `cookie_consent` | boolean | no | default `false` |
 | `country_code` | string or null | no |  |
+| `context` | `SiteContext` or null | no |  |
 
 <details><summary>Example request</summary>
 
@@ -120,7 +148,20 @@ the CRM API.
   "language": "en",
   "voice_consent": false,
   "cookie_consent": false,
-  "country_code": "AE"
+  "country_code": "AE",
+  "context": {
+    "path": "/",
+    "page": "home",
+    "locale": "en",
+    "family": "<family>",
+    "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "quick_view_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "section": "<section>",
+    "enquiry_list": [
+      "<enquiry_list>"
+    ],
+    "input": "text"
+  }
 }
 ```
 
@@ -147,7 +188,7 @@ the CRM API.
 
 #### `POST /v1/public/sessions/{session_id}/messages`
 
-One chat turn (§6 steps 2-6) through the same agents, guard and router as WhatsApp.
+One chat turn (§6 steps 2-6) through the same agents, guard and router as WhatsApp; the page moves with it (D55). `Accept: text/event-stream` streams `action`, `delta`, `done` / `error`.
 
 **Who:** the website session: header `Authorization: Bearer <session_token>`
 
@@ -163,13 +204,27 @@ One chat turn (§6 steps 2-6) through the same agents, guard and router as Whats
 |---|---|---|---|
 | `text` | string | yes | min length 1; max length 2000 |
 | `language` | string or null | no |  |
+| `context` | `SiteContext` or null | no |  |
 
 <details><summary>Example request</summary>
 
 ```json
 {
   "text": "Do you have 8325 containers with lids? I need 20,000 a month in Dubai.",
-  "language": "en"
+  "language": "en",
+  "context": {
+    "path": "/",
+    "page": "home",
+    "locale": "en",
+    "family": "<family>",
+    "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "quick_view_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "section": "<section>",
+    "enquiry_list": [
+      "<enquiry_list>"
+    ],
+    "input": "text"
+  }
 }
 ```
 
@@ -183,7 +238,10 @@ One chat turn (§6 steps 2-6) through the same agents, guard and router as Whats
 {
   "reply": "Yes: 8325 is our 1-litre aluminium container with lid, packed 1 x 1000 pcs.",
   "language": "en",
-  "handed_over": false
+  "handed_over": false,
+  "actions": [
+    "<actions>"
+  ]
 }
 ```
 
@@ -194,7 +252,7 @@ One chat turn (§6 steps 2-6) through the same agents, guard and router as Whats
 
 #### `POST /v1/public/sessions/{session_id}/voice`
 
-A LiveKit room token for live voice (participant metadata: deal_ref, language).
+A LiveKit room token for live voice (participant metadata: deal_ref, language, session_id).
 
 **Who:** the website session: header `Authorization: Bearer <session_token>`
 
@@ -270,7 +328,336 @@ A LiveKit room token for live voice (participant metadata: deal_ref, language).
 
 ---
 
+#### `POST /v1/public/sessions/{session_id}/contact`
+
+The chat's contact card (D59): details plus the WhatsApp / email opt-ins with their wording. The same rules as identify (a typed phone or email is a claim, D-4) and the same answer.
+
+**Who:** the website session: header `Authorization: Bearer <session_token>`
+
+**Parameters**
+
+| Name | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `session_id` | path | string (uuid) | yes |  |
+
+**Request body** (`application/json`): `ContactIn`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `name` | string or null | no |  |
+| `company` | string or null | no |  |
+| `phone` | string or null | no |  |
+| `email` | string or null | no |  |
+| `whatsapp_opt_in` | boolean | no | default `false` |
+| `email_opt_in` | boolean | no | default `false` |
+| `consent_wording` | string or null | no |  |
+
+<details><summary>Example request</summary>
+
+```json
+{
+  "name": "Aisha Khan",
+  "company": "Gulf Kitchens LLC",
+  "phone": "+971500000001",
+  "email": "qa.buyer@example.com",
+  "whatsapp_opt_in": false,
+  "email_opt_in": false,
+  "consent_wording": "<consent_wording>"
+}
+```
+
+</details>
+
+**Response 200:** `IdentifyOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "ok": true
+}
+```
+
+</details>
+
+
+---
+
+#### `POST /v1/public/sessions/{session_id}/events`
+
+The visitor moved on the site. Their place is saved; the assistant may nudge (rarely, and only after the visitor has spoken: `website/service.py`).
+
+**Who:** the website session: header `Authorization: Bearer <session_token>`
+
+**Parameters**
+
+| Name | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `session_id` | path | string (uuid) | yes |  |
+
+**Request body** (`application/json`): `EventIn`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `type` | `page_view` \| `product_open` \| `product_dwell` \| `enquiry_add` \| `idle` | yes |  |
+| `context` | `SiteContext` | yes |  |
+| `seconds` | number or null | no |  |
+
+<details><summary>Example request</summary>
+
+```json
+{
+  "type": "page_view",
+  "context": {
+    "path": "/",
+    "page": "home",
+    "locale": "en",
+    "family": "<family>",
+    "product_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "quick_view_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+    "section": "<section>",
+    "enquiry_list": [
+      "<enquiry_list>"
+    ],
+    "input": "text"
+  },
+  "seconds": 1
+}
+```
+
+</details>
+
+**Response 200:** `EventOut`
+
+<details><summary>Example response 200</summary>
+
+```json
+{
+  "reply": "Yes: 8325 is our 1-litre aluminium container with lid, packed 1 x 1000 pcs.",
+  "actions": [
+    "<actions>"
+  ]
+}
+```
+
+</details>
+
+
+---
+
+#### `POST /v1/public/enquiries`
+
+CT-01 enquiry desk (replaces `mailto:`). With a session token the enquiry joins that visit's deal; without one a Turnstile token is required. The CRM gets English labels (design doc §6).
+
+**Who:** the website session: header `Authorization: Bearer <session_token>`
+
+**Request body** (`application/json`): `EnquiryIn`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `family` | list of string | no | max items 8 |
+| `products` | list of string | no | max items 50 |
+| `detail` | string or null | no |  |
+| `size` | string or null | no |  |
+| `quantity` | string or null | no |  |
+| `often` | string or null | no |  |
+| `region` | string or null | no |  |
+| `city` | string or null | no |  |
+| `name` | string or null | no |  |
+| `company` | string or null | no |  |
+| `trade` | string or null | no |  |
+| `channel` | `email` \| `call` \| `whatsapp` or null | no |  |
+| `email` | string or null | no |  |
+| `phone` | string or null | no |  |
+| `extra` | string or null | no |  |
+| `message` | string or null | no |  |
+| `locale` | `en` \| `ar` | no | default `"en"` |
+| `whatsapp_opt_in` | boolean | no | default `false` |
+| `email_opt_in` | boolean | no | default `false` |
+| `consent_wording` | string or null | no |  |
+| `session_id` | string (uuid) or null | no |  |
+| `turnstile_token` | string | no | max length 4096; default `""` |
+
+<details><summary>Example request</summary>
+
+```json
+{
+  "family": [
+    "<family>"
+  ],
+  "products": [
+    "<products>"
+  ],
+  "detail": "<detail>",
+  "size": "<size>",
+  "quantity": "<quantity>",
+  "often": "<often>",
+  "region": "<region>",
+  "city": "Dubai",
+  "name": "Aisha Khan",
+  "company": "Gulf Kitchens LLC",
+  "trade": "<trade>",
+  "channel": "email",
+  "email": "qa.buyer@example.com",
+  "phone": "+971500000001",
+  "extra": "<extra>",
+  "message": "<message>",
+  "locale": "en",
+  "whatsapp_opt_in": false,
+  "email_opt_in": false,
+  "consent_wording": "<consent_wording>",
+  "session_id": "0195f0c2-7a3e-7c41-9b1d-2f4e6a8c0d12",
+  "turnstile_token": ""
+}
+```
+
+</details>
+
+**Response 201:** `EnquiryOut`
+
+<details><summary>Example response 201</summary>
+
+```json
+{
+  "ok": true,
+  "reference": "<reference>"
+}
+```
+
+</details>
+
+
+---
+
 ## Website endpoint reference: data shapes
+
+### `AddToEnquiry`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | no | default `""` |
+| `layer` | `instant` \| `agent` | no | default `"agent"` |
+| `resolved` | `Resolved` or null | no |  |
+| `type` | `add_to_enquiry` | no | default `"add_to_enquiry"` |
+| `product_ids` | list of string | yes | min items 1; max items 10 |
+
+### `AskContact`
+
+Show the inline contact card in the chat: name / phone / email with the WhatsApp and email consents.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | no | default `""` |
+| `layer` | `instant` \| `agent` | no | default `"agent"` |
+| `resolved` | `Resolved` or null | no |  |
+| `type` | `ask_contact` | no | default `"ask_contact"` |
+| `fields` | list of `name` \| `company` \| `phone` \| `email` | no | max items 4 |
+| `consents` | list of `whatsapp` \| `email` | no | max items 2 |
+
+### `ContactIn`
+
+The chat's contact card. The opt-ins are separate ticks (never pre-ticked on the site).
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `name` | string or null | no |  |
+| `company` | string or null | no |  |
+| `phone` | string or null | no |  |
+| `email` | string or null | no |  |
+| `whatsapp_opt_in` | boolean | no | default `false` |
+| `email_opt_in` | boolean | no | default `false` |
+| `consent_wording` | string or null | no |  |
+
+### `EnquiryFill`
+
+The enquiry desk's own field names (CT-01, `enquiryDeskClient.ts`). Never a price.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `family` | list of string | no | max items 8 |
+| `detail` | string or null | no |  |
+| `size` | string or null | no |  |
+| `quantity` | string or null | no |  |
+| `often` | string or null | no |  |
+| `region` | string or null | no |  |
+| `city` | string or null | no |  |
+| `name` | string or null | no |  |
+| `company` | string or null | no |  |
+| `trade` | string or null | no |  |
+| `channel` | `email` \| `call` \| `whatsapp` or null | no |  |
+| `message` | string or null | no |  |
+
+### `EnquiryIn`
+
+The enquiry desk's fields (their own names), the enquiry list and the consents.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `family` | list of string | no | max items 8 |
+| `products` | list of string | no | max items 50 |
+| `detail` | string or null | no |  |
+| `size` | string or null | no |  |
+| `quantity` | string or null | no |  |
+| `often` | string or null | no |  |
+| `region` | string or null | no |  |
+| `city` | string or null | no |  |
+| `name` | string or null | no |  |
+| `company` | string or null | no |  |
+| `trade` | string or null | no |  |
+| `channel` | `email` \| `call` \| `whatsapp` or null | no |  |
+| `email` | string or null | no |  |
+| `phone` | string or null | no |  |
+| `extra` | string or null | no |  |
+| `message` | string or null | no |  |
+| `locale` | `en` \| `ar` | no | default `"en"` |
+| `whatsapp_opt_in` | boolean | no | default `false` |
+| `email_opt_in` | boolean | no | default `false` |
+| `consent_wording` | string or null | no |  |
+| `session_id` | string (uuid) or null | no |  |
+| `turnstile_token` | string | no | max length 4096; default `""` |
+
+### `EnquiryOut`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `ok` | boolean | no | default `true` |
+| `reference` | string | yes |  |
+
+### `EventIn`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `type` | `page_view` \| `product_open` \| `product_dwell` \| `enquiry_add` \| `idle` | yes |  |
+| `context` | `SiteContext` | yes |  |
+| `seconds` | number or null | no |  |
+
+### `EventOut`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `reply` | string or null | no |  |
+| `actions` | list of any | no | max items 3 |
+
+### `FactoryTour`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | no | default `""` |
+| `layer` | `instant` \| `agent` | no | default `"agent"` |
+| `resolved` | `Resolved` or null | no |  |
+| `type` | `factory_tour` | no | default `"factory_tour"` |
+| `chapter` | string or null | no |  |
+| `seconds` | number or null | no |  |
+
+### `FillEnquiry`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | no | default `""` |
+| `layer` | `instant` \| `agent` | no | default `"agent"` |
+| `resolved` | `Resolved` or null | no |  |
+| `type` | `fill_enquiry` | no | default `"fill_enquiry"` |
+| `fill` | `EnquiryFill` | yes |  |
 
 ### `IdentifyIn`
 
@@ -292,6 +679,7 @@ A LiveKit room token for live voice (participant metadata: deal_ref, language).
 |---|---|---|---|
 | `text` | string | yes | min length 1; max length 2000 |
 | `language` | string or null | no |  |
+| `context` | `SiteContext` or null | no |  |
 
 ### `MessageOut`
 
@@ -300,6 +688,38 @@ A LiveKit room token for live voice (participant metadata: deal_ref, language).
 | `reply` | string or null | yes |  |
 | `language` | string | yes |  |
 | `handed_over` | boolean | yes |  |
+| `actions` | list of any | no | max items 3 |
+
+### `Navigate`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | no | default `""` |
+| `layer` | `instant` \| `agent` | no | default `"agent"` |
+| `resolved` | `Resolved` or null | no |  |
+| `type` | `navigate` | no | default `"navigate"` |
+| `page` | string | yes | pattern `^[a-z0-9][a-z0-9_-]{0,127}$` |
+| `section` | string or null | no |  |
+
+### `Resolved`
+
+Where the action lands, in both site languages (filled by the server, never by the model).
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `path_en` | string | yes |  |
+| `path_ar` | string | yes |  |
+| `anchor` | string or null | no |  |
+
+### `ScrollTo`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | no | default `""` |
+| `layer` | `instant` \| `agent` | no | default `"agent"` |
+| `resolved` | `Resolved` or null | no |  |
+| `type` | `scroll_to` | no | default `"scroll_to"` |
+| `section` | string | yes | pattern `^[a-z][a-z0-9-]{0,63}$` |
 
 ### `SessionIn`
 
@@ -310,6 +730,7 @@ A LiveKit room token for live voice (participant metadata: deal_ref, language).
 | `voice_consent` | boolean | no | default `false` |
 | `cookie_consent` | boolean | no | default `false` |
 | `country_code` | string or null | no |  |
+| `context` | `SiteContext` or null | no |  |
 
 ### `SessionOut`
 
@@ -320,6 +741,43 @@ A LiveKit room token for live voice (participant metadata: deal_ref, language).
 | `expires_at` | string (date-time) | yes |  |
 | `language` | string | yes |  |
 | `voice_available` | boolean | yes |  |
+
+### `ShowFamily`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | no | default `""` |
+| `layer` | `instant` \| `agent` | no | default `"agent"` |
+| `resolved` | `Resolved` or null | no |  |
+| `type` | `show_family` | no | default `"show_family"` |
+| `family` | string | yes | pattern `^[a-z0-9][a-z0-9_-]{0,127}$` |
+
+### `ShowProduct`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | no | default `""` |
+| `layer` | `instant` \| `agent` | no | default `"agent"` |
+| `resolved` | `Resolved` or null | no |  |
+| `type` | `show_product` | no | default `"show_product"` |
+| `product_id` | string | yes | pattern `^[a-z0-9][a-z0-9_-]{0,127}$` |
+| `view` | `quick` \| `page` | no | default `"quick"` |
+
+### `SiteContext`
+
+Where the visitor is right now (sent with every message and every page or product change).
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `path` | string | no | max length 300; default `"/"` |
+| `page` | `home` \| `products` \| `product` \| `about` \| `quality` \| `clients` \| `contact` \| `other` | no | default `"home"` |
+| `locale` | `en` \| `ar` | no | default `"en"` |
+| `family` | string or null | no |  |
+| `product_id` | string or null | no |  |
+| `quick_view_id` | string or null | no |  |
+| `section` | string or null | no |  |
+| `enquiry_list` | list of string | no | max items 50 |
+| `input` | `text` \| `voice` | no | default `"text"` |
 
 ### `VoiceOut`
 

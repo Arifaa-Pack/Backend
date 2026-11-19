@@ -14,8 +14,10 @@ from decimal import Decimal
 from typing import Any, Literal
 
 from kx.agents.knowledge.service import KnowledgeSearch
+from kx.agents.llm.service import ModelSet
 from kx.agents.roles.registry import AgentSpec, PromptStore
-from kx.core.contracts import AllowedPrice, Channel, CrmGateway, DealContext
+from kx.agents.site.models import SiteAction, SiteContext
+from kx.core.contracts import AllowedPrice, Channel, CrmGateway, DealContext, SiteManifest
 
 GuardKind = Literal["price_number", "injection", "disclosure", "cost_leak", "language"]
 # (reply, allowed prices, run log) -> True when the reply states or implies a price not in the allowed list
@@ -49,6 +51,7 @@ class RunLog:
     regenerations: int = 0  # the price guard regenerates at most once per run
     handoff: bool = False
     cost_usd: Decimal = Decimal(0)  # D34: summed per model call from the official price table
+    site_actions: list[SiteAction] = field(default_factory=list)  # D55: what the website was asked to show
 
     @property
     def blocked(self) -> bool:
@@ -69,6 +72,13 @@ class AgentContext:
     summary: str | None = None  # rolling summary of turns older than the window
     # M7 layer 3: the FAST-model second opinion on a reply the deterministic guard found clean (None = off)
     price_check: PriceCheck | None = None
+    # D55 website turns: where the visitor is, what the site has, and where to send an action at once (the
+    # website starts moving while the agent is still writing its reply)
+    site: SiteContext | None = None
+    manifest: SiteManifest | None = None
+    on_action: Callable[[SiteAction], Awaitable[None]] | None = None
+    # D56: the fast model the product / manufacturing specialists answer with (None = specialists off)
+    specialist_model: ModelSet | None = None
 
     @property
     def deal_id(self) -> uuid.UUID:

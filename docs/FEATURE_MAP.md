@@ -235,7 +235,10 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | GET | `/v1/products/{product_id}/history` | `kx.crm.screens.router:router.<locals>.product_history` | - |
 | GET | `/v1/products/{product_id}/price-tiers` | `kx.crm.screens.router:router.<locals>.tiers` | `kx.crm.pricing.price_list_service:tiers_for` |
 | POST | `/v1/products/{product_id}/price-tiers` | `kx.crm.screens.router:router.<locals>.add_tier` | `kx.crm.pricing.price_list_service:add_tier` |
+| POST | `/v1/public/enquiries` | `kx.agents.website.router:build_router.<locals>.enquiry` | `kx.agents.website.enquiry:to_enquiry` |
 | POST | `/v1/public/sessions` | `kx.agents.website.router:build_router.<locals>.start` | `kx.agents.roles.language:normalise_language` |
+| POST | `/v1/public/sessions/{session_id}/contact` | `kx.agents.website.router:build_router.<locals>.contact` | - |
+| POST | `/v1/public/sessions/{session_id}/events` | `kx.agents.website.router:build_router.<locals>.event` | - |
 | POST | `/v1/public/sessions/{session_id}/identify` | `kx.agents.website.router:build_router.<locals>.identify` | - |
 | POST | `/v1/public/sessions/{session_id}/messages` | `kx.agents.website.router:build_router.<locals>.message` | - |
 | POST | `/v1/public/sessions/{session_id}/voice` | `kx.agents.website.router:build_router.<locals>.voice` | - |

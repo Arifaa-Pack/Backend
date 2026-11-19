@@ -28,6 +28,7 @@ from kx.agents.guard.service import PriceGuard
 from kx.agents.roles.language import DEFAULT_LANGUAGE, normalise_language
 from kx.agents.roles.registry import Phrase, PromptStore
 from kx.agents.runtime.service import AgentService, InboundTurn
+from kx.agents.site.models import visit_thread
 from kx.core.contracts import AiRole, CrmGateway
 from kx.core.optout import match_voice
 from kx.core.platform import Field, Modes, order, resolve_modes
@@ -186,7 +187,7 @@ def make_livekit_entrypoint(
                     channel="web_voice",
                     text=text,
                     deal_id=self._deal_id,
-                    thread_key=f"web_voice:{self._room}",
+                    thread_key=visit_thread(self._room.removeprefix("web-")),  # D58: same as the chat
                     trigger_event="voice.utterance",
                     trigger_event_id=uuid.uuid7(),
                     language=self._language,

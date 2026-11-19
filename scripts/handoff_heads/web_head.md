@@ -58,9 +58,22 @@ text-only**: `voice_available` is `false` for `si`, so hide the voice button and
    * `turnstile_token`: from the Cloudflare Turnstile widget on the page (D39).
    * Keep `session_token` in memory (or sessionStorage) and send it as `Authorization: Bearer <session_token>`
      on the other calls. It lasts 2 hours; on `401` start a new session.
-2. Chat turn: `POST /v1/public/sessions/{id}/messages` `{text, language?}` ->
-   `{reply, language, handed_over}`. `reply` can be `null` (the conversation is with a person now): show
-   nothing new, or the hand-over line. Show `reply` as plain text (it may contain line breaks).
+2. Chat turn: `POST /v1/public/sessions/{id}/messages` `{text, language?, context?}` ->
+   `{reply, language, handed_over, actions}`. `reply` can be `null` (the conversation is with a person now):
+   show nothing new, or the hand-over line. Show `reply` as plain text (it may contain line breaks).
+   * `context` (`SiteContext`): where the visitor is (`path`, `page`, `locale`, `family`, `product_id`,
+     `quick_view_id`, `section`, `enquiry_list`, `input`). Send it with every message; omitted, the last one
+     sent is used.
+   * `actions` (at most 3, in order): what the assistant asks the page to do: `show_family`, `show_product`,
+     `navigate`, `scroll_to`, `factory_tour`, `add_to_enquiry`, `fill_enquiry`, `ask_contact`. Each has an
+     `id` (the same intent always has the same id: do it once, even if it arrives twice), `layer` (`instant`
+     or `agent`) and `resolved` (`path_en`, `path_ar`, `anchor`; use the one of the **page** locale). Map them
+     to the site's own functions (`showFamily`, `showProduct`, `goQuote` / `arifa:quote-fill`, `goFactory`,
+     `lenis.scrollTo`). Every action was checked against the site map; none carries a selector or a price.
+   * `Accept: text/event-stream` streams the turn: `event: action` (the page can move at once, before the
+     reply), `event: delta` `{text}` (the reply, a sentence at a time), `event: done`
+     `{language, handed_over}`, or `event: error` `{status, code, message}` instead of `done`.
+   * The same conversation continues in voice: chat and voice of one visit share one thread.
 3. Voice: `POST /v1/public/sessions/{id}/voice` -> `{livekit_url, token, room, language, expires_at}`.
    Join with the LiveKit browser SDK (`livekit-client`): `room.connect(livekit_url, token)`, publish the
    microphone, play the agent's audio track. The token admits this one room only; ask for a new one if it
@@ -70,6 +83,20 @@ text-only**: `voice_available` is `false` for `si`, so hide the voice button and
      `voice_consent: true` after the visitor presses it.
 4. Identify: `POST /v1/public/sessions/{id}/identify` `{phone?, email?, name?}` -> `{ok: true}` always (it does
    not reveal whether the buyer was known). `422 reason: "invalid"` = the phone or email does not look right.
+5. Contact card (the `ask_contact` action): `POST /v1/public/sessions/{id}/contact`
+   `{name?, company?, phone?, email?, whatsapp_opt_in, email_opt_in, consent_wording?}` -> `{ok: true}`.
+   The two ticks are separate and never pre-ticked; send the words shown next to them as `consent_wording`.
+6. Moves: `POST /v1/public/sessions/{id}/events` `{type, context, seconds?}` with `type` one of `page_view`,
+   `product_open`, `product_dwell` (with `seconds` on the product), `enquiry_add`, `idle` (with `seconds`).
+   -> `{reply, actions}`: usually empty; sometimes a short message from the assistant (show it as an
+   assistant message). The assistant speaks first only after the visitor has written or spoken, at most 3
+   times a visit: after 20 s on a product, on an enquiry-list add, after 45 s idle on Contact.
+7. Enquiry desk (CT-01, instead of `mailto:`): `POST /v1/public/enquiries` with the desk's own fields
+   (`family[]`, `products[]` = the enquiry list, `detail`, `size`, `quantity`, `often`, `region`, `city`,
+   `name`, `company`, `trade`, `channel`, `email`, `phone`, `extra`, `message`, `locale`, the two opt-ins and
+   `consent_wording`), plus `session_id` with the session token when a chat is open, else `turnstile_token`.
+   -> `201 {ok, reference}` (show "We have your enquiry (W-3F9A2C)"). A phone or an email is required
+   (`422 reason: "empty"`).
 
 When the visitor says "stop" in voice, the agent stops talking and listens (§8.1: on voice "stop" means
 "wait"); nothing for the site to do.

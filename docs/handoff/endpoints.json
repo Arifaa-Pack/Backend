@@ -1856,7 +1856,7 @@
       "roles": [],
       "mfa_required": false,
       "auth": "website_session",
-      "purpose": "One chat turn (§6 steps 2-6) through the same agents, guard and router as WhatsApp.",
+      "purpose": "One chat turn (§6 steps 2-6) through the same agents, guard and router as WhatsApp; the page moves with it (D55).",
       "expected_status": 200,
       "package": "Website"
     },
@@ -1869,7 +1869,7 @@
       "roles": [],
       "mfa_required": false,
       "auth": "website_session",
-      "purpose": "A LiveKit room token for live voice (participant metadata: deal_ref, language).",
+      "purpose": "A LiveKit room token for live voice (participant metadata: deal_ref, language, session_id).",
       "expected_status": 200,
       "package": "Website"
     },
@@ -1884,6 +1884,45 @@
       "auth": "website_session",
       "purpose": "§6 step 7: the visitor typed their phone or email; a returning buyer is recognised now, never before.",
       "expected_status": 200,
+      "package": "Website"
+    },
+    {
+      "folder": "10 Buyer simulation - Website chat",
+      "name": "Contact",
+      "method": "POST",
+      "path": "/v1/public/sessions/{session_id}/contact",
+      "who": "A website visitor: header Authorization: Bearer <session_token>",
+      "roles": [],
+      "mfa_required": false,
+      "auth": "website_session",
+      "purpose": "The chat's contact card (D59): details plus the WhatsApp / email opt-ins with their wording.",
+      "expected_status": 200,
+      "package": "Website"
+    },
+    {
+      "folder": "10 Buyer simulation - Website chat",
+      "name": "Event",
+      "method": "POST",
+      "path": "/v1/public/sessions/{session_id}/events",
+      "who": "A website visitor: header Authorization: Bearer <session_token>",
+      "roles": [],
+      "mfa_required": false,
+      "auth": "website_session",
+      "purpose": "The visitor moved on the site.",
+      "expected_status": 200,
+      "package": "Website"
+    },
+    {
+      "folder": "10 Buyer simulation - Website chat",
+      "name": "Enquiry",
+      "method": "POST",
+      "path": "/v1/public/enquiries",
+      "who": "public (no sign-in)",
+      "roles": [],
+      "mfa_required": false,
+      "auth": "none",
+      "purpose": "CT-01 enquiry desk (replaces `mailto:`).",
+      "expected_status": 201,
       "package": "Website"
     },
     {
