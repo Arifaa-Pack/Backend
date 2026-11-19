@@ -44,7 +44,7 @@ from kx.agents.registry import (
     team_member,
 )
 from kx.agents.runs import RunStatus, RunStore, UsageMeter
-from kx.agents.tracing import Tracer
+from kx.agents.tracing.service import Tracer
 from kx.core.contracts import AiRole, Channel, CrmGateway, OptOutScope
 from kx.core.db import Databases
 from kx.core.fallback import CircuitBreaker

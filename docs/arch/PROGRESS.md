@@ -943,3 +943,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - OpenAPI diff: empty
   - unit: ============================ 131 passed in 17.02s =============================
   - full suite: run on this commit; result logged in the next entry
+
+## 2b.15 slice `tracing` — TESTING (COMPLETED when tagged `arch-slice/agents-tracing`)
+
+- **Moved:** `tracing.py` → `tracing/service.py`; `tracing/__init__.py` re-exports it (17 of 17 names); imports rewritten in `service.py`, `arifaa_pack/container.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 458 files already formatted
+  - mypy: Success: no issues found in 296 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 26.44s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `auto-surface` @ `d5a5e1e`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-auto-surface`, COMPLETED
