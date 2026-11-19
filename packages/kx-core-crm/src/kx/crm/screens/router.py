@@ -84,8 +84,8 @@ class ImportOut(BaseModel):
 class ChangeOut(_Out):
     """One logged change (§3 "every change is logged"): who, when, what, old and new value."""
 
-    # kx.crm.api.texts has a model of the same name, so the OpenAPI component name carries the module
-    # path: pinned to the pre-ADR-0001 path (an alias of this module) to keep the published name.
+    # kx.crm.texts.router has a model of the same name, so the OpenAPI component name carries the module
+    # path: pinned to the pre-ADR-0001 module path to keep the published name (the module itself is gone).
     __module__ = "kx.crm.api.screens"
 
     at: datetime

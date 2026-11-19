@@ -19,7 +19,6 @@ from kx.automation._shared.ports import Clock, TaskScheduler, utc_now
 from kx.automation._shared.sending import _send_or_skip
 from kx.automation._shared.settings import AutomationSettings
 from kx.automation.alerts.service import ApprovalLadder, LadderTicket, notify_staff
-from kx.automation.followups.service import FollowUps  # noqa: F401  (old import path, ADR-0001)
 from kx.automation.models import SCHEMA, ChannelAccount, InboundMessage, Thread
 from kx.automation.optout import service as optout
 from kx.automation.outbound.service import TRANSIENT_REASONS

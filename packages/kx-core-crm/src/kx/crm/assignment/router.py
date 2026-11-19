@@ -1,4 +1,4 @@
-"""Reassign, MD takeover and hand-back (§9.4, §3, D5). Thin: kx.crm.services.assignment does the work."""
+"""Reassign, MD takeover and hand-back (§9.4, §3, D5). Thin: kx.crm.assignment.service does the work."""
 
 # No `from __future__ import annotations` here: FastAPI must evaluate the closure-local `Session`
 # alias; PEP 649 (Python 3.14) lazy annotations resolve it, string annotations would not.

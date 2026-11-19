@@ -1,7 +1,7 @@
 """Per-deal actions: after the deal (§15 payment, WON, order status), §7A.1 reopen, §14 hand-over (reply
 from the CRM inbox, click-to-call, personal contact).
 
-Thin: kx.crm.services.deals does the work.
+Thin: kx.crm.deals.service does the work.
 """
 
 # No `from __future__ import annotations` here: FastAPI must evaluate the closure-local `Session`

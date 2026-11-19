@@ -114,7 +114,7 @@ OPEN_TO_DISCUSS: Final[dict[str, tuple[str, ...]]] = {  # the built-in lines (te
 @dataclass(frozen=True, slots=True)
 class Letterhead:
     """Seller identity printed on quotes: company.yaml, overlaid with the details staff set in the CRM
-    (`kx.crm.services.company`, 18 Nov)."""
+    (`kx.crm.company.service`, 18 Nov)."""
 
     name: str = "Kairox"
     address: str = ""

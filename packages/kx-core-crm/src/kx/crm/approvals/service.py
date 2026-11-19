@@ -2,7 +2,7 @@
 
 * Approval 1 (first quote and every revised quote) and Approval 2 (the final quote) are both approved by
   the deal's **salesperson**; the **manager** may approve any deal; the **MD** only a deal it has taken
-  over (D1). There is no second check. Who may decide is `kx.crm.services.access.ensure_can_approve`.
+  over (D1). There is no second check. Who may decide is `kx.crm._shared.access.ensure_can_approve`.
 * A unit price below the tier minimum first needs a **special_price** approval by the manager (D3). Once
   approved it unlocks that price for that quote version only, and the salesperson's approval follows.
 * No action: reminders at 30 and 60 minutes, escalation to the manager at 120 minutes, all counted in

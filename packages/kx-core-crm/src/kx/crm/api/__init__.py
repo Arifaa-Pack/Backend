@@ -1,6 +1,6 @@
 """Staff CRM HTTP API: assembles each feature slice's router (`kx/crm/<slice>/router.py`, ADR-0001).
 
-The other modules in this folder are alias shims for the pre-ADR-0001 paths (`kx.crm.api.deals` ...).
+Each slice's routes live in its own folder; this module only assembles them.
 
 Wire in the app:
     app.include_router(build_router(databases, deps), prefix="/v1")

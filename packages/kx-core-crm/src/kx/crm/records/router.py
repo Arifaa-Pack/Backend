@@ -103,8 +103,8 @@ CustomerType = Literal[
 
 
 class CompanyIn(BaseModel):
-    # kx.crm.api.company has a model of the same name, so the OpenAPI component name carries the module
-    # path: pinned to the pre-ADR-0001 path (an alias of this module) to keep the published name.
+    # kx.crm.company.router has a model of the same name, so the OpenAPI component name carries the module
+    # path: pinned to the pre-ADR-0001 module path to keep the published name (the module itself is gone).
     __module__ = "kx.crm.api.records"
 
     name: str = Field(min_length=1, max_length=300)

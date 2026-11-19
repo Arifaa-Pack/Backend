@@ -4,7 +4,7 @@ are settings)".
 * Beat asks every 15 minutes (`crm.scheduled_reports`); a report goes once its time has passed in company
   time (the alert-hours zone). Each one is sent once: the audit row `report.sent` for the period's key is
   the marker, and the staff notice carries the same key, so a redelivered job never sends twice.
-* The figures are the manager dashboard's (`kx.crm.services.dashboards.manager_board`), so the message and
+* The figures are the manager dashboard's (`kx.crm.reports.dashboards.manager_board`), so the message and
   the screen never disagree. The daily summary covers yesterday; the weekly report the 7 days before today.
 * The message is one line (a WhatsApp template parameter cannot hold line breaks); the detail stays on the
   manager and MD dashboards.

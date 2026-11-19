@@ -1,5 +1,5 @@
 """18 Nov: editable company details (letterhead, logo, bank details on quotes). Thin: rules in
-`kx.crm.services.company`."""
+`kx.crm.company.service`."""
 
 # No `from __future__ import annotations` here: FastAPI must evaluate the closure-local `Session`
 # alias; PEP 649 (Python 3.14) lazy annotations resolve it, string annotations would not.
@@ -32,8 +32,8 @@ class BankIn(BaseModel):
 class CompanyIn(BaseModel):
     """Only the fields to change; "" clears a field (company.yaml's value is printed again)."""
 
-    # kx.crm.api.records has a model of the same name, so the OpenAPI component name carries the module
-    # path: pinned to the pre-ADR-0001 path (an alias of this module) to keep the published name.
+    # kx.crm.records.router has a model of the same name, so the OpenAPI component name carries the module
+    # path: pinned to the pre-ADR-0001 module path to keep the published name (the module itself is gone).
     __module__ = "kx.crm.api.company"
 
     name: str | None = Field(default=None, max_length=200)

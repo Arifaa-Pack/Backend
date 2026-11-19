@@ -9,7 +9,7 @@ through `TEXTS.get(key, language)`; the built-in wording below is used until som
 * An edit must keep exactly the built-in placeholders (`{name}`, `{hours}` ...) and may not contain an amount
   with a currency: amounts only ever come from placeholders filled by the code (price guard rule).
 * Legal and consent wording is **not** here and cannot be edited: the call-recording notice and the opt-out
-  questions (they stay in `kx.agents.registry`), opt-out confirmations (`kx.automation.optout`).
+  questions (they stay in `kx.agents.roles.registry`), opt-out confirmations (`kx.automation.optout`).
 * Lookup order: the edited text in that language -> the built-in text in that language -> the edited English
   -> the built-in English. A text that cannot be filled (a broken placeholder) falls back to the built-in.
 
@@ -60,7 +60,7 @@ def _define(key: str, group: Group, en: str, note: str, **builtin: str) -> None:
     CATALOG[key] = TextDef(key, group, en, note, builtin)
 
 
-# ---- AI fixed phrases (kx.agents.registry.Phrase; the key is "ai." + the phrase value) ----
+# ---- AI fixed phrases (kx.agents.roles.registry.Phrase; the key is "ai." + the phrase value) ----
 _define(
     "ai.price_fallback",
     "ai",

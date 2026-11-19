@@ -391,7 +391,7 @@ TURNSTILE_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 
 class TurnstileVerifier:
-    """kx.agents.website.HumanCheck over Cloudflare Turnstile's server-side check (D39)."""
+    """kx.agents.website.router.HumanCheck over Cloudflare Turnstile's server-side check (D39)."""
 
     def __init__(self, http: httpx.AsyncClient, secret: str) -> None:
         self._http = http
@@ -413,8 +413,9 @@ class TurnstileVerifier:
 
 
 class PublicLimiter:
-    """kx.agents.website.PublicLimits over automation's Redis token buckets (D39 app rate limits). Values per
-    OPEN_QUESTIONS #61 until Arifa sets them: 30 requests per minute per IP, 12 per minute per session.
+    """kx.agents.website.router.PublicLimits over automation's Redis token buckets (D39 app rate limits).
+    Values per OPEN_QUESTIONS #61 until Arifa sets them: 30 requests per minute per IP, 12 per minute per
+    session.
     M6 adds "global" (AI turns a minute from all visitors) and "ip_sessions" (new sessions per IP a day)."""
 
     def __init__(self, limiter: Any, buckets: dict[str, Any]) -> None:
@@ -427,9 +428,9 @@ class PublicLimiter:
 
 
 class RedisAuthThrottle:
-    """kx.crm.throttle.AuthThrottle over automation's Redis token buckets and Redis counters (M3), shared by
-    every API process. While Redis is unreachable it falls back to an in-process throttle: staff sign-in stays
-    available and still limited."""
+    """kx.crm.auth.throttle.AuthThrottle over automation's Redis token buckets and Redis counters (M3),
+    shared by every API process. While Redis is unreachable it falls back to an in-process throttle: staff
+    sign-in stays available and still limited."""
 
     def __init__(self, limiter: Any, redis: Any, company: str) -> None:
         self._limiter = limiter

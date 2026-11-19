@@ -4,7 +4,7 @@ process, and translate an edited English text into the other languages with the 
 * `refresh_loop`: loads every stored text at start and every 30 seconds (an edit is live within 30 s).
 * `translate_text` (job `app.translate_text`, on `texts.text_changed.v1`): the FAST model translates the
   English into Arabic, Hindi, Tamil, Chinese and Sinhala; a translation is stored only if it keeps the
-  placeholders and adds no amount (`kx.crm.services.texts.save_translation`). A failing model call fails
+  placeholders and adds no amount (`kx.crm.texts.service.save_translation`). A failing model call fails
   the job, which the job store retries; until then each language keeps its previous text.
 """
 
