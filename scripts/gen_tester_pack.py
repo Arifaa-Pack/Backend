@@ -27,15 +27,16 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.routing import APIRoute
 
-from kx.agents.website import WebsiteDeps
-from kx.agents.website import build_router as website_router
-from kx.automation.admin_api import build_router as channels_admin_router
-from kx.automation.cms import build_router as cms_router
-from kx.automation.inbound.webhooks import WebhookDeps
-from kx.automation.inbound.webhooks import build_router as webhook_router
-from kx.automation.optout.unsubscribe import UnsubscribeDeps
-from kx.automation.optout.unsubscribe import build_router as unsubscribe_router
-from kx.automation.settings import AutomationSettings
+from kx.agents import WebsiteDeps, website_router
+from kx.automation import (
+    AutomationSettings,
+    UnsubscribeDeps,
+    WebhookDeps,
+    cms_router,
+    unsubscribe_router,
+    webhook_router,
+)
+from kx.automation import admin_router as channels_admin_router
 from kx.core.auth import Role
 from kx.core.errors import install_problem_handlers
 from kx.crm import CrmDeps, Letterhead
