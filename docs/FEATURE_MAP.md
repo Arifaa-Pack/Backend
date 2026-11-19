@@ -172,7 +172,7 @@ other mapping files, and this table is updated with each move.
 | POST | `/v1/deals/{deal_id}/handback` | `kx.crm.api.assignment:router.<locals>.hand_back` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.assignment:hand_back` |
 | POST | `/v1/deals/{deal_id}/messages` | `kx.crm.api.deal_actions:router.<locals>.staff_message` | `kx.crm.services.deals:get_deal`<br>`kx.crm.services.handover:reply` |
 | POST | `/v1/deals/{deal_id}/offer` | `kx.crm.api.deals:router.<locals>.manager_offer` | `kx.crm.services.negotiation:manager_offer`<br>`kx.crm.services.negotiation:resume_ai` |
-| POST | `/v1/deals/{deal_id}/opt-out` | `kx.crm.api.deal_actions:router.<locals>.opt_out` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.consent:record_opt_out`<br>`kx.crm.services.deals:get_deal` |
+| POST | `/v1/deals/{deal_id}/opt-out` | `kx.crm.api.deal_actions:router.<locals>.opt_out` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.contacts.consent:record_opt_out`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal` |
 | POST | `/v1/deals/{deal_id}/payments` | `kx.crm.api.deal_actions:router.<locals>.payment` | `kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.orders:record_payment` |
 | POST | `/v1/deals/{deal_id}/personal-contact-shared` | `kx.crm.api.deal_actions:router.<locals>.personal_contact_shared` | `kx.crm.api.deals:deal_detail`<br>`kx.crm.services.access:check_edit`<br>`kx.crm.services.deals:get_deal`<br>`kx.crm.services.deals:personal_contact_shared` |
 | GET | `/v1/deals/{deal_id}/quotes` | `kx.crm.api.deals:router.<locals>.deal_quotes` | `kx.crm.services.access:check_view`<br>`kx.crm.services.deals:get_deal` |

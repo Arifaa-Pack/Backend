@@ -41,6 +41,7 @@ from kx.core.db import Databases
 from kx.core.identity import phone_kind
 from kx.core.money import MONEY_PLACES, q
 from kx.core.settings import LogicalDb
+from kx.crm.contacts import consent
 from kx.crm.deps import CrmDeps
 from kx.crm.models import (
     Approval,
@@ -64,16 +65,7 @@ from kx.crm.pricing.service import (
     lead_time_text,
 )
 from kx.crm.rules import pause_reason
-from kx.crm.services import (
-    approvals,
-    assignment,
-    change_requests,
-    consent,
-    grants,
-    negotiation,
-    quotes,
-    staff,
-)
+from kx.crm.services import approvals, assignment, change_requests, grants, negotiation, quotes, staff
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.issuing import lines_of
 from kx.crm.services.journal import Actor

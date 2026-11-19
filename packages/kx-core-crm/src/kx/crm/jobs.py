@@ -41,6 +41,7 @@ from kx.core.jobs import RetryLater
 from kx.core.logging import get_logger
 from kx.core.settings import LogicalDb
 from kx.crm.catalogue import service as catalogue
+from kx.crm.contacts import consent, phone
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Contact, Deal, FxRate
 from kx.crm.models.base import SCHEMA
@@ -49,17 +50,7 @@ from kx.crm.pricing import proposals as price_proposals
 from kx.crm.reports import scheduled as scheduled_reports
 from kx.crm.retention import service as retention
 from kx.crm.rules import OPEN_STAGES
-from kx.crm.services import (
-    approvals,
-    change_requests,
-    consent,
-    issuing,
-    lost_proposals,
-    phone,
-    quotes,
-    staff,
-    summary,
-)
+from kx.crm.services import approvals, change_requests, issuing, lost_proposals, quotes, staff, summary
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.journal import Actor, Emit, Timeline, record
 

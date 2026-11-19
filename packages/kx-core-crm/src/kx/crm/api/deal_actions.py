@@ -31,7 +31,8 @@ from kx.crm.api.schemas import (
     StaffMessageOut,
     WonIn,
 )
-from kx.crm.services import access, consent, handover, orders
+from kx.crm.contacts import consent
+from kx.crm.services import access, handover, orders
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.journal import Actor
 
