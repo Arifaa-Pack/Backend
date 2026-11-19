@@ -19,7 +19,7 @@ from kx.core.event_payloads import PriceProposed, make_event
 from ..conftest import ADMIN_DSN
 
 pytestmark = pytest.mark.db
-NAMES = {"crm": "smoke_crm", "automation": "smoke_automation", "agents": "smoke_agents"}
+NAMES = {"crm": "smoke_crm", "automation": "smoke_automation", "agents": "smoke_agents", "cms": "smoke_cms"}
 
 
 def _dsn(db: str, driver: str = "") -> str:
@@ -60,7 +60,7 @@ def _clear_caches() -> None:
 
 
 def test_migrations_create_all_schemas(migrated: dict[str, str]) -> None:
-    expect = {"crm": 45, "automation": 12, "agents": 14}
+    expect = {"crm": 45, "automation": 12, "agents": 14, "cms": 7}  # cms: D54 (documents, versions, ...)
     for key, dsn in migrated.items():
         with psycopg.connect(dsn) as c:
             n = c.execute(
@@ -83,6 +83,8 @@ async def test_api_boots_and_routes_events(migrated: dict[str, str]) -> None:
         assert health.json() == {"status": "ok"}
         assert health.headers["x-frame-options"] == "DENY"  # SecurityHeaders is wired (19 Nov re-test)
         assert (await http.get("/v1/contacts?q=%00")).status_code == 400  # RejectNul is wired
+        assert (await http.get("/v1/content/site")).status_code == 404  # D54: CMS mounted, nothing live yet
+        assert (await http.get("/v1/cms/collections")).status_code == 401  # D54: editors must sign in
         r = await http.get("/v1/deals")
         assert r.status_code == 401 and r.headers["content-type"].startswith("application/problem+json")
         assert (await http.get("/webhooks/whatsapp", params={"hub.mode": "subscribe"})).status_code in {

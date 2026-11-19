@@ -292,6 +292,7 @@ class ProductContentChanged(EventPayload):
     category_name: str | None = None
     fields: dict[str, str | int | bool] = {}
     cleared: list[str] = []
+    cms_product_id: str | None = None  # D61: the website product this CRM variant belongs to (ac-8325)
 
 
 class MessageTextChanged(EventPayload):
@@ -430,6 +431,19 @@ class KbContentPublished(EventPayload):
     url: str | None = None
 
 
+class ContentPublished(EventPayload):
+    """D54: one CMS document went live (or was taken down). The website re-renders the pages named here
+    (Next.js `revalidateTag` / `revalidatePath`), so an editor's change shows within about a minute (§7)."""
+
+    collection: str
+    key: str
+    version: int | None  # the published version; None after an unpublish
+    operation: Literal["publish", "unpublish"]
+    locales: list[str] = []
+    tags: list[str] = []
+    paths: list[str] = []
+
+
 class AgentRunCompleted(EventPayload):
     run_ref: uuid.UUID
     graph: str
@@ -471,6 +485,7 @@ PAYLOADS: dict[str, type[EventPayload]] = {
     ev.CONVERSATION_SUMMARY_UPDATED: ConversationSummaryUpdated,
     ev.QUOTE_NOT_DELIVERED: QuoteNotDelivered,
     ev.QUOTE_RESEND_REQUESTED: QuoteResendRequested,
+    ev.CONTENT_PUBLISHED: ContentPublished,
 }
 
 

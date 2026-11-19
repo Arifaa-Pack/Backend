@@ -26,6 +26,7 @@ x-kx-env: &kx-env
   KX_CRM_DSN: postgresql+asyncpg://pack_crm_app:dev@postgres:5432/pack_crm
   KX_AUTOMATION_DSN: postgresql+asyncpg://pack_automation_app:dev@postgres:5432/pack_automation
   KX_AGENTS_DSN: postgresql+asyncpg://pack_agents_app:dev@postgres:5432/pack_agents
+  KX_CMS_DSN: postgresql+asyncpg://pack_cms_app:dev@postgres:5432/pack_cms
   KX_REDIS_URL: redis://redis:6379/0
   KX_APP_CELERY_BROKER_URL: redis://redis:6379/8
   KX_APP_WORKER_CONCURRENCY: "2"

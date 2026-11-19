@@ -52,7 +52,7 @@ def test_every_contract_protocol_is_mapped_to_its_implementation(fmap: dict[str,
     for name, entry in mapped.items():
         assert entry["implementations"], f"{name} has no implementation in the container"
         for impl in entry["implementations"]:
-            assert impl["package"] in {"crm", "automation", "agents", "app"}
+            assert impl["package"] in {"crm", "automation", "agents", "cms", "app"}
             assert impl["file"].endswith(".py")
     impl_of = {k: [i["name"] for i in v["implementations"]] for k, v in mapped.items()}
     assert impl_of["kx.core.contracts:CrmGateway"] == ["kx.crm.gateway:CrmGatewayImpl"]
@@ -84,6 +84,7 @@ def _registered_handlers() -> dict[str, set[str]]:
         out.setdefault(event, set())  # wrapped in `_once`; names are checked below by package
     out.setdefault(ev.MESSAGE_TEXT_CHANGED, set()).add("arifaa_pack.texts_sync:translate_text")
     out.setdefault(ev.CATALOGUE_PRODUCT_CONTENT, set()).add(featuremap.ref(container.cms_product_draft))
+    out.setdefault(ev.CONTENT_PUBLISHED, set()).add(featuremap.ref(container.cms_revalidate))
     return out
 
 

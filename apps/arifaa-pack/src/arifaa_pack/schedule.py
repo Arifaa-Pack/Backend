@@ -26,6 +26,7 @@ def beat_schedule() -> dict[str, dict[str, Any]]:
         "relay.crm": timedelta(seconds=s.relay_seconds),
         "relay.automation": timedelta(seconds=s.relay_seconds),
         "relay.agents": timedelta(seconds=s.relay_seconds),
+        "relay.cms": timedelta(seconds=s.relay_seconds),  # D54: a publish reaches the website within a minute
         # D46: Redis heartbeat behind /healthz/beat (UptimeRobot) + QueueLagSeconds
         "app.heartbeat": timedelta(seconds=30),
         # D44: buyer replies and bounce / complaint reports in the Stalwart mailbox

@@ -7,6 +7,7 @@ members = [
     "arifaa-pack",
     "kairox-platform",
     "kx-agent-framework",
+    "kx-cms",
     "kx-core-automation",
     "kx-core-crm",
     "kx-core-db",
@@ -230,6 +231,7 @@ dependencies = [
     { name = "alembic" },
     { name = "celery", extra = ["redis"] },
     { name = "kx-agent-framework", extra = ["voice"] },
+    { name = "kx-cms" },
     { name = "kx-core-automation" },
     { name = "kx-core-crm" },
     { name = "kx-core-db" },
@@ -250,6 +252,7 @@ requires-dist = [
     { name = "alembic", specifier = "==1.20.1" },
     { name = "celery", extras = ["redis"], specifier = "==5.7.0" },
     { name = "kx-agent-framework", extras = ["voice"], editable = "packages/kx-agent-framework" },
+    { name = "kx-cms", editable = "packages/kx-cms" },
     { name = "kx-core-automation", editable = "packages/kx-core-automation" },
     { name = "kx-core-crm", editable = "packages/kx-core-crm" },
     { name = "kx-core-db", editable = "packages/kx-core-db" },
@@ -1460,6 +1463,17 @@ requires-dist = [
     { name = "pyyaml", specifier = "==6.0.3" },
 ]
 provides-extras = ["voice"]
+
+[[package]]
+name = "kx-cms"
+version = "0.1.0"
+source = { editable = "packages/kx-cms" }
+dependencies = [
+    { name = "kx-core-db" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "kx-core-db", editable = "packages/kx-core-db" }]
 
 [[package]]
 name = "kx-core-automation"

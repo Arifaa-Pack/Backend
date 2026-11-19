@@ -69,7 +69,7 @@ class Column:
 
 
 # Product details the CMS gets are `target="spec"` plus name, category, unit, MOQ and custom printing.
-# The spec keys are the CMS field names (docs/handoff/CMS_API.md): the CRM copy and the CMS use the same names.
+# The spec keys are the CMS field names (docs/handoff/CMS_API.md): the CRM copy and the CMS share the names.
 PRODUCT_COLUMNS: Final = (
     Column(
         "code",
@@ -749,6 +749,7 @@ def _content(prod: Product, values: Mapping[str, Cell], result: Plan) -> Product
         category_name=str(category.get("name")) if isinstance(category.get("name"), str) else None,
         fields=fields,
         cleared=sorted(cleared),
+        cms_product_id=prod.cms_product_id,  # D61: the website product this variant belongs to
     )
 
 

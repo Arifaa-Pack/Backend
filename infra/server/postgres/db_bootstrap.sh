@@ -138,7 +138,7 @@ for p in "${PREFIXES[@]}"; do
   for l in "${LOGICALS[@]}"; do
     ensure_database "${p}${l}" "${p}${l}_app"
     ensure_extensions "${p}${l}" "${EXTENSIONS[$l]:-}"
-    [[ "$l" == "cms" ]] || ensure_role_settings "${p}${l}_app" "$l"
+    ensure_role_settings "${p}${l}_app" "$l"  # D54: cms is a platform package now (schema cms)
   done
   [[ " ${LOGICALS[*]} " == *" crm "* ]] && ensure_reporting "${p}crm" "${p}crm_app" "${p}reporting_ro"
   log "tenant prefix ${label}: ok"

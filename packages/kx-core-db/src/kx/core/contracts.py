@@ -385,3 +385,74 @@ class BlobStore(Protocol):
     writes. The app's `S3MediaStore` satisfies it."""
 
     async def put(self, key: str, data: bytes, content_type: str) -> None: ...
+
+
+# ---------------- D55: the website as the AI sees it (built by kx.cms from published content) ------------
+class ManifestSection(_Frozen):
+    """One section of a page. `id` is the DOM id the website scrolls to (a contract with the site, D55)."""
+
+    id: str
+    design_id: str | None = None  # the design doc's id, e.g. HM-05
+    title: str = ""
+    purpose: str = ""
+    keywords: tuple[str, ...] = ()
+
+
+class ManifestPage(_Frozen):
+    key: str  # home, products, about, quality, clients, contact, privacy ...
+    title: str
+    path_en: str
+    path_ar: str
+    sections: tuple[ManifestSection, ...] = ()
+
+
+class ManifestFamily(_Frozen):
+    id: str  # containers, foil, platters, cups-trays, pots, microwave, cutlery, cling-film
+    name: str
+    names: dict[str, str] = {}  # language -> name
+    synonyms: dict[str, tuple[str, ...]] = {}  # language -> words a visitor may use
+    path_en: str = ""
+    path_ar: str = ""
+
+
+class ManifestProduct(_Frozen):
+    """What the AI may say about a product and where it lives on the site. Never a price (§7)."""
+
+    id: str  # the site's id / URL slug, e.g. ac-8325 (unique; its CRM variants are linked by it, D61)
+    ref: str  # what buyers say: 8325 (not unique: the trade carton and the self-range pack share it)
+    catalogue_code: str | None = None  # AC-1
+    family: str
+    name: str
+    packing: str | None = None  # 1 x 1000 pcs
+    range: Literal["trade", "self"] = "trade"
+    path_en: str = ""
+    path_ar: str = ""
+    has_photo: bool = True
+
+
+class ManifestChapter(_Frozen):
+    """A factory-tour chapter (HM-05): the film opens at `seconds`."""
+
+    id: str
+    title: str
+    seconds: float = 0
+    family: str | None = None
+
+
+class SiteManifest(_Frozen):
+    """D55: everything the assistant may show on the website. `revision` changes on every publish."""
+
+    revision: int
+    built_at: datetime
+    pages: tuple[ManifestPage, ...] = ()
+    families: tuple[ManifestFamily, ...] = ()
+    products: tuple[ManifestProduct, ...] = ()
+    chapters: tuple[ManifestChapter, ...] = ()
+    product_pages: bool = False  # PG-03 /products/<id> is live on the site; else the quick view (?p=<id>)
+
+
+@runtime_checkable
+class SiteManifestSource(Protocol):
+    """Implemented by kx.cms (from published content); read by kx.agents. Cached: cheap to call per turn."""
+
+    async def manifest(self) -> SiteManifest: ...

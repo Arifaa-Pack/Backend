@@ -42,6 +42,7 @@ from kx.automation import (
     webhook_router,
 )
 from kx.automation import admin_router as channels_admin_router
+from kx.cms import CmsDeps, ManifestCache, build_admin_router, build_media_router, build_public_router
 from kx.core.auth import Role
 from kx.core.errors import install_problem_handlers
 from kx.crm import CrmDeps, Letterhead
@@ -93,6 +94,10 @@ def full_app() -> FastAPI:
     )
     app.include_router(website_router(web))
     app.include_router(channels_admin_router(_Dummy()))  # type: ignore[arg-type]
+    cms = CmsDeps(databases=_Dbs(), preview_secret="x")  # type: ignore[arg-type]
+    app.include_router(build_public_router(cms, ManifestCache(_Dummy())))  # type: ignore[arg-type]
+    app.include_router(build_admin_router(cms))
+    app.include_router(build_media_router(cms))
 
     @app.get("/healthz", tags=["health"])
     async def healthz() -> dict[str, str]:
@@ -206,6 +211,11 @@ FOLDERS: list[tuple[str, str]] = [
         "14 Negative and security tests",
         "Requests that MUST be refused. A pass here means the server said no.",
     ),
+    (
+        "15 CMS: website content and editors",
+        "D54: the website's content reads (public, cached) and the editors' draft / publish / versions / media "
+        "API (content editor, admin, manager). Sign in first (folder 01).",
+    ),
 ]
 
 
@@ -213,6 +223,8 @@ def folder_of(method: str, path: str) -> str:
     f = [name for name, _ in FOLDERS]
     if path.startswith(("/healthz", "/.well-known")):
         return f[0]
+    if path.startswith(("/v1/content", "/v1/cms")):
+        return f[15]
     if path.startswith("/v1/auth"):
         return f[1]
     if path.startswith("/v1/public/unsubscribe"):
@@ -262,6 +274,7 @@ PATH_VARS: dict[tuple[str, str], str] = {
     ("/v1/settings/{key}", "key"): "setting_key",
     ("/v1/feature-flags/{key}", "key"): "flag_key",
     ("/v1/exports/{entity}", "entity"): "export_entity",
+    ("/v1/content/products/{product_id}", "product_id"): "web_product_id",  # the website id, not the CRM uuid
 }
 
 
@@ -731,6 +744,18 @@ SCRIPTS: dict[tuple[str, str], list[str]] = {
         "}",
     ),
     ("POST", "/v1/auth/mfa/totp"): SAVE_TOKEN,
+    ("POST", "/v1/cms/preview-token"): js(
+        "if (pm.response.code === 200) {",
+        '  pm.environment.set("preview_token", pm.response.json().token);',
+        '  console.log("Add ?preview={{preview_token}} to a content read to see the drafts.");',
+        "}",
+    ),
+    ("POST", "/v1/cms/media/uploads"): js(
+        "if (pm.response.code === 201) {",
+        '  pm.environment.set("asset_id", pm.response.json().asset_id);',
+        '  console.log("PUT the file to upload_url (Body > binary), then run Confirm.");',
+        "}",
+    ),
     ("POST", "/v1/auth/mfa/email/verify"): SAVE_TOKEN,
     ("POST", "/v1/auth/refresh"): SAVE_TOKEN,
     ("POST", "/v1/auth/password"): js(
@@ -1570,6 +1595,13 @@ RUNTIME = [  # filled by the collection's scripts while the tester works
         "A session id that is not yours.",
     ),
     ("last_wa_message_id", "", "default", ""),
+    ("web_product_id", "ac-8325", "default", "A website product id (the CMS key), e.g. ac-8325."),
+    ("collection", "products", "default", "A CMS collection: site, pages, families, products, ..."),
+    ("key", "ac-8325", "default", "A CMS document key in that collection (site settings: site)."),
+    ("slug", "home", "default", "A CMS page: home, products, about, quality, clients, contact."),
+    ("number", "1", "default", "A CMS version number (from 'versions')."),
+    ("asset_id", "", "default", "A media library asset id (from 'Start upload' or 'List media')."),
+    ("preview_token", "", "secret", "Set by 'Preview token'; add ?preview= to content reads to see drafts."),
     ("unsubscribe_token", "", "default", "The t= value from the unsubscribe link in a buyer email."),
 ]
 
@@ -1697,7 +1729,7 @@ def validate(collection: dict[str, Any], openapi_count: int) -> None:
     main = sum(len(f["item"]) for f in collection["item"] if not f["name"].startswith("14"))
     assert main == len(seen), "a route appears twice outside the negative folder"
     print(
-        f"OpenAPI operations: {openapi_count}; collection routes (folders 00-13): {main}; negative tests: {total - main}"
+        f"OpenAPI operations: {openapi_count}; collection routes (all folders but 14): {main}; negative tests: {total - main}"
     )
     assert main == openapi_count, "route count mismatch"
 

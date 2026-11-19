@@ -12016,7 +12016,8 @@
               "md",
               "manager",
               "admin",
-              "sales"
+              "sales",
+              "content_editor"
             ],
             "title": "Role"
           },
@@ -12165,7 +12166,8 @@
                   "md",
                   "manager",
                   "admin",
-                  "sales"
+                  "sales",
+                  "content_editor"
                 ]
               },
               {

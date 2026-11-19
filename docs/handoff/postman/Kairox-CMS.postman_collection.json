@@ -727,6 +727,946 @@
           ]
         }
       ]
+    },
+    {
+      "name": "15 CMS: website content and editors",
+      "description": "D54: the website's content reads (public, cached) and the editors' draft / publish / versions / media API (content editor, admin, manager). Sign in first (folder 01).",
+      "item": [
+        {
+          "name": "Site",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/content/site",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "content",
+                "site"
+              ],
+              "query": [
+                {
+                  "key": "locale",
+                  "value": "en",
+                  "description": "one of: en, ar; optional",
+                  "disabled": true
+                },
+                {
+                  "key": "preview",
+                  "value": "",
+                  "description": "optional",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Site settings: company name, phones, emails, addresses, hours, social links, announcement bar, theme colours and fonts, the assistant's fixed texts, and whether product pages (PG-03) are live.\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 200",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Site manifest",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/content/manifest",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "content",
+                "manifest"
+              ]
+            },
+            "description": "D55: the site map the AI assistant uses (pages and their section ids, families with their names and synonyms in six languages, products with their paths, factory-tour chapters). The website's instant navigation (layer 0) reads the same data.\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 200",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/content/pages/{{slug}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "content",
+                "pages",
+                "{{slug}}"
+              ],
+              "query": [
+                {
+                  "key": "locale",
+                  "value": "en",
+                  "description": "one of: en, ar; optional",
+                  "disabled": true
+                },
+                {
+                  "key": "preview",
+                  "value": "",
+                  "description": "optional",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "One page with its section blocks (home, products, about, quality, clients, contact, privacy).\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 200",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Families",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/content/families",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "content",
+                "families"
+              ],
+              "query": [
+                {
+                  "key": "locale",
+                  "value": "en",
+                  "description": "one of: en, ar; optional",
+                  "disabled": true
+                },
+                {
+                  "key": "preview",
+                  "value": "",
+                  "description": "optional",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "The product families, in their display order (HM-01, HM-04, PR-02).\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 200",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/content/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "content",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "locale",
+                  "value": "en",
+                  "description": "one of: en, ar; optional",
+                  "disabled": true
+                },
+                {
+                  "key": "family",
+                  "value": "",
+                  "description": "optional",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "{{buyer_phone}}",
+                  "description": "optional",
+                  "disabled": true
+                },
+                {
+                  "key": "range",
+                  "value": "",
+                  "description": "optional",
+                  "disabled": true
+                },
+                {
+                  "key": "preview",
+                  "value": "",
+                  "description": "optional",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "The catalogue (PR-03), in catalogue order; filters as on the site: `family`, `q`, `range`.\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 200",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Product",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/content/products/{{web_product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "content",
+                "products",
+                "{{web_product_id}}"
+              ],
+              "query": [
+                {
+                  "key": "locale",
+                  "value": "en",
+                  "description": "one of: en, ar; optional",
+                  "disabled": true
+                },
+                {
+                  "key": "preview",
+                  "value": "",
+                  "description": "optional",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "PG-03: one product with its family, previous / next in the catalogue (PD-04) and up to four more from the same family (PD-05).\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 200",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Collection",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/content/collections/{{collection}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "content",
+                "collections",
+                "{{collection}}"
+              ],
+              "query": [
+                {
+                  "key": "locale",
+                  "value": "en",
+                  "description": "one of: en, ar; optional",
+                  "disabled": true
+                },
+                {
+                  "key": "preview",
+                  "value": "",
+                  "description": "optional",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Any other collection, in display order: `tour_chapters` (HM-05), `stations` (QA-02), `faqs`, `certificates` (QA-04), `clients` (CL-02), `industries` (CL-01), `stories` (CL-03), `leadership` (AB-05, AB-06).\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 200",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sitemap",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/content/sitemap",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "content",
+                "sitemap"
+              ]
+            },
+            "description": "Every published page, family and product, in English and Arabic, for `/sitemap.xml` (§9).\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 200",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Redirects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/content/redirects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "content",
+                "redirects"
+              ]
+            },
+            "description": "Old-site addresses that move permanently to their new page (design doc §9): each product's `legacy_paths` (e.g. `/8325.php`) to its page (or its quick view until PG-03 is live).\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 200",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Collections",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/collections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "collections"
+              ]
+            },
+            "description": "Every content type with its JSON Schema (fields, types, limits), to draw the editor forms.\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/collections/{{collection}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "collections",
+                "{{collection}}"
+              ]
+            },
+            "description": "The documents of one content type, in display order, with their state (draft / published / changed = live with unpublished edits).\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/collections/{{collection}}/{{key}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "collections",
+                "{{collection}}",
+                "{{key}}"
+              ]
+            },
+            "description": "One document: its open draft (with `revision`, needed to save) and its live version.\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Save draft",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/collections/{{collection}}/{{key}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "collections",
+                "{{collection}}",
+                "{{key}}"
+              ]
+            },
+            "description": "Save the draft (creates the document when new). Send the `revision` you loaded; if a colleague saved meanwhile the answer is 409 and nothing is overwritten. Prices are refused (422 `cms_price`).\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 200",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {},\n  \"revision\": 1,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publish",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/collections/{{collection}}/{{key}}/publish",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "collections",
+                "{{collection}}",
+                "{{key}}",
+                "publish"
+              ]
+            },
+            "description": "Put the draft live. The website re-renders the affected pages within about a minute; the AI's knowledge and the CRM product record follow automatically.\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 200",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"QA test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unpublish",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/collections/{{collection}}/{{key}}/unpublish",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "collections",
+                "{{collection}}",
+                "{{key}}",
+                "unpublish"
+              ]
+            },
+            "description": "Take the document off the website (versions are kept; publish again to bring it back).\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 204"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Discard draft",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/collections/{{collection}}/{{key}}/draft",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "collections",
+                "{{collection}}",
+                "{{key}}",
+                "draft"
+              ]
+            },
+            "description": "Throw the open draft away (a document that was never published disappears with it).\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 204"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Versions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/collections/{{collection}}/{{key}}/versions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "collections",
+                "{{collection}}",
+                "{{key}}",
+                "versions"
+              ]
+            },
+            "description": "Every version, newest first (each publish is kept).\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restore",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/collections/{{collection}}/{{key}}/versions/{{number}}/restore",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "collections",
+                "{{collection}}",
+                "{{key}}",
+                "versions",
+                "{{number}}",
+                "restore"
+              ]
+            },
+            "description": "Copy an earlier version into the draft; publish it to go live again.\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preview token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/preview-token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "preview-token"
+              ]
+            },
+            "description": "A 30-minute token that makes the website show drafts (Next.js draft mode).\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  pm.environment.set(\"preview_token\", pm.response.json().token);",
+                  "  console.log(\"Add ?preview={{preview_token}} to a content read to see the drafts.\");",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List media",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/media",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "media"
+              ],
+              "query": [
+                {
+                  "key": "kind",
+                  "value": "",
+                  "description": "optional",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "The library, newest first (`kind` = image, video, application (PDF) or model (3D)).\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/media/uploads",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "media",
+                "uploads"
+              ]
+            },
+            "description": "Step 1: ask where to upload. PUT the file to `upload_url` with `headers`, then confirm. Accepted: WebP, JPEG, PNG, AVIF, SVG (15 MB), MP4, WebM (300 MB), PDF (30 MB), GLB 3D models (50 MB).\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 201",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filename\": \"QA test\",\n  \"content_type\": \"QA test\",\n  \"size\": 1,\n  \"sha256\": \"QA test\",\n  \"alt\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "  pm.environment.set(\"asset_id\", pm.response.json().asset_id);",
+                  "  console.log(\"PUT the file to upload_url (Body > binary), then run Confirm.\");",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/media/{{asset_id}}/confirm",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "media",
+                "{{asset_id}}",
+                "confirm"
+              ]
+            },
+            "description": "Step 2: the browser's PUT succeeded; the file joins the library.\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 200",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"width\": 1,\n  \"height\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update alt",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/cms/media/{{asset_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "cms",
+                "media",
+                "{{asset_id}}"
+              ]
+            },
+            "description": "Alt text per language (accessibility and SEO).\n\n**Who may call it:** manager, md, admin, content_editor\n\n**Expected on success:** HTTP 200",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"alt\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "event": [

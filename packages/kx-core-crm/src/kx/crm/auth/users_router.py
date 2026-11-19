@@ -27,7 +27,7 @@ from kx.crm.models import StaffCredential, User
 # MD is created on the server with `kx create-user --role md`.
 Reader = Annotated[Principal, Depends(require_role(Role.ADMIN, Role.MANAGER))]
 Admin = Annotated[Principal, Depends(require_human_mfa(Role.ADMIN, Role.MD))]
-StaffRole = Literal["md", "manager", "admin", "sales"]
+StaffRole = Literal["md", "manager", "admin", "sales", "content_editor"]  # content_editor: CMS only (D54)
 AlertChannel = Literal["whatsapp", "email", "call", "in_app"]
 
 

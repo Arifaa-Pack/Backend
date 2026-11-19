@@ -32,6 +32,7 @@ class Role(StrEnum):
     MANAGER = "manager"
     ADMIN = "admin"
     SALES = "sales"
+    CONTENT_EDITOR = "content_editor"  # D54 / SRS §3: edits and publishes website content; no CRM access
     SERVICE = "service"
 
 

@@ -22,8 +22,13 @@ class AppSettings(BaseSettings):
 
     api_port: int = 8000
     forwarded_allow_ips: str = "127.0.0.1"  # uvicorn proxy headers: only from the Coolify proxy (D53)
-    cms_url: str = "http://localhost:3000"  # Payload CMS (KB source)
-    cms_api_key: SecretStr | None = None
+    # D54 the CMS package: after a publish the website re-renders the changed pages (POST
+    # <website>/api/revalidate, HMAC-signed with this secret); preview links open <website>/api/draft.
+    # Media is served from this public URL of the R2 bucket (a Cloudflare custom domain, e.g.
+    # https://media.arifapack.com).
+    website_url: str | None = None
+    website_revalidate_secret: SecretStr | None = None
+    media_public_url: str = "http://localhost:9000/kx-local"
     # M2: CORS with credentials (the refresh cookie) only for the CRM screens; these are also the only
     # browser origins /v1/auth accepts. The public website goes in cors_public_origins: it may call
     # /v1/public/* (chat, voice, unsubscribe) without credentials and nothing else.
@@ -84,7 +89,7 @@ class AppSettings(BaseSettings):
     speech_url: str | None = None  # free STT / TTS server (services/speech), e.g. http://speech:8100
     voice_max_concurrent_free: int = 3  # free-version calls at once (CPU speech-to-text, OPEN_QUESTIONS #72)
     voice_idle_processes: int = 2  # warm LiveKit job processes
-    cms_webhook_secret: SecretStr | None = None  # HMAC Payload signs publish webhooks with (§7, D22)
+    cms_webhook_secret: SecretStr | None = None  # deprecated Payload webhook (§7, D22; replaced by D54)
 
     # ---- caps (D34)
     spend_ai_usd_per_day: Decimal = Decimal(25)  # defaults = Heavy column / 30 (OPEN_QUESTIONS #52)

@@ -5083,7 +5083,7 @@ Admin (MFA): a new staff user; the one-time password in the answer is shown once
 |---|---|---|---|
 | `email` | string | yes | min length 3; max length 320 |
 | `full_name` | string | yes | min length 1; max length 200 |
-| `role` | `md` \| `manager` \| `admin` \| `sales` | yes |  |
+| `role` | `md` \| `manager` \| `admin` \| `sales` \| `content_editor` | yes |  |
 | `phone_e164` | string or null | no |  |
 | `break_glass` | boolean | no | default `false` |
 
@@ -5154,7 +5154,7 @@ Admin (MFA): role, active flag, phone, languages / countries / categories for as
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `full_name` | string or null | no |  |
-| `role` | `md` \| `manager` \| `admin` \| `sales` or null | no |  |
+| `role` | `md` \| `manager` \| `admin` \| `sales` \| `content_editor` or null | no |  |
 | `phone_e164` | string or null | no |  |
 | `is_active` | boolean or null | no |  |
 | `languages` | list of string or null | no |  |
@@ -6379,7 +6379,7 @@ CRM-owned fields only (D22): the CMS owns the description.
 |---|---|---|---|
 | `email` | string | yes | min length 3; max length 320 |
 | `full_name` | string | yes | min length 1; max length 200 |
-| `role` | `md` \| `manager` \| `admin` \| `sales` | yes |  |
+| `role` | `md` \| `manager` \| `admin` \| `sales` \| `content_editor` | yes |  |
 | `phone_e164` | string or null | no |  |
 | `break_glass` | boolean | no | default `false` |
 
@@ -6410,7 +6410,7 @@ CRM-owned fields only (D22): the CMS owns the description.
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `full_name` | string or null | no |  |
-| `role` | `md` \| `manager` \| `admin` \| `sales` or null | no |  |
+| `role` | `md` \| `manager` \| `admin` \| `sales` \| `content_editor` or null | no |  |
 | `phone_e164` | string or null | no |  |
 | `is_active` | boolean or null | no |  |
 | `languages` | list of string or null | no |  |

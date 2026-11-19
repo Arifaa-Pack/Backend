@@ -47,7 +47,7 @@ from kx.core.event_payloads import PAYLOADS
 from kx.core.jobs import Kick
 from kx.core.settings import CoreSettings, LogicalDb
 
-PLATFORM_PACKAGES: Final = ("kx.core", "kx.crm", "kx.automation", "kx.agents")
+PLATFORM_PACKAGES: Final = ("kx.core", "kx.crm", "kx.automation", "kx.agents", "kx.cms")
 _OWNERS: Final = (*PLATFORM_PACKAGES, "arifaa_pack")
 _EVENT_NAME: Final = re.compile(r"^[a-z_]+\.[a-z_]+\.v\d+$")
 _CALL_DEPTH: Final = 3
@@ -181,6 +181,7 @@ def package_of(module_name: str) -> str:
         ("kx.crm", "crm"),
         ("kx.automation", "automation"),
         ("kx.agents", "agents"),
+        ("kx.cms", "cms"),
         ("arifaa_pack", "app"),
     ):
         if module_name == prefix or module_name.startswith(prefix + "."):

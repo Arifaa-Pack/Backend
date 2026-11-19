@@ -19,6 +19,9 @@ from arifaa_pack.telemetry import beat_health, init_telemetry, instrument_api
 from kx.agents import website_router
 from kx.automation import admin_router as channels_admin_router
 from kx.automation import cms_router, unsubscribe_router, webhook_router
+from kx.cms import build_admin_router as cms_admin_router
+from kx.cms import build_media_router as cms_media_router
+from kx.cms import build_public_router as content_router
 from kx.core.errors import Unavailable, install_problem_handlers
 from kx.core.logging import configure_logging
 from kx.core.settings import Environment, get_settings
@@ -38,8 +41,13 @@ def create_app() -> FastAPI:
             app.include_router(webhook_router(c.webhook_deps))
             app.include_router(unsubscribe_router(c.unsubscribe_deps))  # §8.1 step 10
             cms_secret = c.app.cms_webhook_secret.get_secret_value() if c.app.cms_webhook_secret else None
-            app.include_router(cms_router(c.databases, cms_secret))  # §7 / D22 publish webhook
+            app.include_router(cms_router(c.databases, cms_secret))  # deprecated Payload webhook (D54)
             app.include_router(website_router(c.website_deps))  # §6 website chat and voice
+            app.include_router(content_router(c.cms_deps, c.site_manifest))  # D54 the website reads content
+            for cms_staff in (cms_admin_router(c.cms_deps), cms_media_router(c.cms_deps)):  # D54 editors
+                app.include_router(
+                    cms_staff, dependencies=[Depends(SessionGuard(c.databases, c.crm_deps.now).dependency())]
+                )
             app.include_router(  # §20.11 numbers and templates; staff only, so the L1 live-session guard too
                 channels_admin_router(c.databases),
                 dependencies=[Depends(SessionGuard(c.databases, c.crm_deps.now).dependency())],

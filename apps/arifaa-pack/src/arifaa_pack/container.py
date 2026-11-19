@@ -1,6 +1,6 @@
 """Composition root: builds every platform service once per process and wires the packages together.
 
-Packages never import each other; this module is the only place kx.crm, kx.automation and kx.agents
+Packages never import each other; this module is the only place kx.crm, kx.automation, kx.agents and kx.cms
 meet. Event flow: each package relays its outbox -> `EventBus.publish` -> one durable job per subscribed
 package in `automation.scheduled_jobs` -> a Celery worker runs it -> that package's handler (each handler
 de-duplicates with its inbox). Celery itself lives in `arifaa_pack.jobqueue` / `arifaa_pack.celery_app`.
@@ -22,17 +22,16 @@ import aioboto3
 import httpx
 from pydantic import SecretStr
 from redis.asyncio import Redis
-from sqlalchemy import func, update
 
 from arifaa_pack import texts_sync
 from arifaa_pack.adapters import (
     EMBEDDING_MODELS,
+    CmsContentSource,
     HttpEmbedder,
     OpenRatesFx,
     OpsNotifier,
-    PayloadContentSource,
-    PayloadProductWriter,
     PublicLimiter,
+    R2MediaStorage,
     RedisAuthThrottle,
     StaffCodeMailer,
     ThreadAddressBook,
@@ -93,6 +92,7 @@ from kx.automation import (
 )
 from kx.automation import jobs as auto_jobs
 from kx.automation import retention as automation_retention
+from kx.cms import CmsDeps, ContentService, ManifestCache, WebsiteRevalidator, save_product_draft
 from kx.core import events as ev
 from kx.core.auth import TokenIssuer
 from kx.core.db import Databases
@@ -121,7 +121,6 @@ from kx.crm import (
     retention_rules,
 )
 from kx.crm import jobs as crm_jobs
-from kx.crm.models import Product  # ADR-0001 rule-3 baseline: cms_product_draft writes cms_product_id here
 
 EventFn = Callable[[Event], Awaitable[Any]]
 Periodic = Callable[[datetime], Awaitable[Any]]
@@ -129,6 +128,7 @@ CRM_EVENT: Final = "crm.handle_event"
 log = get_logger(__name__)
 AGENTS_EVENT: Final = "agents.handle_event"
 CMS_PRODUCT_DRAFT: Final = "app.cms_product_draft"  # 18 Nov product workbook -> CMS draft
+CMS_REVALIDATE: Final = "app.cms_revalidate"  # D54 a publish -> the website re-renders its pages
 TRANSLATE_TEXT: Final = "app.translate_text"  # 18 Nov edited English message text -> other languages
 
 
@@ -165,6 +165,8 @@ class Container:
     periodic: dict[str, Periodic]
     bus: EventBus
     automation_runtime: AutomationRuntime
+    cms_deps: CmsDeps
+    site_manifest: ManifestCache
     webhook_deps: WebhookDeps
     unsubscribe_deps: UnsubscribeDeps
     crm_deps: CrmDeps
@@ -279,21 +281,23 @@ def _wire_events(
         bus.route(event_type, auto_jobs.EVENT)
 
 
-async def cms_product_draft(writer: PayloadProductWriter | None, dbs: Databases, job: Job) -> None:
-    """Save one product's workbook details in the CMS as a draft and remember its CMS id in the CRM.
-    Retried by the job store on any CMS error; without a CMS key (local dev) it is skipped with a warning."""
+async def cms_product_draft(service: ContentService, dbs: Databases, job: Job) -> None:
+    """18 Nov product workbook -> CMS (D54, D61): the variant's website details are saved as a DRAFT of the
+    website product it belongs to; a manager previews and publishes it in the CMS. A variant not linked to a
+    website product (no `cms_product_id`) is skipped: an ERP packing variant must not become a website product
+    of its own."""
     content = ProductContentChanged.model_validate(Event.model_validate(job.args["event"]).payload)
-    if writer is None:
-        log.warning("cms.product_draft_skipped", code=content.code, reason="KX_APP_CMS_API_KEY is not set")
+    async with dbs.transaction(LogicalDb.CMS) as session:
+        saved = await save_product_draft(session, content, service)
+    if saved is None:
+        log.info("cms.product_draft_skipped", code=content.code, reason="not linked to a website product")
         return
-    doc_id, created = await writer.save_draft(content)
-    async with dbs.transaction(LogicalDb.CRM) as session:
-        await session.execute(
-            update(Product)
-            .where(func.upper(Product.sku) == content.code.upper(), Product.cms_product_id.is_(None))
-            .values(cms_product_id=doc_id)
-        )
-    log.info("cms.product_draft_saved", code=content.code, cms_id=doc_id, created=created)
+    log.info("cms.product_draft_saved", code=content.code, cms_id=saved[0], created=saved[1])
+
+
+async def cms_revalidate(revalidator: WebsiteRevalidator, job: Job) -> None:
+    """D54: after a publish the website re-renders the pages named in the event (the job store retries)."""
+    await revalidator(Event.model_validate(job.args["event"]))
 
 
 @dataclass(frozen=True, slots=True)
@@ -321,6 +325,10 @@ def _periodic(d: _PeriodicDeps) -> dict[str, Periodic]:
         async with d.databases.transaction(LogicalDb.AGENTS) as session:
             return await relay_once(session, "agents", d.bus.publish)
 
+    async def relay_cms(_: datetime) -> int:  # D54: publishes reach the website, the AI and the CRM
+        async with d.databases.transaction(LogicalDb.CMS) as session:
+            return await relay_once(session, "cms", d.bus.publish)
+
     async def beat_heartbeat(_: datetime) -> None:
         await heartbeat(d.redis, d.company_code, await d.store.lag_seconds())
 
@@ -343,6 +351,7 @@ def _periodic(d: _PeriodicDeps) -> dict[str, Periodic]:
     return {
         "jobs.dispatch_due": dispatch_due,
         "relay.agents": relay_agents,
+        "relay.cms": relay_cms,
         "app.heartbeat": beat_heartbeat,
         "app.retention": retention_plumbing,
         **auto_jobs.periodic_jobs(d.automation),
@@ -533,8 +542,7 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             public_budget_left=partial(spend.left, "ai_usd_public"),
             price_second_opinion=s.price_second_opinion,  # M7 layer 3
         )
-        cms_key = s.cms_api_key.get_secret_value() if s.cms_api_key else None
-        indexer = KnowledgeIndexer(dbs, embedder, PayloadContentSource(http, s.cms_url, cms_key))
+        indexer = KnowledgeIndexer(dbs, embedder, CmsContentSource(dbs))  # D54: the CMS's published text
         agents = AgentHandlers(
             databases=dbs,
             service=agent_service,
@@ -561,9 +569,24 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             TRANSLATE_TEXT, JobSpec(partial(texts_sync.translate_text, agent_service.runner.models, dbs))
         )
         bus.route(ev.MESSAGE_TEXT_CHANGED, TRANSLATE_TEXT)
-        writer = PayloadProductWriter(http, s.cms_url, cms_key) if cms_key else None
-        runner.register(CMS_PRODUCT_DRAFT, JobSpec(partial(cms_product_draft, writer, dbs)))
+        # ---- CMS (D54): editors' content, the website's reads, the AI's site map (D55)
+        cms_deps = CmsDeps(
+            databases=dbs,
+            preview_secret=core.service_token_secret.get_secret_value(),
+            media_base_url=s.media_public_url,
+            storage=R2MediaStorage(s3, st.bucket),
+            website_url=s.website_url,
+        )
+        site_manifest = ManifestCache(dbs)
+        runner.register(CMS_PRODUCT_DRAFT, JobSpec(partial(cms_product_draft, cms_deps.service, dbs)))
         bus.route(ev.CATALOGUE_PRODUCT_CONTENT, CMS_PRODUCT_DRAFT)
+        revalidator = WebsiteRevalidator(
+            http,
+            s.website_url,
+            s.website_revalidate_secret.get_secret_value() if s.website_revalidate_secret else None,
+        )
+        runner.register(CMS_REVALIDATE, JobSpec(partial(cms_revalidate, revalidator)))
+        bus.route(ev.CONTENT_PUBLISHED, CMS_REVALIDATE)
 
         auto_rt = AutomationRuntime(
             databases=dbs,
@@ -611,6 +634,8 @@ async def build(kicker: Kicker | None = None) -> AsyncIterator[Container]:  # no
             periodic=periodic,
             bus=bus,
             automation_runtime=auto_rt,
+            cms_deps=cms_deps,
+            site_manifest=site_manifest,
             webhook_deps=webhook_deps,
             unsubscribe_deps=UnsubscribeDeps(dbs, auto_s, core.service_token_secret.get_secret_value()),
             crm_deps=crm_deps,

@@ -40,6 +40,7 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | `kx.core.contracts:CrmGateway` | `kx.crm.gateway:CrmGatewayImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
 | `kx.core.contracts:GrantConsumer` | `kx.crm.gateway:GrantConsumerImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
 | `kx.core.contracts:MessageSender` | `kx.automation.outbound.service:OutboundService` | `packages/kx-core-automation/src/kx/automation/outbound/service.py` |
+| `kx.core.contracts:SiteManifestSource` | `kx.cms.manifest.service:ManifestCache` | `packages/kx-cms/src/kx/cms/manifest/service.py` |
 | `kx.core.contracts:StaffMailer` | `arifaa_pack.adapters:StaffCodeMailer` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 
 ## Other ports (Protocols inside a package)
@@ -48,7 +49,7 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | --- | --- | --- |
 | `kx.agents.handlers:MessageBurst` | `arifaa_pack.adapters:ThreadBurst` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.handlers:ReplyAddressBook` | `arifaa_pack.adapters:ThreadAddressBook` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
-| `kx.agents.knowledge.service:ContentSource` | `arifaa_pack.adapters:PayloadContentSource` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
+| `kx.agents.knowledge.service:ContentSource` | `arifaa_pack.adapters:CmsContentSource` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.knowledge.service:Embedder` | `arifaa_pack.adapters:HttpEmbedder` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.agents.knowledge.service:KnowledgeSearch` | `kx.agents.knowledge.service:KnowledgeBase` | `packages/kx-agent-framework/src/kx/agents/knowledge/service.py` |
 | `kx.agents.llm.service:ModelProvider` | `kx.agents.llm.service:AnthropicApiProvider`<br>`kx.agents.llm.service:GeminiApiProvider` | `packages/kx-agent-framework/src/kx/agents/llm/service.py`<br>`packages/kx-agent-framework/src/kx/agents/llm/service.py` |
@@ -69,6 +70,7 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | `kx.automation.outbound.service:RateLimiter` | `kx.automation.outbound.ratelimit:TokenBucketLimiter` | `packages/kx-core-automation/src/kx/automation/outbound/ratelimit.py` |
 | `kx.automation.outbound.service:TemplateSpend` | `kx.core.spend:SpendMeter` | `packages/kx-core-db/src/kx/core/spend.py` |
 | `kx.automation.outbound.service:WhatsAppTransport` | `kx.automation.whatsapp.channel:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/whatsapp/channel.py` |
+| `kx.cms.media.service:MediaStorage` | `arifaa_pack.adapters:R2MediaStorage` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 | `kx.core.jobs:Kicker` | `arifaa_pack.jobqueue:CeleryKicker` | `apps/arifaa-pack/src/arifaa_pack/jobqueue.py` |
 | `kx.crm.auth.throttle:AuthThrottle` | `arifaa_pack.adapters:RedisAuthThrottle`<br>`kx.crm.auth.throttle:MemoryThrottle` | `apps/arifaa-pack/src/arifaa_pack/adapters.py`<br>`packages/kx-core-crm/src/kx/crm/auth/throttle.py` |
 | `kx.crm.pricing.fx:FxSource` | `arifaa_pack.adapters:OpenRatesFx` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
@@ -88,6 +90,7 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | `consent.opted_out.v1` | `kx.core.event_payloads:OptedOut` | `automation: kx.automation.handlers:EventHandlers._opted_out`<br>`crm: kx.crm.jobs:on_opted_out` |
 | `consent.stop_unclear.v1` | `kx.core.event_payloads:StopUnclear` | `automation: kx.automation.handlers:EventHandlers._stop_unclear` |
 | `contact.anonymised.v1` | `kx.core.event_payloads:ContactAnonymised` | `agents: kx.agents.handlers:AgentHandlers._anonymise`<br>`automation: kx.automation.handlers:EventHandlers._contact_anonymised` |
+| `content.published.v1` | `kx.core.event_payloads:ContentPublished` | `app: arifaa_pack.container:cms_revalidate` |
 | `conversation.summary_updated.v1` | `kx.core.event_payloads:ConversationSummaryUpdated` | `crm: kx.crm.jobs:on_summary_updated` |
 | `deal.assigned.v1` | `kx.core.event_payloads:DealAssigned` | `automation: kx.automation.handlers:EventHandlers._deal_assigned` |
 | `deal.next_action_set.v1` | `kx.core.event_payloads:DealNextActionSet` | `automation: kx.automation.handlers:EventHandlers._next_action_set` |
@@ -150,6 +153,20 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | POST | `/v1/change-requests/{cr_id}/resolve` | `kx.crm.change_requests.router:router.<locals>.resolve` | `kx.crm.change_requests.service:resolve` |
 | POST | `/v1/change-requests/{cr_id}/revise` | `kx.crm.change_requests.router:router.<locals>.revise` | `kx.crm._shared.access:check_edit`<br>`kx.crm.change_requests.service:link_revision`<br>`kx.crm.deals.service:get_deal`<br>`kx.crm.quotes.service:revise_quote` |
 | POST | `/v1/change-requests/{cr_id}/start` | `kx.crm.change_requests.router:router.<locals>.start` | `kx.crm.change_requests.service:start` |
+| GET | `/v1/cms/collections` | `kx.cms.content.admin_router:build_admin_router.<locals>.collections` | - |
+| GET | `/v1/cms/collections/{collection}` | `kx.cms.content.admin_router:build_admin_router.<locals>.list_documents` | - |
+| GET | `/v1/cms/collections/{collection}/{key}` | `kx.cms.content.admin_router:build_admin_router.<locals>.get_document` | - |
+| PUT | `/v1/cms/collections/{collection}/{key}` | `kx.cms.content.admin_router:build_admin_router.<locals>.save_draft` | `kx.cms._shared.access:actor_of` |
+| DELETE | `/v1/cms/collections/{collection}/{key}/draft` | `kx.cms.content.admin_router:build_admin_router.<locals>.discard_draft` | `kx.cms._shared.access:actor_of` |
+| POST | `/v1/cms/collections/{collection}/{key}/publish` | `kx.cms.content.admin_router:build_admin_router.<locals>.publish` | `kx.cms._shared.access:actor_of`<br>`kx.cms.content.reader:site_settings` |
+| POST | `/v1/cms/collections/{collection}/{key}/unpublish` | `kx.cms.content.admin_router:build_admin_router.<locals>.unpublish` | `kx.cms._shared.access:actor_of`<br>`kx.cms.content.reader:site_settings` |
+| GET | `/v1/cms/collections/{collection}/{key}/versions` | `kx.cms.content.admin_router:build_admin_router.<locals>.versions` | - |
+| POST | `/v1/cms/collections/{collection}/{key}/versions/{number}/restore` | `kx.cms.content.admin_router:build_admin_router.<locals>.restore` | `kx.cms._shared.access:actor_of` |
+| GET | `/v1/cms/media` | `kx.cms.media.router:build_media_router.<locals>.list_media` | `kx.cms.media.service:list_assets` |
+| POST | `/v1/cms/media/uploads` | `kx.cms.media.router:build_media_router.<locals>.start_upload` | `kx.cms._shared.access:actor_of`<br>`kx.cms.media.service:start_upload` |
+| PATCH | `/v1/cms/media/{asset_id}` | `kx.cms.media.router:build_media_router.<locals>.update_alt` | `kx.cms._shared.access:actor_of`<br>`kx.cms.media.service:update_alt` |
+| POST | `/v1/cms/media/{asset_id}/confirm` | `kx.cms.media.router:build_media_router.<locals>.confirm` | `kx.cms._shared.access:actor_of`<br>`kx.cms.media.service:confirm` |
+| POST | `/v1/cms/preview-token` | `kx.cms.content.admin_router:build_admin_router.<locals>.preview_token` | `kx.cms._shared.access:actor_of`<br>`kx.cms.preview.service:issue` |
 | GET | `/v1/companies` | `kx.crm.records.router:router.<locals>.companies` | `kx.crm._shared.pagination:keyset`<br>`kx.crm._shared.pagination:page_of`<br>`kx.crm.deals.views:visible_to` |
 | POST | `/v1/companies` | `kx.crm.records.router:router.<locals>.create_company` | `kx.crm._shared.journal:record` |
 | PATCH | `/v1/companies/{company_id}` | `kx.crm.records.router:router.<locals>.edit_company` | `kx.crm._shared.journal:record`<br>`kx.crm.deals.views:visible_to` |
@@ -160,6 +177,15 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | GET | `/v1/contacts` | `kx.crm.records.router:router.<locals>.contacts` | `kx.crm._shared.pagination:keyset`<br>`kx.crm._shared.pagination:page_of`<br>`kx.crm.deals.views:visible_to` |
 | GET | `/v1/contacts/{contact_id}` | `kx.crm.records.router:router.<locals>.contact` | `kx.crm.deals.views:visible_to` |
 | PATCH | `/v1/contacts/{contact_id}` | `kx.crm.records.router:router.<locals>.edit_contact` | `kx.crm._shared.journal:record`<br>`kx.crm.deals.views:visible_to` |
+| GET | `/v1/content/collections/{collection}` | `kx.cms.content.public_router:build_public_router.<locals>.collection` | `kx.cms.content.reader:published_list`<br>`kx.cms.content.reader:revision`<br>`kx.cms.preview.service:valid` |
+| GET | `/v1/content/families` | `kx.cms.content.public_router:build_public_router.<locals>.families` | `kx.cms.content.reader:published_list`<br>`kx.cms.content.reader:revision`<br>`kx.cms.preview.service:valid` |
+| GET | `/v1/content/manifest` | `kx.cms.content.public_router:build_public_router.<locals>.site_manifest` | - |
+| GET | `/v1/content/pages/{slug}` | `kx.cms.content.public_router:build_public_router.<locals>.page` | `kx.cms.content.reader:published`<br>`kx.cms.preview.service:valid` |
+| GET | `/v1/content/products` | `kx.cms.content.public_router:build_public_router.<locals>.products` | `kx.cms.content.reader:published_list`<br>`kx.cms.content.reader:revision`<br>`kx.cms.preview.service:valid` |
+| GET | `/v1/content/products/{product_id}` | `kx.cms.content.public_router:build_public_router.<locals>.product` | `kx.cms.content.reader:published_list`<br>`kx.cms.content.reader:revision`<br>`kx.cms.preview.service:valid` |
+| GET | `/v1/content/redirects` | `kx.cms.content.public_router:build_public_router.<locals>.redirects` | `kx.cms._shared.paths:product_path`<br>`kx.cms.content.reader:published_list`<br>`kx.cms.content.reader:revision`<br>`kx.cms.content.reader:site_settings` |
+| GET | `/v1/content/site` | `kx.cms.content.public_router:build_public_router.<locals>.site` | `kx.cms.content.reader:published`<br>`kx.cms.preview.service:valid` |
+| GET | `/v1/content/sitemap` | `kx.cms.content.public_router:build_public_router.<locals>.sitemap` | `kx.cms._shared.paths:ar`<br>`kx.cms._shared.paths:family_path`<br>`kx.cms._shared.paths:page_path`<br>`kx.cms._shared.paths:product_path`<br>`kx.cms.content.reader:published_list`<br>`kx.cms.content.reader:revision`<br>`kx.cms.content.reader:site_settings` |
 | GET | `/v1/dashboard/summary` | `kx.crm.admin.router:router.<locals>.summary` | `kx.crm.pricing.proposals:material_freshness` |
 | GET | `/v1/dashboards/manager` | `kx.crm.reports.router:router.<locals>.manager` | `kx.crm.reports.dashboards:manager_board` |
 | GET | `/v1/dashboards/md` | `kx.crm.reports.router:router.<locals>.md` | `kx.crm.reports.dashboards:counts` |
@@ -240,7 +266,8 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | Task | Handler | Calls |
 | --- | --- | --- |
 | `agents.handle_event` | `arifaa_pack.container:_wire_events.<locals>.agents_event` | `kx.agents.handlers:AgentHandlers.last_resort` |
-| `app.cms_product_draft` | `arifaa_pack.container:cms_product_draft` | - |
+| `app.cms_product_draft` | `arifaa_pack.container:cms_product_draft` | `kx.cms.content.drafts:save_product_draft` |
+| `app.cms_revalidate` | `arifaa_pack.container:cms_revalidate` | - |
 | `app.translate_text` | `arifaa_pack.texts_sync:translate_text` | `kx.crm.texts.service:load_edits`<br>`kx.crm.texts.service:save_translation` |
 | `automation.alert_negotiation_paused` | `kx.automation.jobs:register_jobs.<locals>.pause_alert` | - |
 | `automation.deliver_outbound` | `kx.automation.jobs:register_jobs.<locals>.deliver` | - |
@@ -271,6 +298,7 @@ The slice column names the feature folders (ADR-0001 Phases 1, 2 and 2b; maps in
 | `jobs.dispatch_due` | 0:00:30 | `arifaa_pack.container:_periodic.<locals>.dispatch_due` | - |
 | `relay.agents` | 0:00:05 | `arifaa_pack.container:_periodic.<locals>.relay_agents` | - |
 | `relay.automation` | 0:00:05 | `kx.automation.jobs:periodic_jobs.<locals>.relay` | - |
+| `relay.cms` | 0:00:05 | `arifaa_pack.container:_periodic.<locals>.relay_cms` | - |
 | `relay.crm` | 0:00:05 | `kx.crm.jobs:periodic_jobs.<locals>.relay` | - |
 
 <!-- END GENERATED -->

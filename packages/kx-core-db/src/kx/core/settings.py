@@ -25,11 +25,13 @@ class Environment(StrEnum):
 
 class LogicalDb(StrEnum):
     """The logical databases the Python packages own (each with its own DSN, so any one can move to its own
-    server, D48). The CMS database belongs to Payload and Phoenix has its own container."""
+    server, D48). D54: the CMS database belongs to the kx.cms package (Payload is dropped); Phoenix has its
+    own container."""
 
     CRM = "crm"
     AUTOMATION = "automation"
     AGENTS = "agents"
+    CMS = "cms"
 
 
 class RateLimit(BaseModel):
@@ -128,6 +130,7 @@ class CoreSettings(BaseSettings):
     crm_dsn: AsyncPgDsn = "postgresql+asyncpg://crm_app:dev@localhost:5432/crm"
     automation_dsn: AsyncPgDsn = "postgresql+asyncpg://automation_app:dev@localhost:5432/automation"
     agents_dsn: AsyncPgDsn = "postgresql+asyncpg://agents_app:dev@localhost:5432/agents"
+    cms_dsn: AsyncPgDsn = "postgresql+asyncpg://cms_app:dev@localhost:5432/cms"  # D54 kx.cms
     db_pool_size: int = 5  # bench R1: 106 connections at 10 + 10; 5 + 5 per process and DB (D48)
     db_max_overflow: int = 5
     db_statement_timeout_ms: int = 15_000
@@ -182,6 +185,7 @@ class CoreSettings(BaseSettings):
                 LogicalDb.CRM: self.crm_dsn,
                 LogicalDb.AUTOMATION: self.automation_dsn,
                 LogicalDb.AGENTS: self.agents_dsn,
+                LogicalDb.CMS: self.cms_dsn,
             }[db]
         )
 

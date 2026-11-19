@@ -2,8 +2,8 @@
 
 DB tests (`@pytest.mark.db`) need a Postgres 16+ with pgvector, reachable at KX_TEST_PG_DSN
 (admin DSN, e.g. postgresql://postgres@/postgres?host=/tmp&port=5433). Each session builds fresh
-test_crm / test_automation / test_agents databases through the Alembic migrations (revision 0001 applies
-db/ddl/*.sql, later revisions follow), so tests never share state with a developer database. Without the
+test_crm / test_automation / test_agents / test_cms databases through the Alembic migrations (revision 0001
+applies db/ddl/*.sql, later revisions follow; the cms database starts at cms_0001), so tests never share state with a developer database. Without the
 env var, DB tests are skipped (unit + spec tests still run).
 """
 
@@ -18,7 +18,7 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DDL = ROOT / "db" / "ddl"
 ADMIN_DSN = os.environ.get("KX_TEST_PG_DSN")
-DBS = ("crm", "automation", "agents")
+DBS = ("crm", "automation", "agents", "cms")
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -83,6 +83,7 @@ async def databases(pg_databases: dict[str, str], monkeypatch: pytest.MonkeyPatc
         crm_dsn=pg_databases["crm"],
         automation_dsn=pg_databases["automation"],
         agents_dsn=pg_databases["agents"],
+        cms_dsn=pg_databases["cms"],
         company_code="pack",
     )
     dbs = Databases(settings)

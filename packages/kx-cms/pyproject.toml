@@ -1,0 +1,15 @@
+[project]
+name = "kx-cms"
+version = "0.1.0"
+description = "Kairox CMS (D54): website content edited by the client team (draft, preview, publish, versions, media), public content API for the website, the site manifest the AI drives the website with"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "kx-core-db",
+]
+
+[build-system]
+requires = ["hatchling==1.33.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kx"]

@@ -60,6 +60,8 @@ CATALOGUE_PRODUCT_CONTENT: Final = "catalogue.product_content_changed.v1"
 # 18 Nov: a manager / MD changed an English message text -> the AI translates the other languages
 MESSAGE_TEXT_CHANGED: Final = "texts.text_changed.v1"
 CONVERSATION_SUMMARY_UPDATED: Final = "conversation.summary_updated.v1"  # §7A.2: AI summary on the deal
+# D54 (19 Nov): a CMS document was published or unpublished -> the website revalidates its pages
+CONTENT_PUBLISHED: Final = "content.published.v1"
 
 # Events written to the outbox that nothing subscribes to, on purpose, and why. A unit test keeps the list
 # true both ways (tests/unit/test_featuremap.py): an event without a handler must be listed here, and a
@@ -186,7 +188,7 @@ class InMemoryBus:
             await handler(event)
 
 
-_SCHEMAS: Final = frozenset({"crm", "automation", "agents"})
+_SCHEMAS: Final = frozenset({"crm", "automation", "agents", "cms"})
 
 
 def _ident(schema: str) -> str:

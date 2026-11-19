@@ -22,6 +22,7 @@ from gen_tester_pack import example
 
 from kx.agents import WebsiteDeps, website_router
 from kx.automation import admin_router as channels_admin_router
+from kx.cms import CmsDeps, ManifestCache, build_admin_router, build_media_router, build_public_router
 from kx.core.auth import Role
 from kx.core.errors import install_problem_handlers
 from kx.crm.api import build_router as crm_router
@@ -74,6 +75,16 @@ def website_app() -> FastAPI:
         ai_budget_left=_Dummy(),  # type: ignore[arg-type]
     )
     app.include_router(website_router(deps))
+    return app
+
+
+def cms_app() -> FastAPI:
+    app = FastAPI(title="Kairox CMS API", version="1.0.0")
+    install_problem_handlers(app)
+    deps = CmsDeps(databases=_Dbs(), preview_secret="x")  # type: ignore[arg-type]
+    app.include_router(build_public_router(deps, ManifestCache(_Dummy())))  # type: ignore[arg-type]
+    app.include_router(build_admin_router(deps))
+    app.include_router(build_media_router(deps))
     return app
 
 
@@ -370,7 +381,16 @@ def main(out: pathlib.Path = DEFAULT_OUT) -> None:
         openapi_name="openapi-website.json",
         prefixes=("/v1/public",),
     )
-    print("CRM_API.md:", crm, "paths; WEBSITE_API.md:", web, "paths")
+    cms = write_api_doc(
+        out,
+        app=cms_app(),
+        title="CMS endpoint reference",
+        head="cms_head.md",
+        md_name="CMS_API.md",
+        openapi_name="openapi-cms.json",
+        prefixes=("/v1/content", "/v1/cms"),
+    )
+    print("CRM_API.md:", crm, "paths; WEBSITE_API.md:", web, "paths; CMS_API.md:", cms, "paths")
 
 
 if __name__ == "__main__":

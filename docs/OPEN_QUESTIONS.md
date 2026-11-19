@@ -8,7 +8,19 @@ column.
 Sources: the SRS (`docs/Arifaa Pack — Detailed Business Flow v1 (SRS basis) (2).md`) and the platform docs
 (`docs/Arifaa Platform — Platforms, Pricing & Fallbacks/`). Rows 1–39 come from the 5 Nov build; rows 40–68
 from the 11 Nov plan (`docs/V1_CHANGE_PLAN.md` WP13–WP29); rows 69 on from the 16 Nov v2 platform plan
-(WP-V2-01 … 14, D41–D53); row 78 from the 19 Nov architecture follow-up.
+(WP-V2-01 … 14, D41–D53); row 78 from the 19 Nov architecture follow-up; rows 79 on from the 19 Nov website AI and
+CMS plan (WP-C0 … C8, D54–D61).
+
+## 19 Nov (website AI + CMS package, WP-C0 … C8)
+
+| # | WP | Question | What I chose for now | Where |
+|---|---|---|---|---|
+| 79 | WP-C1 | D54: the SRS §4 and the server plan v2 name Payload as the CMS. Kairox built the CMS as a platform package instead (one login, one backup, the AI's site map from the same content). Does Arifa / Arifa IT approve the change? | Built `kx.cms` (ADR-0003). The SRS is not edited. The Payload webhook (`/webhooks/cms`) and the `cms` service in `compose.app.yml` stay until approved, then both are removed. | `packages/kx-cms`, `docs/adr/0003-cms-package.md` |
+| 80 | WP-C1 / D61 | Arifa's ERP has no item codes: an item is its description + unit ("45 CM ALUMINIUM FOIL" "1*1.400 KG"). Will the ERP get codes, and which ERP items belong to which website product? | CRM codes are generated from description + unit (stable on re-import); variants link to a website product by its id (`cms_product_id`). Arifa may send real codes later; the import then uses them. | `kx/crm` ERP import (WP-C9) |
+| 81 | WP-C2 | Design doc v4 lists PG-03 product pages (`/products/<id>`), a 168-address sitemap and old-site redirects as "Built"; the website repo (18 Nov) has none of them. | The CMS serves product detail, the sitemap and the redirects; `site.product_pages=false` makes every product link the quick view (`/products?p=<id>`) until Rizwan ships PG-03, then an editor switches it on. | `GET /v1/content/products/{id}`, `/sitemap`, `/redirects`; FRONTEND_GUIDE |
+| 82 | WP-C2 | Five sections on the site have no DOM id (HM-02, PR-02, PR-06, QA-06, CL-04), and the nav links `/#floor` while the old assistant used `#factory`. The AI scrolls by id (D55). | Ids proposed in the CMS pages (`intro`, `families`, `not-listed`, `see-it`, `your-business`); the site must add them. The tour is `#floor`, the press scene `#factory`. | `arifaa_pack/seed/cms_seed.json`, FRONTEND_GUIDE |
+| 83 | WP-C1 | Product workbook rows "Send to website": a variant not linked to a website product. | Skipped (logged): an ERP packing variant never becomes a website product of its own. Link it (`cms_product_id`) to send its details. | `arifaa_pack/container.py` `cms_product_draft` |
+| 84 | WP-C1 | Media is served from R2: which public address (a Cloudflare custom domain on the bucket, e.g. `media.arifapack.com`)? | Setting `KX_APP_MEDIA_PUBLIC_URL`; the product photos imported from the site stay outside links to the site's own `/images/catalogue/<id>.webp` until editors upload them to the library. | `arifaa_pack/config.py`, server env |
 
 ## 19 Nov (architecture follow-up)
 

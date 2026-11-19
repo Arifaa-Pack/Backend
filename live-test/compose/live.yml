@@ -15,6 +15,7 @@ x-env: &env
   KX_CRM_DSN: postgresql+asyncpg://pack_crm_app:dev@postgres:5432/pack_crm
   KX_AUTOMATION_DSN: postgresql+asyncpg://pack_automation_app:dev@postgres:5432/pack_automation
   KX_AGENTS_DSN: postgresql+asyncpg://pack_agents_app:dev@postgres:5432/pack_agents
+  KX_CMS_DSN: postgresql+asyncpg://pack_cms_app:dev@postgres:5432/pack_cms
   KX_DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
   KX_DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-5}
   KX_REDIS_URL: redis://redis:6379/0

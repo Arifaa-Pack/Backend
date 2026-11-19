@@ -1,4 +1,5 @@
-"""§7 / D22: the CMS (Payload) tells the platform what was published or unpublished.
+"""§7 / D22: the old Payload CMS contract, kept until D54 (the kx.cms package) is approved: the CMS tells
+the platform what was published or unpublished. Deprecated: kx.cms raises the same events itself.
 
 `POST /webhooks/cms`, signed by the CMS with the shared secret (`KX_CMS_WEBHOOK_HMAC` in the CMS container,
 `KX_APP_CMS_WEBHOOK_SECRET` here):
@@ -33,6 +34,7 @@ from kx.core.errors import RuleViolation, Unauthorized
 from kx.core.event_payloads import KbContentPublished, ProductPublished
 from kx.core.identity import constant_time_equals, hmac_sha256_hex
 from kx.core.logging import get_logger
+from kx.core.no_prices import drop_price_keys
 from kx.core.settings import LogicalDb
 
 log = get_logger(__name__)
@@ -41,7 +43,6 @@ MAX_SKEW_SECONDS: Final = 300
 KB_COLLECTIONS: Final = frozenset(
     {"pages", "products", "product-categories", "faqs", "certificates", "tour-hotspots", "testimonials"}
 )
-_PRICE_WORDS: Final = ("price", "cost", "margin", "discount", "tier", "aed", "usd")
 
 
 class CmsProduct(BaseModel):
@@ -86,7 +87,7 @@ def verify(secret: str | None, timestamp: str | None, sig: str | None, body: byt
 
 def descriptive_spec(spec: dict[str, object]) -> dict[str, object]:
     """Drop anything that looks like a price (D22: prices never come from, or go into, the CMS)."""
-    return {k: v for k, v in spec.items() if not any(w in k.lower() for w in _PRICE_WORDS)}
+    return drop_price_keys(spec)
 
 
 async def record(databases: Databases, event: CmsEvent) -> bool:

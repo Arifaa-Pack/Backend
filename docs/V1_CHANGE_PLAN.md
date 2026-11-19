@@ -1,8 +1,10 @@
 # v1 change plan
 
-Three plans live in this file:
+Four plans live in this file:
 
-1. **16 Nov v2 platform plan (current):** move the platform to the *Accounts & Server Plan v2* (one dedicated server, a free/paid switch per field, database tiers). Work packages WP-V2-01 … WP-V2-14, decisions D41–D53.
+0. **19 Nov website AI + CMS plan (current):** the AI drives the website, a CMS package, voice = chat, one hand-off
+   pack. Work packages WP-C0 … WP-C9, decisions D54–D61. Below, first.
+1. **16 Nov v2 platform plan:** move the platform to the *Accounts & Server Plan v2* (one dedicated server, a free/paid switch per field, database tiers). Work packages WP-V2-01 … WP-V2-14, decisions D41–D53.
 2. **11 Nov plan (done 12 Nov except WP26):** bring the code in line with the updated SRS and the 11 Nov platform decisions. WP13–WP29.
 3. **5 Nov plan (done 6 Nov):** WP1–WP12, kept below for history. Log: `docs/V1_PROGRESS.md`.
 
@@ -17,6 +19,46 @@ Three plans live in this file:
 When this plan and those files disagree, those files win. Where they are silent, the build takes the option that blocks, alerts or hands over to a person (never the one that sends, discounts or promises) and records the choice in `docs/OPEN_QUESTIONS.md`.
 
 Keep the rules in `CONTRACTS.md`: packages never import each other; shared helpers come from `kx.core`; money is Decimal; every state change writes audit + timeline + outbox in one transaction (`kx.crm.services.journal.record`).
+
+---
+
+## 19 Nov website AI + CMS plan
+
+### Why
+
+The Arifa Pack website (design doc v4 and the site / user / data-flow doc, Rizwan, 18 Nov) needs one assistant
+that moves the site to what a visitor asks for, by text or voice, and qualifies the visitor into a deal. The client
+team must edit the site's content, and the frontend developer needs real content endpoints. Before this plan the
+site's assistant called Claude directly (no price guard, no CRM), the backend's Website API could not move a page,
+and the planned Payload CMS did not exist.
+
+### Decisions
+
+| # | Decision |
+|---|---|
+| D54 | The CMS is a platform package, `packages/kx-cms` (own database `cms`), not Payload (ADR-0003; SRS §4 change awaits Arifa's approval, OPEN_QUESTIONS #79). Draft → preview → publish, every version kept, no prices. A publish re-renders the website (`/api/revalidate`), re-indexes the AI's knowledge and updates the CRM. |
+| D55 | The AI drives the website only through validated intent actions (`show_family`, `show_product`, `navigate`, `scroll_to`, `factory_tour`, `add_to_enquiry`, `fill_enquiry`, `ask_contact`), resolved against the site manifest built from published CMS content. It never reads the site's code and never sends selectors. |
+| D56 | One front agent per website turn; the product and manufacturing specialists are read-only tools it may call in parallel. The price graphs stay behind the deterministic router. |
+| D57 | Speed in three layers: the website's own instant resolver (from the manifest), the server's instant resolver (< 50 ms, first streamed event), then the agent. Replies stream sentence by sentence, each sentence price-guarded. While voice is on, typed text uses the same data channel. |
+| D58 | Chat and voice share one conversation thread (`web:{session_id}`). |
+| D59 | WhatsApp and email opt-ins are recorded with their wording and time (SRS §8, §22); opt-out still wins. |
+| D60 | One generated hand-off folder `docs/handoff/` (CRM / CMS / website API documents, OpenAPI, one Postman collection per package, the tester and frontend guides); `make handoff`; CI fails when stale. |
+| D61 | A website product (`ac-8325`) is the marketing record; its sellable **variants** are the CRM products (the ERP items: packings, roll weights, retail packs), linked by the product's id. ERP items have no codes: the CRM code is generated from description + unit. The AI explains variants with availability words only ("in stock", "limited", "made to order") and quantity breaks without prices. Container + lid quote as two lines. |
+
+### Work packages
+
+| WP | What | State |
+|---|---|---|
+| WP-C0 | Merge `docs/frontend` + `docs/testing` into `docs/handoff`, one generator, per-package Postman collections | done (19 Nov) |
+| WP-C1 | `kx.cms` package: content model, drafts / publish / versions / restore, media (R2 presigned), preview, manifest, public + admin APIs, outbox, content editor role | done (19 Nov) |
+| WP-C2 | `kx content import-site`: the website's catalogue, clients, page layouts (section ids), chapters, stations, synonyms, Arabic | done (19 Nov) |
+| WP-C3 | Website API v2: `SiteContext` in, actions out, SSE streaming, `/events`, `/contact`, `/v1/public/enquiries` | next |
+| WP-C4 | Agents drive the site: manifest resolver, `show_on_site`, `find_products`, product variants, specialists, router keywords from config, prompts | |
+| WP-C5 | Voice = chat: actions and captions on the LiveKit data channel, rejoin after a page load | |
+| WP-C6 | Opt-in consent (D59) | |
+| WP-C7 | Hand-off content: WEBSITE_API head, FRONTEND_GUIDE (.md + .docx), TESTER_HELPER scenarios | |
+| WP-C8 | Docs and map | |
+| WP-C9 | ERP import into the CRM (all categories kept, non-sellable flagged, unit / measure, closing stock) and product variants (D61) | |
 
 ---
 

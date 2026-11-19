@@ -59,6 +59,10 @@
     {
       "name": "14 Negative and security tests",
       "description": "Requests that MUST be refused. A pass here means the server said no."
+    },
+    {
+      "name": "15 CMS: website content and editors",
+      "description": "D54: the website's content reads (public, cached) and the editors' draft / publish / versions / media API (content editor, admin, manager). Sign in first (folder 01)."
     }
   ],
   "routes": [
@@ -1912,6 +1916,375 @@
       "purpose": "Record Meta's decision on a WhatsApp template version.",
       "expected_status": 200,
       "package": "Automation"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Site",
+      "method": "GET",
+      "path": "/v1/content/site",
+      "who": "public (no sign-in)",
+      "roles": [],
+      "mfa_required": false,
+      "auth": "none",
+      "purpose": "Site settings: company name, phones, emails, addresses, hours, social links, announcement bar, theme colours and fonts, the assistant's fixed texts, and whether product pages (PG-03) are live.",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Site manifest",
+      "method": "GET",
+      "path": "/v1/content/manifest",
+      "who": "public (no sign-in)",
+      "roles": [],
+      "mfa_required": false,
+      "auth": "none",
+      "purpose": "D55: the site map the AI assistant uses (pages and their section ids, families with their names and synonyms in six languages, products with their paths, factory-tour chapters).",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Page",
+      "method": "GET",
+      "path": "/v1/content/pages/{slug}",
+      "who": "public (no sign-in)",
+      "roles": [],
+      "mfa_required": false,
+      "auth": "none",
+      "purpose": "One page with its section blocks (home, products, about, quality, clients, contact, privacy).",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Families",
+      "method": "GET",
+      "path": "/v1/content/families",
+      "who": "public (no sign-in)",
+      "roles": [],
+      "mfa_required": false,
+      "auth": "none",
+      "purpose": "The product families, in their display order (HM-01, HM-04, PR-02).",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Products",
+      "method": "GET",
+      "path": "/v1/content/products",
+      "who": "public (no sign-in)",
+      "roles": [],
+      "mfa_required": false,
+      "auth": "none",
+      "purpose": "The catalogue (PR-03), in catalogue order; filters as on the site: `family`, `q`, `range`.",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Product",
+      "method": "GET",
+      "path": "/v1/content/products/{product_id}",
+      "who": "public (no sign-in)",
+      "roles": [],
+      "mfa_required": false,
+      "auth": "none",
+      "purpose": "PG-03: one product with its family, previous / next in the catalogue (PD-04) and up to four more from the same family (PD-05).",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Collection",
+      "method": "GET",
+      "path": "/v1/content/collections/{collection}",
+      "who": "public (no sign-in)",
+      "roles": [],
+      "mfa_required": false,
+      "auth": "none",
+      "purpose": "Any other collection, in display order: `tour_chapters` (HM-05), `stations` (QA-02), `faqs`, `certificates` (QA-04), `clients` (CL-02), `industries` (CL-01), `stories` (CL-03), `leadership` (AB-05, AB-06).",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Sitemap",
+      "method": "GET",
+      "path": "/v1/content/sitemap",
+      "who": "public (no sign-in)",
+      "roles": [],
+      "mfa_required": false,
+      "auth": "none",
+      "purpose": "Every published page, family and product, in English and Arabic, for `/sitemap.xml` (§9).",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Redirects",
+      "method": "GET",
+      "path": "/v1/content/redirects",
+      "who": "public (no sign-in)",
+      "roles": [],
+      "mfa_required": false,
+      "auth": "none",
+      "purpose": "Old-site addresses that move permanently to their new page (design doc §9): each product's `legacy_paths` (e.g.",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Collections",
+      "method": "GET",
+      "path": "/v1/cms/collections",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "Every content type with its JSON Schema (fields, types, limits), to draw the editor forms.",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "List documents",
+      "method": "GET",
+      "path": "/v1/cms/collections/{collection}",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "The documents of one content type, in display order, with their state (draft / published / changed = live with unpublished edits).",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Get document",
+      "method": "GET",
+      "path": "/v1/cms/collections/{collection}/{key}",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "One document: its open draft (with `revision`, needed to save) and its live version.",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Save draft",
+      "method": "PUT",
+      "path": "/v1/cms/collections/{collection}/{key}",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "Save the draft (creates the document when new).",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Publish",
+      "method": "POST",
+      "path": "/v1/cms/collections/{collection}/{key}/publish",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "Put the draft live.",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Unpublish",
+      "method": "POST",
+      "path": "/v1/cms/collections/{collection}/{key}/unpublish",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "Take the document off the website (versions are kept; publish again to bring it back).",
+      "expected_status": 204,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Discard draft",
+      "method": "DELETE",
+      "path": "/v1/cms/collections/{collection}/{key}/draft",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "Throw the open draft away (a document that was never published disappears with it).",
+      "expected_status": 204,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Versions",
+      "method": "GET",
+      "path": "/v1/cms/collections/{collection}/{key}/versions",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "Every version, newest first (each publish is kept).",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Restore",
+      "method": "POST",
+      "path": "/v1/cms/collections/{collection}/{key}/versions/{number}/restore",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "Copy an earlier version into the draft; publish it to go live again.",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Preview token",
+      "method": "POST",
+      "path": "/v1/cms/preview-token",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "A 30-minute token that makes the website show drafts (Next.js draft mode).",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "List media",
+      "method": "GET",
+      "path": "/v1/cms/media",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "The library, newest first (`kind` = image, video, application (PDF) or model (3D)).",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Start upload",
+      "method": "POST",
+      "path": "/v1/cms/media/uploads",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "Step 1: ask where to upload.",
+      "expected_status": 201,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Confirm",
+      "method": "POST",
+      "path": "/v1/cms/media/{asset_id}/confirm",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "Step 2: the browser's PUT succeeded; the file joins the library.",
+      "expected_status": 200,
+      "package": "CMS"
+    },
+    {
+      "folder": "15 CMS: website content and editors",
+      "name": "Update alt",
+      "method": "PATCH",
+      "path": "/v1/cms/media/{asset_id}",
+      "who": "manager, md, admin, content_editor",
+      "roles": [
+        "content_editor",
+        "admin",
+        "manager",
+        "md"
+      ],
+      "mfa_required": false,
+      "auth": "staff",
+      "purpose": "Alt text per language (accessibility and SEO).",
+      "expected_status": 200,
+      "package": "CMS"
     },
     {
       "folder": "00 Health and keys",
