@@ -832,3 +832,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 19.94s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `email` @ `59f475e`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-email`, COMPLETED
+
+## 2b.8 slice `followups` — TESTING (COMPLETED when tagged `arch-slice/automation-followups`)
+
+- **Moved:** the `FollowUps` class moved out of `handlers.py` into `followups/service.py`, and its send helper `_send_or_skip` (used by the other handlers too) into `_shared/sending.py`. Code unchanged: all 8 top-level definitions compare equal (syntax tree) before and after. `handlers.py` imports `FollowUps` back, so `from kx.automation.handlers import FollowUps` keeps working; `jobs.py` and `arifaa_pack/container.py` import it from the slice. The one exception to whole-file moves, as agreed (client decision 19 Nov).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 447 files already formatted
+  - mypy: Success: no issues found in 285 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 17.23s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `alerts` @ `9b7342b`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-alerts`, COMPLETED

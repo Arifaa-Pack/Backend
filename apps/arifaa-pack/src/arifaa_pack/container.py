@@ -65,7 +65,8 @@ from kx.automation.calls.channel import TelnyxCaller
 from kx.automation.email.chain import EmailChain, EmailVendor
 from kx.automation.email.channel import EmailSender
 from kx.automation.email.stalwart import JmapClient, MailboxPoller, StalwartSender
-from kx.automation.handlers import EventHandlers, FollowUps
+from kx.automation.followups.service import FollowUps
+from kx.automation.handlers import EventHandlers
 from kx.automation.inbound.webhooks import WebhookDeps
 from kx.automation.jobs import AutomationRuntime, JobScheduler
 from kx.automation.media import S3MediaStore

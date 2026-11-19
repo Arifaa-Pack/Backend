@@ -30,7 +30,8 @@ from kx.automation.alerts.service import ApprovalLadder, LadderTicket, PauseAler
 from kx.automation.email.channel import parse_inbound
 from kx.automation.email.feedback import parse_feedback
 from kx.automation.email.stalwart import MailboxPoller, raw_key
-from kx.automation.handlers import EventHandlers, FollowUps, stop_after_no_answer
+from kx.automation.followups.service import FollowUps
+from kx.automation.handlers import EventHandlers, stop_after_no_answer
 from kx.automation.models import SCHEMA, ChannelAccount, OutboundMessage
 from kx.automation.outbound import STUCK_ERROR, OutboundService, TransientDeliveryError
 from kx.automation.outbox import emit
