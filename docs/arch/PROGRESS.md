@@ -625,7 +625,7 @@ The three feature modules (`outbound.py`, `inbound.py`, `optout.py`) are byte-id
   (grimp) so every baseline line is an import that exists today:
   - CRM: the ORM (`kx.crm.models`) imports nothing above it (no baseline needed);
   - CRM: `_shared` imports no slice, router assembly, gateway or job table (2 baseline lines:
-    `_shared.settings → company.service`, `_shared.schemas → quotes.pdf`);
+    `_shared.settings → company.service`, `_shared.schemas → quotes.service`);
   - CRM rule 4 (`layers`, one container per slice with routers): routers above the service-side modules;
   - CRM rule 5 (`independence` of the 21 slices): 74 baseline lines, each a direct service-level call between two
     slices today (plus the `deps` / `_shared` / `gateway` edges through which those chains run), marked
