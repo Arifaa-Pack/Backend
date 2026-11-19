@@ -14,11 +14,12 @@ from typing import Final, Literal
 from sqlalchemy import or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from kx.automation._shared.ladder import LadderTicket
 from kx.automation._shared.outbox import emit
 from kx.automation._shared.ports import Clock, TaskScheduler, utc_now
 from kx.automation._shared.sending import TRANSIENT_REASONS, _send_or_skip
 from kx.automation._shared.settings import AutomationSettings
-from kx.automation.alerts.service import ApprovalLadder, LadderTicket, notify_staff
+from kx.automation.alerts.service import ApprovalLadder, notify_staff
 from kx.automation.models import SCHEMA, ChannelAccount, InboundMessage, Thread
 from kx.automation.optout import service as optout
 from kx.automation.repo import ALL_CHANNELS

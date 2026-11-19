@@ -25,10 +25,11 @@ from typing import Any, Final, Protocol
 
 from sqlalchemy import func, select
 
+from kx.automation._shared.ladder import LadderTicket
 from kx.automation._shared.outbox import emit
 from kx.automation._shared.ports import MediaStore, SweepCallback, TaskScheduler
 from kx.automation._shared.settings import AutomationSettings
-from kx.automation.alerts.service import ApprovalLadder, LadderTicket, PauseAlerts
+from kx.automation.alerts.service import ApprovalLadder, PauseAlerts
 from kx.automation.email.channel import parse_inbound
 from kx.automation.email.feedback import parse_feedback
 from kx.automation.email.stalwart import MailboxPoller, raw_key

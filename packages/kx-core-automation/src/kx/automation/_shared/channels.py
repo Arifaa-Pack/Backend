@@ -8,14 +8,20 @@ request itself is wrong; repeating it would only repeat the error, so it fails a
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import Any, Protocol
 
 import httpx
 from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential_jitter
 from tenacity.wait import wait_base
 
-if TYPE_CHECKING:  # channels.email imports ChannelError from here: no runtime cycle
-    from kx.automation.email.channel import Attachment
+
+@dataclass(frozen=True, slots=True)
+class Attachment:
+    """One file attached to an email (the quote PDF): what every email transport sends."""
+
+    filename: str
+    content_type: str
+    data: bytes
 
 
 class ChannelError(Exception):

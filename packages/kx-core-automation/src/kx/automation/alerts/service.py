@@ -7,14 +7,14 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import Final, Literal, Protocol
+from typing import Final, Protocol
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.automation._shared.channels import ChannelError
+from kx.automation._shared.ladder import LadderTicket
 from kx.automation._shared.ports import ApprovalStatusReader, Clock, TaskScheduler, utc_now
 from kx.automation._shared.settings import AutomationSettings
 from kx.automation.calls.channel import (
@@ -36,7 +36,7 @@ from kx.automation.repo import advisory_lock, is_suppressed
 from kx.core.contracts import MessageSender, OutboundKind, OutboundRequest
 from kx.core.db import Databases
 from kx.core.errors import NotFound, RuleViolation
-from kx.core.event_payloads import ChangeRequested, NegotiationPaused, QuoteSubmitted, StaffContact
+from kx.core.event_payloads import NegotiationPaused, StaffContact
 from kx.core.identity import normalise_phone, recipient_hash
 from kx.core.logging import get_logger
 from kx.core.settings import LogicalDb
@@ -242,57 +242,6 @@ class VoiceAlerts:
             .where(CallAttempt.id == attempt_id, CallAttempt.status.not_in(settled))
             .values(**values)
         )
-
-
-class LadderTicket(BaseModel):
-    """One thing waiting for a person (§16 "Staff reminders"): a quote approval or a change request.
-
-    Built from QuoteSubmitted / ChangeRequested; the CRM computed every time in alert hours from
-    `approval.reminder_minutes`, so automation only follows the schedule."""
-
-    model_config = ConfigDict(frozen=True)
-
-    ref: uuid.UUID  # approval_ref or change_request_ref (the CRM status reader knows both)
-    kind: Literal["approval", "change_request"]
-    deal_ref: uuid.UUID
-    approver: StaffContact
-    escalate_to: StaffContact | None
-    remind_at: tuple[datetime, ...]  # [WhatsApp reminder (30 min), alert call (60 min)]
-    escalate_at: datetime  # 120 min: the manager (WhatsApp + call)
-    title: str  # what the message and the call say, e.g. "Quote Q-2026-00012 for AED 13,125.00"
-
-    @classmethod
-    def for_approval(cls, p: QuoteSubmitted) -> LadderTicket:
-        key = "staff.special_price_title" if p.kind == "special_price" else "staff.approval_title"
-        return cls(
-            ref=p.approval_ref,
-            kind="approval",
-            deal_ref=p.deal_ref,
-            approver=p.approver,
-            escalate_to=p.escalate_to,
-            remind_at=p.remind_at,
-            escalate_at=p.due_at,
-            title=TEXTS.get(key, "en", quote=p.quote_number, total=p.total_display),
-        )
-
-    @classmethod
-    def for_change(cls, p: ChangeRequested) -> LadderTicket:
-        return cls(
-            ref=p.alert_ref or p.change_request_ref,
-            kind="change_request",
-            deal_ref=p.deal_ref,
-            approver=p.assigned_to,
-            escalate_to=p.escalate_to,
-            remind_at=p.remind_at,
-            escalate_at=p.escalate_at or p.sla_due_at,
-            title=TEXTS.get("staff.change_request_title", "en", type=p.type, deal=p.deal_number).replace(
-                "  ", " "
-            ),
-        )
-
-    @property
-    def purpose(self) -> CallPurpose:
-        return "approval_alert" if self.kind == "approval" else "change_request_alert"
 
 
 # §16 ladder steps: 1 = at once, 2 = WhatsApp reminder, 3 = alert call, 4 = escalation to the manager

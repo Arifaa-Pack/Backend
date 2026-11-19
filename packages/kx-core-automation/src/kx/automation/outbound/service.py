@@ -32,11 +32,10 @@ from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.automation._shared.channels import ChannelError, EmailTransport
+from kx.automation._shared.channels import Attachment, ChannelError, EmailTransport
 from kx.automation._shared.outbox import emit
 from kx.automation._shared.ports import Clock, MediaStore, TaskScheduler, utc_now
 from kx.automation._shared.settings import AutomationSettings
-from kx.automation.email.channel import Attachment
 from kx.automation.models import (
     ChannelAccount,
     InboundMessage,
