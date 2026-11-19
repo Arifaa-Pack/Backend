@@ -847,3 +847,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 17.23s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `alerts` @ `9b7342b`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-alerts`, COMPLETED
+
+## 2b.9 slice `webhooks` — TESTING (COMPLETED when tagged `arch-slice/automation-webhooks`)
+
+- **Moved:** `inbound/webhooks.py` → `webhooks/router.py`; alias shim at `inbound/webhooks.py`; the old root alias file `webhooks.py` gave way to the folder, whose `__init__.py` re-exports the router (both old paths checked: 26 of 26 names); imports rewritten in `arifaa_pack/{api,container}.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 448 files already formatted
+  - mypy: Success: no issues found in 286 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 17.97s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `followups` @ `58559e2`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-followups`, COMPLETED
