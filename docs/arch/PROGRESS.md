@@ -1132,3 +1132,27 @@ so the old import path keeps working; every name of the moved module is checked 
   - OpenAPI diff: empty
   - unit: ============================ 131 passed in 24.00s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
+
+## 2b.27 Phase 2b shims removed where nothing imports them — TESTING
+
+- **Previous step's full suite:** `agents public surface` @ `380072d`: errors=0, failures=0, skipped=4, tests=992, exit=0 → no tag (not a slice), COMPLETED.
+- **Done:** every Phase 2b old path searched (AST imports and string references such as `mock.patch` targets, in
+  `packages/`, `apps/`, `tests/`, `scripts/`, `services/`, `infra/`, `docs/`). Removed the 6 alias shims that no
+  file uses: `kx.agents.middleware`, `kx.automation.channels.email_chain`, `kx.automation.inbound.webhooks`,
+  `kx.automation.optout.unsubscribe`, `kx.automation.outbox`, `kx.automation.ports`.
+  **The Arifaa Auto team must switch these imports to the new paths** (table in `docs/ARIFAA_AUTO_NOTES.md`).
+- **Kept (still imported, by tests or by `scripts/gen_frontend_docs.py`):** the alias shims `kx.agents.context`,
+  `.language`, `.models`, `.orchestrator`, `.registry`, `.runs`, `.service`; `kx.automation.admin_api`,
+  `.media`, `.settings`, `kx.automation.channels` and `channels.calls`, `.email`, `.feedback`, `.stalwart`,
+  `.whatsapp`. The slice packages that took an old module's name (`kx.agents.guard`, `kx.automation.alerts` ...)
+  keep re-exporting their `service` / `router`: that is the slice's front door, not a shim to remove.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 470 files already formatted
+  - mypy: Success: no issues found in 308 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 23.30s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
