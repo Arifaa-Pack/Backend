@@ -70,8 +70,6 @@ _INACTIVE: Final = ("blocked", "cancelled", "failed")
 # A conversational reply over the per-recipient limit is held, not refused, at most this long (beyond it
 # the limit's loop protection refuses as before).
 REPLY_HOLD_MAX: Final = timedelta(minutes=5)
-# Refusals that clear by themselves (switch turned back on, bucket refilled): callers may retry.
-TRANSIENT_REASONS: Final = frozenset({"kill_switch", "rate_limited", "spend_cap"})
 _PLACEHOLDER: Final = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 
 

@@ -16,12 +16,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.automation._shared.outbox import emit
 from kx.automation._shared.ports import Clock, TaskScheduler, utc_now
-from kx.automation._shared.sending import _send_or_skip
+from kx.automation._shared.sending import TRANSIENT_REASONS, _send_or_skip
 from kx.automation._shared.settings import AutomationSettings
 from kx.automation.alerts.service import ApprovalLadder, LadderTicket, notify_staff
 from kx.automation.models import SCHEMA, ChannelAccount, InboundMessage, Thread
 from kx.automation.optout import service as optout
-from kx.automation.outbound.service import TRANSIENT_REASONS
 from kx.automation.repo import ALL_CHANNELS
 from kx.core import events as ev
 from kx.core.contracts import DealStage, MessageSender, OutboundKind, OutboundRequest

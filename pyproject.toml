@@ -324,7 +324,6 @@ layers = [
     "kx.automation.models",
 ]
 ignore_imports = [
-    "kx.automation._shared.sending -> kx.automation.outbound.service",
     "kx.automation._shared.channels -> kx.automation.email.channel",
     "kx.automation._shared.ports -> kx.automation.alerts.service",
 ]  # baseline 2026-11-19: may only shrink (the last two are TYPE_CHECKING-only imports)
