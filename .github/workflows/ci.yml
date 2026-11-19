@@ -57,7 +57,7 @@ jobs:
           uv run ruff format --check .
 
       - name: mypy (strict)
-        run: uv run mypy packages/*/src apps/*/src
+        run: uv run mypy packages/*/src apps/*/src scripts
 
       - name: import boundaries
         run: uv run lint-imports

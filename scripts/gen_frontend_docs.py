@@ -48,7 +48,7 @@ class _Dbs(_Dummy):
 def crm_app() -> FastAPI:
     app = FastAPI(title="Kairox CRM API", version="1.0.0")
     install_problem_handlers(app)
-    deps = CrmDeps(uploader=_Dummy(), letterhead=Letterhead(name="Arifaa Pack", address=""))  # type: ignore[arg-type]
+    deps = CrmDeps(uploader=_Dummy(), letterhead=Letterhead(name="Arifaa Pack", address=""))
     app.include_router(crm_router(_Dbs(), deps), prefix="/v1")  # type: ignore[arg-type]
     app.include_router(channels_admin_router(_Dummy()))  # type: ignore[arg-type]
 
@@ -66,10 +66,10 @@ def website_app() -> FastAPI:
     deps = WebsiteDeps(
         databases=_Dummy(),  # type: ignore[arg-type]
         service=_Dummy(),  # type: ignore[arg-type]
-        gateway=_Dummy(),  # type: ignore[arg-type]
+        gateway=_Dummy(),
         secret="x",
         human_check=None,
-        limits=_Dummy(),  # type: ignore[arg-type]
+        limits=_Dummy(),
         ai_budget_left=_Dummy(),  # type: ignore[arg-type]
     )
     app.include_router(website_router(deps))
@@ -94,7 +94,7 @@ def who(route: APIRoute) -> str:
     def visit(dep: Any) -> None:
         call = getattr(dep, "call", None)
         qual = getattr(call, "__qualname__", "")
-        if qual.startswith(("require_role.", "require_human_mfa.")):
+        if call is not None and qual.startswith(("require_role.", "require_human_mfa.")):
             roles: tuple[Role, ...] = ()
             for cell in call.__closure__ or ():
                 value = cell.cell_contents
@@ -119,7 +119,7 @@ def who(route: APIRoute) -> str:
 
 def _type(schema: dict[str, Any]) -> str:
     if "$ref" in schema:
-        return "`" + schema["$ref"].rsplit("/", 1)[-1] + "`"
+        return "`" + str(schema["$ref"]).rsplit("/", 1)[-1] + "`"
     if "anyOf" in schema:
         return " or ".join(_type(s) for s in schema["anyOf"])
     if "enum" in schema:
@@ -175,7 +175,7 @@ def render(
 ) -> tuple[str, dict[str, Any]]:
     spec = app.openapi()
     comps = spec.get("components", {}).get("schemas", {})
-    routes = {(path, m): r for path, r in flat_routes(app.routes) for m in r.methods}
+    routes = {(path, m): r for path, r in flat_routes(app.routes) for m in r.methods or ()}
     lines = [f"## {title}", ""]
     by_tag: dict[str, list[tuple[str, str, dict[str, Any]]]] = {}
     for path, ops in spec["paths"].items():
@@ -231,7 +231,8 @@ def render(
                 if code == "422" and "HTTPValidationError" in json.dumps(resp):
                     continue
                 content = resp.get("content", {})
-                schema = next(iter(content.values()), {}).get("schema", {}) if content else {}
+                first: dict[str, Any] = next(iter(content.values()), {}) if content else {}
+                schema = first.get("schema", {})
                 shown = _type(schema) if schema else "(no body)"
                 lines.append(f"**Response {code}:** {shown}")
                 for ref in _refs(schema):

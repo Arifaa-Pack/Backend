@@ -16,7 +16,7 @@ sync: ## Install the workspace (dev deps included)
 lint: ## ruff + mypy + import-linter
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy packages/*/src apps/*/src
+	uv run mypy packages/*/src apps/*/src scripts
 	uv run lint-imports
 
 .PHONY: test
