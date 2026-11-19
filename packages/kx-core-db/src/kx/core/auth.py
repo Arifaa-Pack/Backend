@@ -42,6 +42,7 @@ class Principal:
     role: Role
     mfa: bool
     is_human: bool
+    session_id: uuid.UUID | None = None  # L1: the sign-in session the token belongs to (claim `sid`)
 
     def has(self, *roles: Role) -> bool:
         return self.role in roles or (self.role is Role.MD and Role.MANAGER in roles)
@@ -75,8 +76,17 @@ class TokenIssuer:
     def public_key(self) -> rsa.RSAPublicKey:
         return self._key.public_key()
 
-    def issue(self, *, user_id: uuid.UUID, role: str, mfa: bool, amr: tuple[str, ...], now: datetime) -> str:
-        claims = {
+    def issue(
+        self,
+        *,
+        user_id: uuid.UUID,
+        role: str,
+        mfa: bool,
+        amr: tuple[str, ...],
+        now: datetime,
+        session_id: uuid.UUID | None = None,
+    ) -> str:
+        claims: dict[str, Any] = {
             "sub": str(user_id),
             "user_id": str(user_id),
             "role": role,
@@ -88,6 +98,8 @@ class TokenIssuer:
             "exp": int((now + timedelta(seconds=self.ttl_seconds)).timestamp()),
             "jti": uuid.uuid4().hex,
         }
+        if session_id is not None:  # L1: the API checks the session is still alive (sign-out, deactivation)
+            claims["sid"] = str(session_id)
         return jwt.encode(claims, self._key, algorithm="RS256", headers={"kid": self.key_id})
 
     def jwks(self) -> dict[str, Any]:
@@ -142,12 +154,14 @@ def principal_from_claims(claims: dict[str, Any]) -> Principal:
     role = Role(claims.get("custom:role") or claims.get("role") or "sales")
     amr = claims.get("amr") or []
     user_id = claims.get("custom:user_id") or claims.get("user_id")
+    sid = claims.get("sid")
     return Principal(
         subject=str(claims["sub"]),
         user_id=uuid.UUID(user_id) if user_id else None,
         role=role,
         mfa=bool(claims.get("mfa")) or "mfa" in amr,
         is_human=role is not Role.SERVICE,
+        session_id=uuid.UUID(sid) if sid else None,
     )
 
 
@@ -167,6 +181,19 @@ async def current_principal(
 ) -> Principal:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise Unauthorized("missing bearer token")
+    return verifier.verify(authorization.split(" ", 1)[1])
+
+
+# The process-wide verifier as a FastAPI dependency without parameters of its own, so a router-wide check
+# (the CRM's live-session guard, L1) can read the Authorization header itself and add nothing to OpenAPI.
+token_verifier = _get_verifier
+
+
+def bearer_principal(authorization: str | None, verifier: JwtVerifier) -> Principal | None:
+    """The caller when a bearer token is sent, else None (the route's own dependency decides if one is
+    required). An invalid token raises Unauthorized, as current_principal does."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
     return verifier.verify(authorization.split(" ", 1)[1])
 
 

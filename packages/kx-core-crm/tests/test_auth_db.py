@@ -25,7 +25,7 @@ from kx.core.auth import TokenIssuer
 from kx.core.errors import install_problem_handlers
 from kx.core.passwords import SeedBox, totp_now
 from kx.core.settings import AuthSettings, LogicalDb, RateLimit, get_settings
-from kx.crm.api import build_router
+from kx.crm.api import build_router, session_guard
 from kx.crm.deps import CrmDeps
 from kx.crm.models import AuditEvent, OutboxEvent, StaffCredential
 from kx.crm.services import auth as svc
@@ -65,7 +65,10 @@ class Env:
 
 
 @pytest.fixture
-async def env(databases: Any, seed: Seed, deps: CrmDeps) -> AsyncIterator[Env]:
+async def env(
+    databases: Any, seed: Seed, deps: CrmDeps, monkeypatch: pytest.MonkeyPatch
+) -> AsyncIterator[Env]:
+    monkeypatch.setattr(session_guard, "CACHE_SECONDS", 0.0)  # L1: every request sees the session at once
     mailer, clock = FakeMailer(), Clock()
     auth_deps = replace(
         deps,
@@ -145,15 +148,9 @@ async def test_email_code_then_totp_gives_mfa(env: Env) -> None:
     me = await env.client.get("/v1/auth/me", headers=bearer(tokens))
     assert me.status_code == 200 and me.json()["email"] == email
 
-    # an email-code session cannot approve or manage users (require_human_mfa)
+    # L7: until the one-time password is changed only /v1/auth/* works
     r = await env.client.get("/v1/users", headers=bearer(tokens))
-    assert r.status_code == 200  # reading the team is fine
-    r = await env.client.post(
-        "/v1/users",
-        json={"email": "x@test.ae", "full_name": "X", "role": "sales"},
-        headers=bearer(tokens),
-    )
-    assert r.status_code == 403
+    assert r.status_code == 403 and r.json()["detail"] == session_guard.CHANGE_FIRST
 
     new_password = "a-much-longer-passphrase-2026"
     r = await env.client.post(
@@ -162,6 +159,17 @@ async def test_email_code_then_totp_gives_mfa(env: Env) -> None:
         headers=bearer(tokens),
     )
     assert r.status_code == 204
+
+    # the session in use survives its own password change (every other one ends)
+    r = await env.client.get("/v1/users", headers=bearer(tokens))
+    assert r.status_code == 200  # reading the team is fine
+    # an email-code session cannot approve or manage users (require_human_mfa)
+    r = await env.client.post(
+        "/v1/users",
+        json={"email": "x@test.ae", "full_name": "X", "role": "sales"},
+        headers=bearer(tokens),
+    )
+    assert r.status_code == 403
 
     secret = await enrol_totp(env, tokens)
     mfa = await totp_login(env, email, new_password, secret)
@@ -209,8 +217,16 @@ async def test_an_email_code_session_cannot_replace_an_active_authenticator(env:
 
 async def _mfa_session(env: Env, role: str) -> tuple[dict[str, Any], uuid.UUID]:
     email, password, user_id = await new_user(env, role=role)
-    secret = await enrol_totp(env, await email_login(env, email, password))
-    return await totp_login(env, email, password, secret), user_id
+    first = await email_login(env, email, password)
+    new_password = "a-much-longer-passphrase-2026"  # L7: the one-time password is changed first
+    r = await env.client.post(
+        "/v1/auth/password",
+        json={"current_password": password, "new_password": new_password},
+        headers=bearer(first),
+    )
+    assert r.status_code == 204
+    secret = await enrol_totp(env, first)
+    return await totp_login(env, email, new_password, secret), user_id
 
 
 async def test_only_the_md_manages_md_and_nobody_changes_their_own_role(env: Env) -> None:
@@ -508,3 +524,84 @@ async def test_reset_one_live_code_capped_starts_and_a_lock_after_wrong_codes(en
     env.clock.at += timedelta(hours=2)
     assert await start(email) == 202
     assert await finish(env.mailer.last_code()) == 204
+
+
+async def _ready_session(env: Env, role: str = "sales") -> tuple[dict[str, Any], uuid.UUID, str]:
+    """A signed-in user who has changed the one-time password (so ordinary routes work)."""
+    email, password, user_id = await new_user(env, role=role)
+    tokens = await email_login(env, email, password)
+    r = await env.client.post(
+        "/v1/auth/password",
+        json={"current_password": password, "new_password": "a-much-longer-passphrase-2026"},
+        headers=bearer(tokens),
+    )
+    assert r.status_code == 204
+    return tokens, user_id, email
+
+
+async def test_l1_signing_out_ends_the_access_token_too(env: Env) -> None:
+    """L1 (security review 19 Nov): the access token used to stay valid for 15 minutes after sign-out."""
+    tokens, _, _ = await _ready_session(env)
+    assert (await env.client.get("/v1/deals", headers=bearer(tokens))).status_code == 200
+    assert (await env.client.post("/v1/auth/logout", headers=bearer(tokens))).status_code in (200, 204)
+    r = await env.client.get("/v1/deals", headers=bearer(tokens))
+    assert r.status_code == 401 and r.json()["detail"] == session_guard.ENDED
+
+
+async def test_l1_deactivation_and_a_role_change_end_the_token(env: Env) -> None:
+    admin, _ = await _mfa_session(env, "admin")
+    sales, sales_id, _ = await _ready_session(env)
+    other, other_id, _ = await _ready_session(env)
+    assert (await env.client.get("/v1/deals", headers=bearer(sales))).status_code == 200
+    r = await env.client.patch(f"/v1/users/{sales_id}", json={"is_active": False}, headers=bearer(admin))
+    assert r.status_code == 200
+    assert (await env.client.get("/v1/deals", headers=bearer(sales))).status_code == 401
+    r = await env.client.patch(f"/v1/users/{other_id}", json={"role": "manager"}, headers=bearer(admin))
+    assert r.status_code == 200
+    # the token still says "sales": it must not keep working with a role the user no longer has
+    assert (await env.client.get("/v1/deals", headers=bearer(other))).status_code == 401
+
+
+async def test_l7_a_session_has_an_absolute_end_and_a_locked_account_cannot_refresh(env: Env) -> None:
+    tokens, user_id, _ = await _ready_session(env)
+    async with env.databases.transaction(LogicalDb.CRM) as s:
+        first_end = (
+            (
+                await s.execute(
+                    select(svc.AuthSession.expires_at)
+                    .where(svc.AuthSession.user_id == user_id)
+                    .order_by(svc.AuthSession.created_at)
+                )
+            )
+            .scalars()
+            .first()
+        )
+    env.clock.at += timedelta(hours=1)
+    assert (await env.client.post("/v1/auth/refresh")).status_code == 200
+    async with env.databases.transaction(LogicalDb.CRM) as s:
+        ends = set(
+            (
+                await s.execute(
+                    select(svc.AuthSession.expires_at).where(
+                        svc.AuthSession.user_id == user_id, svc.AuthSession.revoked_at.is_(None)
+                    )
+                )
+            ).scalars()
+        )
+    assert ends == {first_end}  # rotating does not extend the session: it ends when the sign-in does
+    async with env.databases.transaction(LogicalDb.CRM) as s:
+        cred = await s.get(StaffCredential, user_id)
+        assert cred is not None
+        cred.locked_until = env.clock() + timedelta(minutes=15)
+    assert (await env.client.post("/v1/auth/refresh")).status_code == 401
+    assert tokens["access_token"]
+
+
+async def test_l6_reset_start_answers_before_the_code_is_mailed(env: Env) -> None:
+    """L6: the reset code goes out as a background task, so a real address answers like an unknown one (the
+    response no longer waits for the mail)."""
+    _, _, email = await _ready_session(env)
+    for address in (email, "nobody-at-all@test.ae"):
+        r = await env.client.post("/v1/auth/password/reset/start", json={"email": address})
+        assert r.status_code == 202
+    assert env.mailer.sent[-1][0] == email  # the real address did get its code (after the response)

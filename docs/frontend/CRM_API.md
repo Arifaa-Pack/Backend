@@ -107,6 +107,12 @@ Rules the screens must respect:
    `KX_APP_CORS_PUBLIC_ORIGINS`: it may call `/v1/public/*` without credentials and nothing else, so never
    list the website in `KX_APP_CORS_ORIGINS`.
 5. `must_change_password: true` (a new user's one-time password): force `POST /v1/auth/password` first.
+   Until then every route outside `/v1/auth/*` answers `403` "change your one-time password first" (security
+   review L7, 19 Nov). Changing the password ends every other session; the one in use stays signed in.
+   Security review L1: an access token works only while its sign-in lives. After sign-out, a password reset,
+   an MFA reset, a deactivation or a role change, calls answer `401` "your session has ended; sign in again"
+   within about 10 seconds: send the user to the login screen. A session ends 12 hours after sign-in
+   however often it is refreshed.
    `totp_enrolled: false`: offer `POST /v1/auth/totp/enrol` (returns `secret` + `otpauth_uri` to show as a QR
    code), then `POST /v1/auth/totp/confirm {code}`; the next sign-in can use the authenticator.
 6. 5 wrong passwords or codes from one IP lock that IP out of the account for 15 minutes (`429`); 50 from all
@@ -731,7 +737,7 @@ Change the password (ends every other session).
 
 #### `POST /v1/auth/password/reset/start`
 
-Recovery: a code to the work address. Always 202 (nobody learns which addresses exist); 429 when the rate limit for this IP or this typed address is reached (the same for unknown addresses, M3).
+Recovery: a code to the work address. Always 202 (nobody learns which addresses exist); 429 when the rate limit for this IP or this typed address is reached (the same for unknown addresses, M3). L6: the code is mailed after the response, so a real address answers as fast as an unknown one.
 
 **Who:** public
 

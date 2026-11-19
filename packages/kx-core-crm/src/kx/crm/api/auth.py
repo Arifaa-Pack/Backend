@@ -18,7 +18,7 @@ from contextlib import AbstractAsyncContextManager
 from datetime import datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -276,21 +276,23 @@ def router(ctx: ApiContext) -> APIRouter:  # noqa: PLR0915 - one small handler p
         ip = who(request)[0]
         async with tx() as s:
             result = await svc.change_password(
-                s, deps, _uid(p), body.current_password, body.new_password, ip=ip
+                s, deps, _uid(p), body.current_password, body.new_password, ip=ip, keep_session=p.session_id
             )
         if result is not None:
             raise _refuse(result)
 
     @r.post("/password/reset/start", status_code=202)
-    async def reset_start(body: ResetStartIn, request: Request) -> None:
+    async def reset_start(body: ResetStartIn, request: Request, background: BackgroundTasks) -> None:
         """Recovery: a code to the work address. Always 202 (nobody learns which addresses exist); 429 when
-        the rate limit for this IP or this typed address is reached (the same for unknown addresses, M3)."""
+        the rate limit for this IP or this typed address is reached (the same for unknown addresses, M3).
+        L6: the code is mailed after the response, so a real address answers as fast as an unknown one."""
         async with tx() as s:
             found = await svc.start_reset(s, deps, body.email, ip=who(request)[0])
         if isinstance(found, svc.Refused):
             raise _refuse(found)
         if found is not None and deps.mailer is not None:
-            await deps.mailer.send_code(
+            background.add_task(
+                deps.mailer.send_code,
                 found[0],
                 "Reset your password",
                 f"Your password reset code is {found[1]}. It expires in 10 minutes.",

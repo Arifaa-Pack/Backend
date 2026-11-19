@@ -302,16 +302,19 @@ async def _issue(
     *,
     ip: str | None,
     user_agent: str | None,
+    expires_at: datetime | None = None,
 ) -> Tokens:
     if deps.tokens is None:
         raise Unavailable("staff login is not configured (no token signing key)")
     now = deps.now()
     mfa = "otp" in amr
     refresh = new_token()
-    expires = now + timedelta(seconds=deps.auth.refresh_ttl_seconds)
+    # L7: a refreshed session keeps the sign-in's end (absolute lifetime = refresh_ttl_seconds)
+    expires = expires_at or now + timedelta(seconds=deps.auth.refresh_ttl_seconds)
+    session_id = new_id()
     session.add(
         AuthSession(
-            id=new_id(),
+            id=session_id,
             user_id=user.id,
             token_hash=token_hash(refresh),
             amr=list(amr),
@@ -326,7 +329,9 @@ async def _issue(
     emits = (await _break_glass_notice(session, user, now),) if cred.is_break_glass else ()
     await record(session, _as_user(user), "auth.login", "user", user.id, after={"amr": list(amr)}, emit=emits)
     return Tokens(
-        access_token=deps.tokens.issue(user_id=user.id, role=user.role, mfa=mfa, amr=amr, now=now),
+        access_token=deps.tokens.issue(
+            user_id=user.id, role=user.role, mfa=mfa, amr=amr, now=now, session_id=session_id
+        ),
         expires_in=deps.tokens.ttl_seconds,
         refresh_token=refresh,
         refresh_expires_at=expires,
@@ -380,7 +385,11 @@ async def refresh(
     cred = await session.get(StaffCredential, row.user_id)
     if row.expires_at <= now or user is None or cred is None or not user.is_active:
         return Refused(401, "session expired; sign in again")
-    tokens = await _issue(session, deps, user, cred, tuple(row.amr), ip=ip, user_agent=user_agent)
+    if cred.locked_until is not None and cred.locked_until > now:  # L7: a locked account cannot refresh
+        return Refused(401, "session expired; sign in again")
+    tokens = await _issue(
+        session, deps, user, cred, tuple(row.amr), ip=ip, user_agent=user_agent, expires_at=row.expires_at
+    )
     new_session = await session.scalar(
         select(AuthSession.id).where(AuthSession.token_hash == token_hash(tokens.refresh_token))
     )
@@ -389,12 +398,13 @@ async def refresh(
     return tokens
 
 
-async def _revoke_all(session: AsyncSession, user_id: uuid.UUID, now: datetime) -> None:
-    await session.execute(
-        update(AuthSession)
-        .where(AuthSession.user_id == user_id, AuthSession.revoked_at.is_(None))
-        .values(revoked_at=now)
-    )
+async def _revoke_all(
+    session: AsyncSession, user_id: uuid.UUID, now: datetime, *, keep: uuid.UUID | None = None
+) -> None:
+    stmt = update(AuthSession).where(AuthSession.user_id == user_id, AuthSession.revoked_at.is_(None))
+    if keep is not None:
+        stmt = stmt.where(AuthSession.id != keep)
+    await session.execute(stmt.values(revoked_at=now))
 
 
 async def logout(session: AsyncSession, deps: CrmDeps, token: str) -> None:
@@ -449,18 +459,46 @@ async def confirm_totp(session: AsyncSession, deps: CrmDeps, user_id: uuid.UUID,
 
 
 async def change_password(
-    session: AsyncSession, deps: CrmDeps, user_id: uuid.UUID, current: str, new: str, *, ip: str | None = None
+    session: AsyncSession,
+    deps: CrmDeps,
+    user_id: uuid.UUID,
+    current: str,
+    new: str,
+    *,
+    ip: str | None = None,
+    keep_session: uuid.UUID | None = None,
 ) -> Refused | None:
+    """The signed-in user changes their password: every OTHER session ends, the one in use stays (L1: the
+    API now checks sessions on every request, so ending it too would sign the user out mid-way)."""
     user, cred = await _user_and_cred(session, user_id)
     if not verify_password(current, cred.password_hash):
         await _failed(session, deps, user, cred, now=deps.now(), what="password_change", ip=ip)
         return Refused(401, "the current password is not correct")
-    await _set_password(session, deps, user, cred, new, must_change=False)
+    keep = await _chain_head(session, keep_session) if keep_session is not None else None
+    await _set_password(session, deps, user, cred, new, must_change=False, keep=keep)
     return None
 
 
+async def _chain_head(session: AsyncSession, session_id: uuid.UUID) -> uuid.UUID:
+    """The newest session of a refresh-rotation chain (a token may name an older link of it)."""
+    current = session_id
+    for _ in range(500):
+        nxt = await session.scalar(select(AuthSession.replaced_by).where(AuthSession.id == current))
+        if nxt is None:
+            return current
+        current = nxt
+    return current
+
+
 async def _set_password(
-    session: AsyncSession, deps: CrmDeps, user: User, cred: StaffCredential, new: str, *, must_change: bool
+    session: AsyncSession,
+    deps: CrmDeps,
+    user: User,
+    cred: StaffCredential,
+    new: str,
+    *,
+    must_change: bool,
+    keep: uuid.UUID | None = None,
 ) -> None:
     if (problem := password_problem(new)) is not None:
         raise RuleViolation(problem, reason="weak_password")
@@ -469,7 +507,7 @@ async def _set_password(
         deps.now(),
         must_change,
     )
-    await _revoke_all(session, user.id, deps.now())  # every other session ends with the old password
+    await _revoke_all(session, user.id, deps.now(), keep=keep)  # the other sessions end with the old password
     await session.flush()
     await record(session, _system(), "auth.password_changed", "user", user.id)
 

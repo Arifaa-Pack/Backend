@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import orjson
-from fastapi import FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request, Response
 
 from arifaa_pack.bodylimit import BodyLimit
 from arifaa_pack.config import app_settings
@@ -24,6 +24,7 @@ from kx.core.errors import Unavailable, install_problem_handlers
 from kx.core.logging import configure_logging
 from kx.core.settings import get_settings
 from kx.crm.api import build_router as crm_router
+from kx.crm.api.session_guard import SessionGuard
 
 
 def create_app() -> FastAPI:
@@ -40,7 +41,10 @@ def create_app() -> FastAPI:
             cms_secret = c.app.cms_webhook_secret.get_secret_value() if c.app.cms_webhook_secret else None
             app.include_router(cms_router(c.databases, cms_secret))  # §7 / D22 publish webhook
             app.include_router(website_router(c.website_deps))  # §6 website chat and voice
-            app.include_router(channels_admin_router(c.databases))  # §20.11 numbers and templates
+            app.include_router(  # §20.11 numbers and templates; staff only, so the L1 live-session guard too
+                channels_admin_router(c.databases),
+                dependencies=[Depends(SessionGuard(c.databases, c.crm_deps.now).dependency())],
+            )
             app.state.container = c
             yield
 

@@ -7,7 +7,7 @@ Wire in the app:
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from kx.core.db import Databases
 from kx.crm.api import (
@@ -28,12 +28,14 @@ from kx.crm.api import (
     users,
 )
 from kx.crm.api.context import ApiContext
+from kx.crm.api.session_guard import SessionGuard
 from kx.crm.deps import CrmDeps
 
 
 def build_router(databases: Databases, deps: CrmDeps) -> APIRouter:
     ctx = ApiContext(databases, deps)
-    root = APIRouter()
+    # L1 / L7: every staff route checks the token's session is alive (and the one-time password changed)
+    root = APIRouter(dependencies=[Depends(SessionGuard(databases, deps.now).dependency())])
     for module in (
         auth,
         users,
