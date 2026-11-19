@@ -17,9 +17,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
 from kx.crm.api.context import ApiContext, Staff
 from kx.crm.models import AuditEvent, StockItem
+from kx.crm.orders import service as orders
 from kx.crm.pricing import price_list_service as price_lists
 from kx.crm.reports.dashboards import PRICE_LIST_ACTIONS
-from kx.crm.services import inbox, orders
+from kx.crm.services import inbox
 from kx.crm.services.journal import Actor
 
 # §3 "Edit price list: manager and admin" (a person with MFA: prices are money)

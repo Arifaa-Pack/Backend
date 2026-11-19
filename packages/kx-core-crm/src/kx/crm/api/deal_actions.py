@@ -33,7 +33,8 @@ from kx.crm.api.schemas import (
 )
 from kx.crm.contacts import consent
 from kx.crm.handover import service as handover
-from kx.crm.services import access, orders
+from kx.crm.orders import service as orders
+from kx.crm.services import access
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.journal import Actor
 
