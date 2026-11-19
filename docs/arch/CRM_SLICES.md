@@ -92,11 +92,18 @@ Order = the order of the moves (least depended-on first, `_shared/` last). One c
   a router module is a bigger change than a move.
 - **`throttle.py` → `auth/`**: only sign-in and recovery use it (the app's Redis version implements it).
 
-## Cross-slice imports that remain (the rule-5 baseline)
+## Calls between slices: each slice's `api.py` (rule 5)
 
-Rule 5 forbids importing another slice's `repository` or `models`. With the ORM kept as the shared data layer
-(above) and no repository modules yet, the baseline for rule 5 is **empty**: no slice has a `models.py` or
-`repository.py` of its own. What remains between slices are service-level calls (allowed): the table
-"service modules imported by other service / api modules" in `CURRENT_STATE.md` §3, with each name read through
-this mapping (for example `services.quotes` → `quotes.service`). Phase 2 records them as the `independence`
-baseline that may only shrink.
+Phase 2 recorded the service-level calls between slices as a 74-line baseline. Phase 2d (19 Nov) replaced it: each
+of the 14 slices that other slices call has an `api.py` listing exactly the names they use (106 in all, found by
+reading every cross-slice import), and rule 5 allows a cross-slice import only when it targets an `api.py`
+(`ignore_imports = ["kx.crm.** -> kx.crm.*.api"]`). `kx.crm.deps` goes through them too.
+
+- To see what a slice offers the others, open its `api.py`; to see who uses it, search for `kx.crm.<slice>.api`.
+- A new cross-slice call adds a name to the target's `api.py`, a reviewed change. Often it belongs in `_shared/`
+  or behind an event instead.
+- The names resolve lazily (`kx/crm/_shared/surface.py`), so `quotes` and `approvals`, which call each other,
+  import in the same order as before.
+- `deal_detail` and `visible_to` moved from `deals/router.py` to `deals/views.py` (other slices use them, and slice
+  code may not depend on a router); `allowed_prices` moved from `kx.crm.gateway` to `quotes/allowed.py`, so the
+  AI's `DealContext` and a salesperson's reply are checked against one definition.

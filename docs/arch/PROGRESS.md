@@ -1292,3 +1292,57 @@ Baseline at `c56c4b4`: every gate below passed, and `kx map --format json` was s
   `live-test/TEST_REPORT.md` and the earlier entries of this log.
 
 **Phase 2c: COMPLETED. ADR-0001 Phases 0–2c: COMPLETED.**
+
+## Phase 2d: the "found, not fixed" list (19 Nov, on request: "fix this")
+
+Worked in a worktree on `arch/slices` (`../kx-fix-wt`). Every commit: ruff, ruff format, mypy, lint-imports (run on
+the worktree's own code, see below), `kx map --check`, the OpenAPI diff, unit tests, the Windows package tests, and
+the full Linux suite in the test worktree.
+
+**Correction to Phase 2c's lint-imports lines.** In a second checkout, a plain `lint-imports` analysed the main
+folder's copy of `kx` as well (namespace package; the virtualenv points at the main folder), and its cache lives in
+the main folder. So the per-commit "12 kept" of 2c.1 / 2c.2 came from that mixed graph. Re-checked without the
+cache on the pushed head `0e3a79f`: 12 kept, 0 broken. From 2d on, the runner drops the main folder's paths
+(proof: it reports the worktree's own imports, and the removed baseline lines would otherwise fail).
+
+## 2d.1 automation `TRANSIENT_REASONS` → `_shared/sending.py` — COMPLETED (`62862ff`)
+- Full suite: errors=0, failures=0, skipped=4, tests=992.
+
+## 2d.2 automation `LadderTicket` → `_shared/ladder.py`, `Attachment` → `_shared/channels.py` — COMPLETED (`e9913e7`)
+- Automation layers contract: no baseline left. Full suite: errors=0, failures=0, skipped=4, tests=992.
+
+## 2d.3 CRM `QuoteEdits` / `LineEdit`, `CompanyProfile` / `BankDetails` → `_shared/` — COMPLETED (`7174909`)
+- "_shared imports no slice": no baseline left; rule 5: 74 → 72. Full suite: errors=0, failures=0, skipped=4,
+  tests=992.
+
+## 2d.4 `quotes/allowed.py`; handover no longer imports the gateway — COMPLETED (`2d88c02`)
+- `allowed_prices` moved unchanged; the gateway and `handover._check_amounts` use one lookup (same queries, same
+  order). Full suite: errors=0, failures=0, skipped=4, tests=992.
+
+## 2d.5 slice `api.py` modules; rule 5 without baseline — COMPLETED (`dab8288`)
+- 14 `api.py`, 106 names, generated from the real cross-slice imports (no name clash, no module alias used other
+  than as `alias.name`); importers rewritten (import lines only); `deal_detail` / `visible_to` → `deals/views.py`.
+- A first try added `api` as a rule-4 layer: it broke on legitimate chains (quotes → approvals → quotes.api), so
+  it was dropped. A planted direct import of `quotes.issuing` from `orders.service` broke rule 5 (checked).
+- Full suite: errors=0, failures=0, skipped=4, tests=992.
+
+## 2d.6 `kx map`: precise `calls()` — COMPLETED (`938b84f`)
+- New unit test (fails on the old code). Map: 2 false entries removed. Full suite: errors=0, failures=0,
+  skipped=4, tests=993.
+
+## 2d.7 `NO_SUBSCRIBER` for the 6 unsubscribed events — COMPLETED (`ef4c639`)
+- New unit test, both directions (removing an entry fails it). The reasons are ASCII: a "§" made the map's JSON
+  non-ASCII and the test's child process failed to decode it on Windows without `PYTHONIOENCODING`.
+  OPEN_QUESTIONS #78 (the v2 stale-price alert). Full suite: errors=0, failures=0, skipped=4, tests=994.
+
+## 2d.8 mypy covers `scripts/` — COMPLETED (`e15bdcb`)
+- `gen_frontend_docs.py`: 7 errors fixed; docs/frontend regenerates byte-identical. `make lint` and CI run mypy on
+  `scripts`. (`gen_tester_pack.py`: 6 errors fixed on `docs/tester-pack`; the pack regenerates byte-identical.)
+
+## 2d.9 documentation — COMPLETED
+- CLAUDE.md (the inside-a-package rule), CONTRACTS.md, ADR-0001, CRM_SLICES.md (the rule-5 section),
+  AUTOMATION_AGENTS_SLICES.md, REUSE_CATALOGUE.md, REPORT.md, ARIFAA_AUTO_NOTES.md (moved names). 12 dotted
+  references that stopped resolving in Phase 2c were found by importing every `kx.*` path named in the living docs,
+  and fixed.
+
+**Phase 2d: COMPLETED.**

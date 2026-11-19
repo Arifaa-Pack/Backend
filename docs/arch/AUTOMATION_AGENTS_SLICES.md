@@ -41,7 +41,7 @@ diff).
 | `scraping/` | Competitor price scraping → price proposals (D14) | `service.py` | `scraping.py` |
 | `cms/` | CMS publish webhook (§7) | `service.py` | `cms.py` |
 | `admin/` | Admin routes: regional numbers, templates | `router.py` | `admin_api.py` |
-| `_shared/` | Outbox writer, ports (Protocols the app wires), deploy settings, object store, channel errors and HTTP retry, the send helper | `outbox.py`, `ports.py`, `settings.py`, `media.py`, `channels.py`, `sending.py` | `outbox.py`, `ports.py`, `settings.py`, `media.py`, `channels/__init__.py`, part of `handlers.py` |
+| `_shared/` | Outbox writer, ports (Protocols the app wires), deploy settings, object store, channel errors, HTTP retry and the email `Attachment`, the send helper, the §16 `LadderTicket` | `outbox.py`, `ports.py`, `settings.py`, `media.py`, `channels.py`, `sending.py`, `ladder.py` | `outbox.py`, `ports.py`, `settings.py`, `media.py`, `channels/__init__.py`, part of `handlers.py` |
 
 **Package level:** `handlers.py` (the event reactions; it wires the slices), `jobs.py` (job bodies and the
 schedule table), `models.py` (ORM), `repo.py` (queries), `retention.py`, `__init__.py` (public surface).
@@ -85,8 +85,8 @@ kx.automation                                  kx.agents
                                                  roles
 ```
 
-- Automation baseline (may only shrink): `_shared.sending → outbound.service`, needed for `TRANSIENT_REASONS`, and
-  two `TYPE_CHECKING`-only imports (`_shared.channels → email.channel`, `_shared.ports → alerts.service`).
+- Automation: no baseline since Phase 2d (19 Nov). `TRANSIENT_REASONS` lives in `_shared/sending.py`, `Attachment`
+  in `_shared/channels.py` and the §16 `LadderTicket` in `_shared/ladder.py`, next to the ports that carry them.
 - Agents: no baseline; today's code already follows the layers. `runtime/` is split by module because the turn
   engine (`service.py`) is at the top, while the per-run `context.py` is near the bottom (graphs, tools and the
   guard read it).
