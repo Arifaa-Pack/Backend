@@ -39,7 +39,7 @@ other mapping files, and this table is updated with each move.
 | `kx.core.contracts:ClickToCall` | `kx.automation.alerts:CallBridge` | `packages/kx-core-automation/src/kx/automation/alerts.py` |
 | `kx.core.contracts:CrmGateway` | `kx.crm.gateway:CrmGatewayImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
 | `kx.core.contracts:GrantConsumer` | `kx.crm.gateway:GrantConsumerImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |
-| `kx.core.contracts:MessageSender` | `kx.automation.outbound:OutboundService` | `packages/kx-core-automation/src/kx/automation/outbound.py` |
+| `kx.core.contracts:MessageSender` | `kx.automation.outbound:OutboundService` | `packages/kx-core-automation/src/kx/automation/outbound/__init__.py` |
 | `kx.core.contracts:StaffMailer` | `arifaa_pack.adapters:StaffCodeMailer` | `apps/arifaa-pack/src/arifaa_pack/adapters.py` |
 
 ## Other ports (Protocols inside a package)
@@ -63,7 +63,7 @@ other mapping files, and this table is updated with each move.
 | `kx.automation.jobs:MediaDownloader` | `kx.automation.channels.whatsapp:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/channels/whatsapp.py` |
 | `kx.automation.media:S3Client` | - | - |
 | `kx.automation.outbound:KillSwitchReader` | `kx.core.killswitch:KillSwitchLadder` | `packages/kx-core-db/src/kx/core/killswitch.py` |
-| `kx.automation.outbound:RateLimiter` | `kx.automation.ratelimit:TokenBucketLimiter` | `packages/kx-core-automation/src/kx/automation/ratelimit.py` |
+| `kx.automation.outbound:RateLimiter` | `kx.automation.outbound.ratelimit:TokenBucketLimiter` | `packages/kx-core-automation/src/kx/automation/outbound/ratelimit.py` |
 | `kx.automation.outbound:TemplateSpend` | `kx.core.spend:SpendMeter` | `packages/kx-core-db/src/kx/core/spend.py` |
 | `kx.automation.outbound:WhatsAppTransport` | `kx.automation.channels.whatsapp:WhatsAppClient` | `packages/kx-core-automation/src/kx/automation/channels/whatsapp.py` |
 | `kx.automation.ports:ApprovalStatusReader` | `kx.crm.gateway:ApprovalStatusReaderImpl` | `packages/kx-core-crm/src/kx/crm/gateway.py` |

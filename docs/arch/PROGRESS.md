@@ -562,3 +562,18 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
 - **Deviations:** the brief suggests ten folders per package; the mapping explains why one-file features stay
   files (no reader gain, an extra shim each). `followups/` is not created: the follow-ups are part of the one
   handler table in `kx/automation/handlers.py`, and splitting that table is more than a move.
+
+## 2.1 slice `outbound` — TESTING (COMPLETED when tagged `arch-slice/automation-outbound`)
+
+- **Moved:** `outbound.py` → `outbound/__init__.py` (the same module `kx.automation.outbound`; OutboundService code unchanged, only its two import lines now name the new paths), `contact_hours.py` / `ratelimit.py` / `killswitch.py` → `outbound/`; shims at those three old paths; imports rewritten in `arifaa_pack/{adapters,container}.py`. `kx map` compared with the Phase 1 map (`023968d`).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 440 files already formatted
+  - mypy: Success: no issues found in 283 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 21.15s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** Phase 1 public surface @ `023968d` (see 1.23)
