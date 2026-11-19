@@ -24,6 +24,7 @@ from kx.core.identity import new_id
 from kx.core.money import MONEY_PLACES, display, q
 from kx.crm._shared import staff
 from kx.crm._shared.journal import Actor, Timeline, record
+from kx.crm._shared.quote_edits import LineEdit, QuoteEdits
 from kx.crm._shared.settings import BusinessSettings
 from kx.crm.approvals import service as approvals
 from kx.crm.deals import service as deal_svc
@@ -607,28 +608,6 @@ async def create_final_version(
 
 
 # ---------------------------------------------------------------- §11.3 "Edit then approve"
-@dataclass(frozen=True, slots=True)
-class LineEdit:
-    line_no: int
-    unit_price: Decimal | None = None
-    quantity: Decimal | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class QuoteEdits:
-    """What the salesperson changed on the approval screen or the change-request card (§11.3, §13.3)."""
-
-    lines: tuple[LineEdit, ...] = ()
-    delivery_time_text: str | None = None
-    delivery_place: str | None = None
-    incoterm: str | None = None
-    payment_terms_text: str | None = None
-    note: str | None = None  # internal (approval card, timeline)
-    buyer_note: str | None = None  # §13.3: what changed, sent to the buyer with the new version
-    cover_note: str | None = None  # D9: the "open to discuss" line, message only
-    currency: str | None = None  # the buyer asked for another currency; prices given are in it
-
-
 @dataclass(frozen=True, slots=True)
 class ManualLine:
     """A line the salesperson prices by hand (custom, printed or unpriced product, D8)."""

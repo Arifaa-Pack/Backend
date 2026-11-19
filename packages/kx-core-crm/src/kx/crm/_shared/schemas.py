@@ -5,15 +5,13 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from kx.core.contracts import DealStage
+from kx.crm._shared.quote_edits import LineEdit, QuoteEdits
 from kx.crm.rules import LostReason
-
-if TYPE_CHECKING:
-    from kx.crm.quotes.service import QuoteEdits
 
 
 class _Out(BaseModel):
@@ -275,8 +273,6 @@ class QuoteEditsIn(BaseModel):
 
     def to_edits(self, note: str | None) -> QuoteEdits:
         """The service's QuoteEdits (review D8: the revise and change-request routes built it twice)."""
-        from kx.crm.quotes.service import LineEdit, QuoteEdits  # noqa: PLC0415 - schemas stay import-light
-
         return QuoteEdits(
             lines=tuple(LineEdit(e.line_no, e.unit_price, e.quantity) for e in self.lines),
             delivery_time_text=self.delivery_time_text,

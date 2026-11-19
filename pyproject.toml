@@ -176,10 +176,7 @@ forbidden_modules = [
     "kx.crm.jobs",
 ]
 allow_indirect_imports = true
-ignore_imports = [
-    "kx.crm._shared.schemas -> kx.crm.quotes.service",
-    "kx.crm._shared.settings -> kx.crm.company.service",
-]  # baseline 2026-11-19: may only shrink
+# no baseline: the two exceptions (QuoteEdits, CompanyProfile) moved into _shared/ on 19 Nov
 
 [[tool.importlinter.contracts]]
 name = "CRM rule 4: inside each slice the routers sit above the service code"
@@ -299,8 +296,6 @@ ignore_imports = [
     "kx.crm.screens.router -> kx.crm.orders.service",
     "kx.crm.screens.router -> kx.crm.pricing.price_list_service",
     "kx.crm.screens.router -> kx.crm.reports.dashboards",
-    "kx.crm._shared.schemas -> kx.crm.quotes.service",
-    "kx.crm._shared.settings -> kx.crm.company.service",
     "kx.crm.deps -> kx.crm.auth.throttle",
     "kx.crm.deps -> kx.crm.pricing.fx",
     "kx.crm.deps -> kx.crm.quotes.pdf",
