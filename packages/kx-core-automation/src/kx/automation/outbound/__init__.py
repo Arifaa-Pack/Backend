@@ -510,7 +510,9 @@ class OutboundService:
                 return None
             row.status, row.sending_at = "sending", self._now()  # D6: the stuck-send sweep reads sending_at
             in_reply_to = None
-            if channel == "email" and not row.subject and row.thread_id is not None:
+            # 19 Nov (client): a quote answers in the buyer's email thread too, like an AI reply
+            threaded = not row.subject or row.kind in PRICED_KINDS
+            if channel == "email" and threaded and row.thread_id is not None:
                 subject, in_reply_to = await _email_reply_to(s, row.thread_id)
                 row.subject = subject or row.subject  # stored too: the outbox shows what went out
             return row, channel, template, in_reply_to
@@ -656,9 +658,10 @@ def reply_subject(original: str | None) -> str | None:
 
 
 async def _email_reply_to(s: AsyncSession, thread_id: uuid.UUID) -> tuple[str | None, str | None]:
-    """(subject, Message-ID) for an email reply that has no subject of its own: the buyer's newest email on
-    the thread (live test 18 Nov: AI replies went out titled with the company name, which can break Gmail
-    threading)."""
+    """(subject, Message-ID) of the buyer's newest email on the thread, for a reply that has no subject of its
+    own (live test 18 Nov: AI replies went out titled with the company name, which can break Gmail threading)
+    and for a quote (client, 19 Nov: the quote continues the buyer's thread). (None, None) when the buyer has
+    not emailed on this thread: the message keeps its own subject ("Quotation Q-... from ...")."""
     found = (
         await s.execute(
             select(InboundMessage.raw["subject"].astext, InboundMessage.provider_message_id)

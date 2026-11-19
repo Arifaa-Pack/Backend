@@ -507,6 +507,37 @@ async def test_an_email_reply_without_a_subject_answers_in_the_buyers_thread(env
     assert (await env.rows())[0].subject == "Re: Packaging enquiry"  # stored: the outbox shows what went out
 
 
+async def test_a_quote_email_continues_the_buyers_thread_when_the_buyer_emailed(env: Env) -> None:
+    """Client decision 19 Nov: a quote no longer starts a new Gmail thread ("Quotation ... from ...") when the
+    buyer wrote by email; it answers in the buyer's thread like an AI reply. Without a buyer email on the
+    thread (a WhatsApp buyer quoted by email) it keeps its own subject."""
+    body = "Please find your quote."
+    env.media.objects["q.pdf"] = b"%PDF"
+
+    def quote(subject: str) -> OutboundRequest:
+        return req(
+            OutboundKind.QUOTE,
+            channel="email",
+            to_address="buyer@example.com",
+            body=body,
+            subject=subject,
+            media_s3_key="q.pdf",
+            grant_id=uuid.uuid4(),
+            content_sha256=content_sha256(body, b"%PDF"),
+        )
+
+    first = await env.service.send(quote("Quotation Q-1 from Arifa"))
+    await env.service.deliver(first)  # no buyer email yet: its own subject, no In-Reply-To
+    async with env.db.transaction(LogicalDb.AUTOMATION) as s:
+        await record_email(s, parse_inbound(BUYER_MAIL, fallback_id="k1"), s3_key=None, attachment_keys=())
+    second = await env.service.send(quote("Quotation Q-1 v2 from Arifa"))
+    await env.service.deliver(second)
+    alone, threaded = env.email.sent
+    assert alone["subject"] == "Quotation Q-1 from Arifa" and alone["in_reply_to"] is None
+    assert threaded["subject"] == "Re: Packaging enquiry"
+    assert threaded["in_reply_to"] == "<abc123@mail.example.com>" and threaded["attachment"].data == b"%PDF"
+
+
 def test_reply_subject_says_re_once() -> None:
     assert reply_subject("RE: Fwd: AW: Packaging enquiry") == "Re: Packaging enquiry"
     assert reply_subject("Packaging enquiry") == "Re: Packaging enquiry"
