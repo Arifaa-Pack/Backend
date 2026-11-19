@@ -1,0 +1,170 @@
+{
+  "site": "http://localhost:3100",
+  "when": "2026-11-19T19:55:20.516Z",
+  "passed": 6,
+  "of": 6,
+  "consoleErrors": [],
+  "results": [
+    {
+      "step": 1,
+      "start": "/",
+      "said": "Hi, show me kitchen foil",
+      "from": "/",
+      "url_after": "/products?family=foil",
+      "api": {
+        "status": 200,
+        "reply": "Hello! Our kitchen foil comes in a few convenient options:\n\n- **Aluminium Foil 30 cm** – classic silver foil, great for everyday cooking and wrapping.\n- **Aluminium Foil 30 cm Blue Line** – the same size with a blue safety line for easy handling.\n- **Aluminium Foil 45 cm** – extra width for larger trays and baking sheets.\n- **Aluminium Foil 45 cm Blue Line** – wide foil with the handy blue line.\n\nWhich width are you interested in for your kitchen use?",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "show_family",
+            "layer": "instant",
+            "family": "foil"
+          }
+        ]
+      },
+      "ms_api": 3649,
+      "expected": "/\\/products\\?.*family=foil|\\/products\\/foil/",
+      "moved": "url /products?family=foil",
+      "ms_until_moved": 15021,
+      "passed": true,
+      "chat_log_new": [
+        "Here they are, all 4 aluminium foil. What will you be packing in them?"
+      ],
+      "screenshot": "screens\\01.png"
+    },
+    {
+      "step": 2,
+      "start": null,
+      "said": "do you have 8325?",
+      "from": "/products?family=foil",
+      "url_after": "/products?family=containers&p=ac-8325",
+      "api": {
+        "status": 200,
+        "reply": "Great! To give you the best offer, could you let me know how many containers you’d like to order?",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "show_product",
+            "layer": "instant",
+            "product_id": "ac-8325"
+          }
+        ]
+      },
+      "ms_api": 9400,
+      "expected": "/8325/",
+      "moved": "url /products?family=containers&p=ac-8325",
+      "ms_until_moved": 22212,
+      "passed": true,
+      "chat_log_new": [
+        "Great! To give you the best offer, could you let me know how many containers you’d like to order?",
+        "This is the 8325, our aluminium container and lid, packed 1000 to a carton. Would you like a quote for it?"
+      ],
+      "screenshot": "screens\\02.png"
+    },
+    {
+      "step": 3,
+      "start": null,
+      "said": "where are your certificates?",
+      "from": "/products?family=containers&p=ac-8325",
+      "url_after": "/quality#documents",
+      "api": {
+        "status": 200,
+        "reply": "Our factory meets international food‑safety and quality standards. We hold ISO 9001 (quality management), ISO 14001 (environmental management), BRC Global Standard for Food Safety, HACCP certification, and CE marking for our equipment. All certificates are up to date and can be shared with you on request.\n\nIn terms of production, we run high‑speed forming and sealing lines that can handle up to 2,000 tons of containers per month, with automated printing and packaging stations to keep lead times reliable.\n\nCould you let me know the country you’d like the containers delivered to?",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "navigate",
+            "layer": "instant",
+            "page": "quality",
+            "section": "documents"
+          }
+        ]
+      },
+      "ms_api": 11466,
+      "expected": "/\\/quality/",
+      "moved": "url /quality#documents",
+      "ms_until_moved": 51240,
+      "passed": true,
+      "chat_log_new": [],
+      "screenshot": "screens\\03.png"
+    },
+    {
+      "step": 4,
+      "start": "/ar",
+      "said": "أرني حاويات ألمنيوم",
+      "from": "/ar",
+      "url_after": "/ar/products?q=8325&p=ac-8325",
+      "api": {
+        "status": 200,
+        "reply": "The 8325 is our classic aluminum container with lid, a popular choice on the trade market and it packs 1,000 pieces per case. How many cases would you like to order?",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "show_family",
+            "layer": "instant",
+            "family": "containers"
+          },
+          {
+            "type": "show_product",
+            "layer": "agent",
+            "product_id": "ac-8325"
+          }
+        ]
+      },
+      "ms_api": 3888,
+      "expected": "/\\/ar\\/products.*family=containers/",
+      "moved": "product shown in the page",
+      "ms_until_moved": 48954,
+      "passed": true,
+      "chat_log_new": [
+        "هذا هو المنتج 8325، حاوية ألمنيوم مع غطاء، معبّأ 1000 قطعة في الكرتونة. هل تريد عرض سعر له؟"
+      ],
+      "screenshot": "screens\\04.png"
+    },
+    {
+      "step": 5,
+      "start": "/products",
+      "said": "I need containers with lids for biryani takeaway, which one fits 1 kg?",
+      "from": "/products",
+      "url_after": "/products",
+      "api": {
+        "status": 200,
+        "reply": "Here are the aluminium containers with lids we stock for takeaway, including the 8325 you saw earlier: 8342, 8357, 8367, 8368 and the 8389 range. Could you tell me roughly what capacity you need in grams or millilitres? I can match the right one for your 1 kg biryani portions once I know that.",
+        "handed_over": false,
+        "actions": []
+      },
+      "ms_api": 5436,
+      "expected": null,
+      "moved": null,
+      "ms_until_moved": null,
+      "passed": true,
+      "chat_log_new": [
+        "Here are the aluminium containers with lids we stock for takeaway, including the 8325 you saw earlier: 8342, 8357, 8367, 8368 and the 8389 range. Could you tell me roughly what capacity you need in grams or millilitres? I can match the right one for your 1 kg biryani portions once I know that."
+      ],
+      "screenshot": "screens\\05.png"
+    },
+    {
+      "step": 6,
+      "start": null,
+      "said": "We need about 20,000 pieces a month for our restaurants in Dubai. Please prepare a quotation.",
+      "from": "/products",
+      "url_after": "/products",
+      "api": {
+        "status": 200,
+        "reply": "Could you please share your name so I can include it in the quotation request?",
+        "handed_over": false,
+        "actions": []
+      },
+      "ms_api": 19404,
+      "expected": null,
+      "moved": null,
+      "ms_until_moved": null,
+      "passed": true,
+      "chat_log_new": [
+        "Could you please share your name so I can include it in the quotation request?"
+      ],
+      "screenshot": "screens\\06.png"
+    }
+  ]
+}

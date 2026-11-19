@@ -13,6 +13,8 @@
 
 **Update 19 Nov, round 2:** security review M2–M8 / L1–L8, infra M1–M16, the monitoring gaps, the quote email polish, the quick-message merge, the code cleanup and the architecture restructuring are done, and the whole platform was re-tested on the final code (branch `arch/slices`). Results: **991 tests pass**; **43 / 43 security probes**; **31 / 31 business flows**; **0 server errors** in the API matrix and the Postman run; **≥ 98 % of WhatsApp replies within 60 s at 10–50 users**. Six problems were found during the re-test and fixed. See **§15**.
 
+**Update 20 Nov, round 3 (the website AI):** Arifa's real website ran against the live stack with the real AI. The assistant moved the page in 13–131 ms (streamed), answered Arabic in Arabic, stated no price and invented no certificate. Six defects were found and fixed on the way. The whole-app test passes, and the browser run passed 6 / 6 with no console errors. See **§16**.
+
 **Not available yet, so tested against local fakes of the real vendor APIs:** Claude, WhatsApp (Meta), Telnyx calls, Amazon SES and Cloudflare R2 storage. The platform's own code paths ran; only the vendor answered from a fake.
 
 ---
@@ -616,6 +618,108 @@ Each fix has a test that fails without it, and the full suite was run on it.
 
 ---
 
+## 16. Round 3 (20 Nov): the website AI, live with the real website
+
+**What ran.** The live stack (`kxlive`, image built from branch `feat/website-ai`) with the new CMS database,
+the website content imported with `kx content import-site` (128 documents: 8 families, 78 products, 6 pages,
+7 tour chapters, 7 stations, industries, stories, clients) and the ERP sample imported with
+`kx catalogue import-erp`. Arifa's own website (Arifa-Pack, commit `0e160eb`, `next dev` on port 3100)
+connected through `NEXT_PUBLIC_ARIFA_API_URL`, with the adapter patch
+(`docs/handoff/website-adapter/arifa-site-actions.patch`) applied to a local copy. The AI was the real model
+(Groq / Gemini through the proxy; no Claude key yet). Results are in `live-test/results/website_live/`.
+
+### 16.1 Content and catalogue
+
+| Check | Result |
+|---|---|
+| `kx content import-site` | published: site 1, families 8, products 78, pages 6, tour chapters 7, stations 7, industries 6, stories 3, clients 12 |
+| CMS publish → CRM (outbox relay + worker, no manual step) | 78 website products in `crm.website_products` within a minute |
+| `kx catalogue import-erp` (the 19 Nov sample) | 18 rows: 13 sellable, 5 not sellable (scrap, raw material, packing material) |
+| ERP items linked to website products | 12 of 13 sellable (8325 container + lid, 8342 lid, 14082, 30 / 45 cm foil, the trade and retail 22 pot, 3180, 5186); 1065 has no website product and waits for the salesperson (`03_erp_links.txt`) |
+| Content API: site, manifest (28 KB), product, product list, sitemap, redirects | all 200 in 9–178 ms, ETag on each, `If-None-Match` → 304, CORS allows the site's origin, no price anywhere |
+
+### 16.2 The assistant through the API (real AI, streamed)
+
+Eight turns as a visitor (`website_live_api.py`; the final round after the fixes in 16.4):
+
+| Visitor says | Page action (layer) | First action | Reply done |
+|---|---|---|---|
+| "Hi, show me kitchen foil" | show_family foil (instant), show_product foil-30 (agent) | 131 ms | 3.9 s |
+| "do you have 8325?" | show_product ac-8325 (instant) | 17 ms | 0.7 s |
+| "containers with lids for biryani, which fits 1 kg?" | none (the agent suggested the 83190 and asked) | – | 8.2 s |
+| "sizes, packing, stock of the 8325, and your monthly capacity?" | show_product ac-8325 | 57 ms | 9.1 s |
+| "How much is the 8325 per carton?" | show_product ac-8325 | 54 ms | 2.9 s |
+| "where are your certificates?" | navigate quality#documents | 60 ms | 5.1 s |
+| "أرني حاويات ألمنيوم" (Arabic) | show_family containers | 60 ms | 1.0 s |
+| "20,000 pieces a month in Dubai, please quote" | none (asked for name and phone or email) | – | 5.7 s |
+
+* **No price** in any reply (also asked directly twice); **no invented certificate or capacity** ("our team
+  will confirm"); the Arabic request answered in Arabic; packing and stock from the ERP items ("1,000 pieces,
+  in stock"), never an amount.
+* Nudges: before the first message none; after it, 25 s on a product gave "Would you like the sizes, packing
+  and availability of the Aluminium Container & Lid?"; an enquiry-list add right after got none (30 s gap).
+* Contact card and enquiry desk: one deal for the visit (owner assigned), the WhatsApp consent with its
+  wording and `captured_via` web_chat, the English enquiry note (Products, Families, Quantity, How often,
+  Delivery, Trade, Reply by, Message), 17 chat lines on the deal timeline.
+
+### 16.3 The real website in a real browser
+
+Chromium (headless) on the website, the visitor's words handed to the assistant's own `handle()` (the panel
+has no text box and a headless browser no microphone; `website_live_browser.mjs`):
+
+| # | Visitor says (page) | Backend actions (layer) | Where the page went | API answer | Result |
+|---|---|---|---|---|---|
+| 1 | "Hi, show me kitchen foil" (`/`) | show_family foil (instant), show_product foil-30 (agent) | `/products?q=30+cm&p=foil-30` | 5.7 s | pass |
+| 2 | "do you have 8325?" (`/products?q=30+cm&p=foil-30`) | show_product ac-8325 (instant) | `/products?q=30+cm&family=containers&p=ac-8325` | 32.1 s | pass |
+| 3 | "where are your certificates?" (`/products?q=30+cm&family=containers&p=ac-8325`) | navigate quality (instant) | `/quality#documents` | 10.5 s | pass |
+| 4 | "أرني حاويات ألمنيوم" (`/ar`) | show_family containers (instant), show_product ac-8325 (agent) | `/ar/products?q=8325&p=ac-8325` | 2.1 s | pass |
+| 5 | "I need containers with lids for biryani takeaway, which one fits 1 kg?" (`/products`) | none | `/products` | 3.1 s | pass |
+| 6 | "We need about 20,000 pieces a month for our restaurants in Dubai. Please prepare a quotation." (`/products`) | none | `/products` | 11.7 s | pass |
+
+The page moves when the JSON answer arrives (the site does not stream yet): 2–32 s here, against 13–131 ms
+for the first action when streamed (16.2). Step 4: on the Arabic page the agent opened the 8325 after the
+instant layer showed the containers, and the visitor stayed on `/ar`.
+
+Console errors: none (0). Screenshots: `results/website_live/screens/`.
+
+![Step 2: "do you have 8325?" - the assistant opened the 8325 (live AI reply in the panel)](website_live/screens/02.png)
+
+![Step 4: Arabic page - "أرني حاويات ألمنيوم" - the product opened, the reply in Arabic](website_live/screens/04.png)
+
+### 16.4 Found and fixed during the test
+
+| # | Found (round) | Fix (commit) |
+|---|---|---|
+| 1 | Asked about certificates with an empty knowledge base, the model named ISO 9001 / 14001, BRC, HACCP, CE and a production capacity (round 1) | `ClaimsGuardMiddleware`: such a claim stands only when a tool result of the turn has it; one rewrite, else the sentences go and "our team will confirm" (`7a3ed4d`) |
+| 2 | An Arabic visitor got English after an English start (round 1) | `LanguageGuardMiddleware`: the reply's script must match; one rewrite, else flagged (`7a3ed4d`) |
+| 3 | Markdown (bold, numbered lists) arrived as raw stars on the site (round 1) | website replies are plain text (`7a3ed4d`) |
+| 4 | Asked quantity, country and contact in every reply; showed internal ids ("ac-83120"); repeated what a tool "came back" with (round 1) | prompt rules: at most once every three replies, one question at a time, name and reference, never tools (`7a3ed4d`) |
+| 5 | "8325 is not in our system" while 8325 was on the screen: since D61 CRM codes are generated, the requirement's code "8325" was refused (round 2) | `patch_requirement` resolves the website id or the buyer's reference to its single ERP item, else records the website product (`49b1358`) |
+| 6 | The claims guard cut a reply repeating the buyer's own "20,000 pieces a month" (round 3) | a capacity claim needs a production word; the visitor's words count as facts (`481dbac`) |
+
+### 16.5 Whole-app test and the suites
+
+* `tests/integration/test_whole_app_flow.py` (new): launch with the real CLI on empty databases, the content
+  reads, a visitor's turns (JSON and SSE, instant and agent actions), consent, enquiry desk, CRM records, the
+  variants. Passes on Linux.
+* Full suite on Linux (the app image, final code): **1109 passed, 4 skipped, 0 failed** (`results/pytest_20nov_linux.txt`).
+  Each full run tonight had one setup error on a different DB test (a connection `TimeoutError` while the live
+  stack shares Docker with the test database); each passes when re-run (e.g. `test_price_list_db.py` 14 / 14).
+* Navigation eval on the real site imported into the CMS (`tests/integration/test_site_nav_eval.py`): 65 cases,
+  0 wrong moves, 0 missed.
+
+### 16.6 Not covered, and what the website still needs
+
+* **Voice** was not run live (no LiveKit server or speech keys on this PC): built and unit-tested (WP-C5);
+  manual script S28 in TESTER_HELPER; OPEN_QUESTIONS #94.
+* **Claude** was not the model (no key yet); the guards hold whatever the model; OPEN_QUESTIONS #95.
+* **The website** (commit `0e160eb`): no text box, actions ignored, no context, JSON instead of streaming,
+  `mailto:` enquiry desk, no contact card or events, static content; when the assistant opens a product the
+  previous search stays (`?q=30 cm`), so the grid behind it reads "No match" (screenshot 02). The fixes are FRONTEND_GUIDE steps 1–8
+  and the adapter patch (`docs/handoff/WEBSITE_API.md` §5).
+* Product specifications ("450 ml") are still prompt-only; the knowledge base has no approved certificates or
+  capacities yet (OPEN_QUESTIONS #87, #88).
+
 ## Appendix A: Test harness (all in `live-test/`, nothing in platform source)
 
 | File | Purpose |
@@ -636,6 +740,8 @@ Each fix has a test that fails without it, and the full suite was run on it.
 | `scripts/email_quote_check.py` | Round 2: one real quote email to Gmail, read back and checked (subject, greeting, PDF "To" block) |
 | `scripts/gemini_standby_check.py` | Claude forced down (proxy `fail` mode); the platform's Gemini standby must answer |
 | `scripts/postman_run.py` | Round 2: the tester's Postman collection with newman (tokens from real MFA sign-ins; summary only in `results/postman_run.json`) |
+| `scripts/website_live_api.py` | Round 3: the Website API v2 with the real AI as a visitor (content reads, streamed turns with timings, nudges, contact card, enquiry desk, the CRM record) |
+| `scripts/website_live_browser.mjs` | Round 3: Arifa's real website in Chromium (playwright-core outside the repo), six visitor turns, screenshots |
 | `results/*` | Raw JSON, logs, reviews, sample quote PDFs |
 
 ## Appendix B: Data touched outside the test stack

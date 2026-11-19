@@ -1,0 +1,15 @@
+[166/4385 ms] 'Hi, show me kitchen foil' -> ['show_family:foil', 'show_product:foil-30']
+[13/736 ms] 'do you have 8325?' -> ['show_product:ac-8325']
+[None/9924 ms] 'I need containers with lids for biryani takeaway, which one ' -> []
+[58/4427 ms] 'What sizes and packing does the 8325 come in, is it in stock' -> ['show_product:ac-8325']
+[55/1505 ms] 'How much is the 8325 per carton?' -> ['show_product:ac-8325']
+[56/3889 ms] 'where are your certificates?' -> ['navigate:quality']
+[51/1024 ms] 'أرني حاويات ألمنيوم' -> ['show_family:containers']
+[None/4904 ms] 'We need about 20,000 pieces a month for our restaurants in D' -> []
+{
+ "deal": "D-2026-03346 | web_chat | NEW | owner=Live Sales Two",
+ "consent": "whatsapp | granted | web_chat | Yes, send my quotation and follow-ups on WhatsApp",
+ "enquiry_note": "Website enquiry (Contact page)\nProducts: Aluminium Container & Lid (8325); Aluminium Container & Lid (8342)\nFamilies: Aluminium Containers\nQuantity: 20,000 a month\nHow often: monthly\nDelivery: Dubai, UAE\nTrade: Restaurant\nReply by: WhatsApp\nMessage: Weekly deliveries please",
+ "chat_lines_on_timeline": "16"
+}
+price in a reply: none

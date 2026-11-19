@@ -1,0 +1,175 @@
+{
+  "site": "http://localhost:3100",
+  "when": "2026-11-19T20:14:16.128Z",
+  "passed": 6,
+  "of": 6,
+  "consoleErrors": [],
+  "results": [
+    {
+      "step": 1,
+      "start": "/",
+      "said": "Hi, show me kitchen foil",
+      "from": "/",
+      "url_after": "/products?q=30+cm&p=foil-30",
+      "api": {
+        "status": 200,
+        "reply": "Hello! I can help you with kitchen foil. I'm showing you our Aluminium Foil, reference 30 cm, on the website. Is this what you are looking for?",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "show_family",
+            "layer": "instant",
+            "family": "foil"
+          },
+          {
+            "type": "show_product",
+            "layer": "agent",
+            "product_id": "foil-30"
+          }
+        ]
+      },
+      "ms_api": 5735,
+      "expected": "/\\/products\\?.*family=foil|\\/products\\/foil/",
+      "moved": "product shown in the page",
+      "ms_until_moved": 50798,
+      "passed": true,
+      "chat_log_new": [
+        "This is the 30 cm, our aluminium foil. Would you like a quote for it?"
+      ],
+      "screenshot": "screens\\01.png"
+    },
+    {
+      "step": 2,
+      "start": null,
+      "said": "do you have 8325?",
+      "from": "/products?q=30+cm&p=foil-30",
+      "url_after": "/products?q=30+cm&family=containers&p=ac-8325",
+      "api": {
+        "status": 200,
+        "reply": "Yes, we have the AC‑8325 container in stock. Could you let me know how many pieces you’d need?",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "show_product",
+            "layer": "instant",
+            "product_id": "ac-8325"
+          }
+        ]
+      },
+      "ms_api": 32083,
+      "expected": "/8325/",
+      "moved": "url /products?q=30+cm&family=containers&p=ac-8325",
+      "ms_until_moved": 46136,
+      "passed": true,
+      "chat_log_new": [
+        "Yes, we have the AC‑8325 container in stock. Could you let me know how many pieces you’d need?",
+        "This is the 8325, our aluminium container and lid, packed 1000 to a carton. Would you like a quote for it?"
+      ],
+      "screenshot": "screens\\02.png"
+    },
+    {
+      "step": 3,
+      "start": null,
+      "said": "where are your certificates?",
+      "from": "/products?q=30+cm&family=containers&p=ac-8325",
+      "url_after": "/quality#documents",
+      "api": {
+        "status": 200,
+        "reply": "Our team will confirm the exact certificates and can send you the official documents. Let me know if you’d like me to arrange that for you.",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "navigate",
+            "layer": "instant",
+            "page": "quality",
+            "section": "documents"
+          }
+        ]
+      },
+      "ms_api": 10453,
+      "expected": "/\\/quality/",
+      "moved": "url /quality#documents",
+      "ms_until_moved": 19723,
+      "passed": true,
+      "chat_log_new": [],
+      "screenshot": "screens\\03.png"
+    },
+    {
+      "step": 4,
+      "start": "/ar",
+      "said": "أرني حاويات ألمنيوم",
+      "from": "/ar",
+      "url_after": "/ar/products?q=8325&p=ac-8325",
+      "api": {
+        "status": 200,
+        "reply": "هذا هو الحاوية القابلة لإعادة الاستخدام من الألمنيوم، مرجع 8325. هل تحتاج إلى عدد معين؟",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "show_family",
+            "layer": "instant",
+            "family": "containers"
+          },
+          {
+            "type": "show_product",
+            "layer": "agent",
+            "product_id": "ac-8325"
+          }
+        ]
+      },
+      "ms_api": 2094,
+      "expected": "/\\/ar\\/products.*family=containers/",
+      "moved": "product shown in the page",
+      "ms_until_moved": 47158,
+      "passed": true,
+      "chat_log_new": [
+        "هذا هو المنتج 8325، حاوية ألمنيوم مع غطاء، معبّأ 1000 قطعة في الكرتونة. هل تريد عرض سعر له؟"
+      ],
+      "screenshot": "screens\\04.png"
+    },
+    {
+      "step": 5,
+      "start": "/products",
+      "said": "I need containers with lids for biryani takeaway, which one fits 1 kg?",
+      "from": "/products",
+      "url_after": "/products",
+      "api": {
+        "status": 200,
+        "reply": "Our approved content doesn’t specify the capacity of the 8325 container, so I can’t confirm from here whether it fits exactly 1 kg of biryani. I can pass your request to our team so they can check the capacity and send you the exact details. Would you like that?",
+        "handed_over": false,
+        "actions": []
+      },
+      "ms_api": 3096,
+      "expected": null,
+      "moved": null,
+      "ms_until_moved": null,
+      "passed": true,
+      "chat_log_new": [
+        "Our approved content doesn’t specify the capacity of the 8325 container, so I can’t confirm from here whether it fits exactly 1 kg of biryani. I can pass your request to our team so they can check the capacity and send you the exact details. Would you like that?"
+      ],
+      "screenshot": "screens\\05.png"
+    },
+    {
+      "step": 6,
+      "start": null,
+      "said": "We need about 20,000 pieces a month for our restaurants in Dubai. Please prepare a quotation.",
+      "from": "/products",
+      "url_after": "/products",
+      "api": {
+        "status": 200,
+        "reply": "I’ll pass this to our sales team so they can check the 1 kg capacity and prepare a quotation for you. To help them, could you please share your name and either a phone number or an email address?",
+        "handed_over": false,
+        "actions": []
+      },
+      "ms_api": 11696,
+      "expected": null,
+      "moved": null,
+      "ms_until_moved": null,
+      "passed": true,
+      "chat_log_new": [
+        "I’ll pass this to our sales team so they can check the 1 kg capacity and prepare a quotation for you. To help them, could you please share your name and either a phone number or an email address?"
+      ],
+      "screenshot": "screens\\06.png"
+    }
+  ]
+}

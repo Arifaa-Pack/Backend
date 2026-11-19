@@ -1,0 +1,4 @@
+E           asyncio.exceptions.CancelledError
+E                   TimeoutError
+ERROR packages/kx-core-crm/tests/test_price_list_db.py::test_scenario_3_insisting_below_the_minimum_pauses_the_ai
+1109 passed, 4 skipped, 1 error in 296.44s (0:04:56)

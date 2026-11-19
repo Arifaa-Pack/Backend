@@ -1,0 +1,7 @@
+1. Hi, show me kitchen foil -> api 200 5735 ms, actions [{"type":"show_family","layer":"instant","family":"foil"},{"type":"show_product","layer":"agent","product_id":"foil-30"}], moved: product shown in the page
+2. do you have 8325? -> api 200 32083 ms, actions [{"type":"show_product","layer":"instant","product_id":"ac-8325"}], moved: url /products?q=30+cm&family=containers&p=ac-8325
+3. where are your certificates? -> api 200 10453 ms, actions [{"type":"navigate","layer":"instant","page":"quality","section":"documents"}], moved: url /quality#documents
+4. أرني حاويات ألمنيوم -> api 200 2094 ms, actions [{"type":"show_family","layer":"instant","family":"containers"},{"type":"show_product","layer":"agent","product_id":"ac-8325"}], moved: product shown in the page
+5. I need containers with lids for biryani takeaway,  -> api 200 3096 ms, actions [], moved: null
+6. We need about 20,000 pieces a month for our restau -> api 200 11696 ms, actions [], moved: null
+passed 6/6; console errors: 0

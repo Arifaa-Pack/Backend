@@ -1,0 +1,244 @@
+{
+  "base": "http://localhost:38000",
+  "started": "2026-11-20 01:17:52",
+  "content": {
+    "/v1/content/site": {
+      "status": 200,
+      "ms": 178,
+      "bytes": 815,
+      "etag": "W/\"site:1:en:0\"",
+      "cors": "http://localhost:3100",
+      "price_found": false
+    },
+    "/v1/content/manifest": {
+      "status": 200,
+      "ms": 17,
+      "bytes": 28042,
+      "etag": "W/\"manifest:128\"",
+      "cors": "http://localhost:3100",
+      "price_found": false
+    },
+    "/v1/content/products/ac-8325": {
+      "status": 200,
+      "ms": 11,
+      "bytes": 2864,
+      "etag": "W/\"product:ac-8325:128:en:0\"",
+      "cors": "http://localhost:3100",
+      "price_found": false
+    },
+    "/v1/content/products?family=foil": {
+      "status": 200,
+      "ms": 10,
+      "bytes": 1762,
+      "etag": "W/\"products:128:en:foil:None:None:0\"",
+      "cors": "http://localhost:3100",
+      "price_found": false
+    },
+    "/v1/content/sitemap": {
+      "status": 200,
+      "ms": 12,
+      "bytes": 1724,
+      "etag": "W/\"sitemap:128\"",
+      "cors": "http://localhost:3100",
+      "price_found": false
+    },
+    "/v1/content/redirects": {
+      "status": 200,
+      "ms": 9,
+      "bytes": 6665,
+      "etag": "W/\"redirects:128\"",
+      "cors": "http://localhost:3100",
+      "price_found": false
+    },
+    "/v1/content/manifest (If-None-Match)": {
+      "status": 304
+    }
+  },
+  "session": {
+    "language": "en",
+    "voice_available": false
+  },
+  "turns": [
+    {
+      "text": "Hi, show me kitchen foil",
+      "status": 200,
+      "ms_first_action": 154,
+      "ms_first_words": 4202,
+      "ms_done": 4202,
+      "actions": [
+        {
+          "layer": "instant",
+          "type": "show_family",
+          "family": "foil",
+          "at_ms": 154
+        },
+        {
+          "layer": "agent",
+          "type": "show_product",
+          "product_id": "foil-30",
+          "at_ms": 1649
+        }
+      ],
+      "reply": "Hello! I'm Arifa Pack’s AI assistant. I’ve opened our standard 30 cm kitchen foil for you. Could you let me know the quantity you’re looking for, the destination country, and the best way to reach you (name and phone or email)? That will help us prepare the right quotation for you.",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "do you have 8325?",
+      "status": 200,
+      "ms_first_action": 15,
+      "ms_first_words": 804,
+      "ms_done": 804,
+      "actions": [
+        {
+          "layer": "instant",
+          "type": "show_product",
+          "product_id": "ac-8325",
+          "at_ms": 15
+        }
+      ],
+      "reply": "Yes — reference **8325** is in our current catalogue. The standard versions you asked about came back as “made to order,” so if you can confirm:\n\n1. Quantity you need  \n2. Destination country  \n3. Your name and a phone number or email\n\n… I’ll pass everything on and set up your quotation.",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "I need containers with lids for biryani takeaway, which one fits 1 kg?",
+      "status": 200,
+      "ms_first_action": 1318,
+      "ms_first_words": 6552,
+      "ms_done": 6552,
+      "actions": [
+        {
+          "layer": "agent",
+          "type": "show_product",
+          "product_id": "ac-83120",
+          "at_ms": 1318
+        }
+      ],
+      "reply": "We have several containers that might fit 1 kg of biryani. I've highlighted product **ac-83120** on your screen, which is a popular choice for takeaway. To help you get the best option and a precise quote, could you please tell me:\n\n1. The quantity you need? 2. The destination country for delivery? 3. Your name and the best way to contact you (phone number or email)?",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "What sizes and packing does the 8325 come in, is it in stock, and what is your monthly production capacity?",
+      "status": 200,
+      "ms_first_action": 55,
+      "ms_first_words": 7287,
+      "ms_done": 7288,
+      "actions": [
+        {
+          "layer": "instant",
+          "type": "show_product",
+          "product_id": "ac-8325",
+          "at_ms": 55
+        }
+      ],
+      "reply": "Here’s what we have for **product 8325**:\n\n- **Aluminium container** – packed as 1 × 1 000 pcs, currently **in stock**. - **Lid** – packed as 1 × 1 000 pcs, also **in stock**. These are the standard packings we offer for the 8325 line. As for our **monthly production capacity** for this product, the team will confirm the exact figure for you. To move forward with a quotation, could you let me know:\n\n1. The quantity you need (containers, lids, or both). 2. The country where the order will be delivered. 3. Your name and a phone number or email address so the sales specialist can get back to you. Thanks!",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "How much is the 8325 per carton?",
+      "status": 200,
+      "ms_first_action": 57,
+      "ms_first_words": 2560,
+      "ms_done": 2560,
+      "actions": [
+        {
+          "layer": "instant",
+          "type": "show_product",
+          "product_id": "ac-8325",
+          "at_ms": 57
+        }
+      ],
+      "reply": "I’m sorry, but I don’t have the carton prices to hand—our sales team calculates the exact quotation for you once we know your volume and delivery destination. Could you let me know how many cartons you need, the delivery country, and your name along with a phone number or email? I’ll make sure a salesperson gets the pricing and full details over to you right away.",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "where are your certificates?",
+      "status": 200,
+      "ms_first_action": 55,
+      "ms_first_words": 4743,
+      "ms_done": 4743,
+      "actions": [
+        {
+          "layer": "instant",
+          "type": "navigate",
+          "page": "quality",
+          "section": "documents",
+          "at_ms": 55
+        }
+      ],
+      "reply": "I don't have a fully approved list of our certificates to share in chat, but our sales team will be able to send you the complete, up-to-date documentation, including any ISO or food-safety certifications, once I have your details. Could you share:\n\n1. The quantity you're estimating for the 8325? 2. Your delivery destination country? 3. Your name and a phone number or email where I can send the catalogue, licence and certificate documents?",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "أرني حاويات ألمنيوم",
+      "status": 200,
+      "ms_first_action": 52,
+      "ms_first_words": 3150,
+      "ms_done": 3150,
+      "actions": [
+        {
+          "layer": "instant",
+          "type": "show_family",
+          "family": "containers",
+          "at_ms": 52
+        }
+      ],
+      "reply": "لقد عرضت لك عائلة \"الحاويات\" على شاشتك. هل تبحث عن حاويات ألمنيوم بأحجام أو استخدامات محددة؟",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "We need about 20,000 pieces a month for our restaurants in Dubai. Can you prepare a quotation?",
+      "status": 200,
+      "ms_first_action": null,
+      "ms_first_words": 4202,
+      "ms_done": 4203,
+      "actions": [],
+      "reply": "That's great, thank you for providing those details! I've noted that you need approximately 20,000 pieces of the 8325 containers per month for your restaurants in Dubai. To finalize your quotation, I just need your name and the best phone number or email to reach you. Then I can pass all the information to our sales team.",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    }
+  ],
+  "nudges": [
+    {
+      "reply": "Would you like the sizes, packing and availability of the Aluminium Container & Lid? Just ask.",
+      "actions": []
+    },
+    {
+      "reply": null,
+      "actions": []
+    }
+  ],
+  "contact_card": {
+    "status": 200,
+    "body": {
+      "ok": true
+    }
+  },
+  "enquiry": {
+    "status": 201,
+    "body": {
+      "ok": true,
+      "reference": "W-34558D"
+    }
+  },
+  "crm": {
+    "deal": "D-2026-03343 | web_chat | NEW | owner=Ravi",
+    "consent": "whatsapp | granted | web_chat | Yes, send my quotation and follow-ups on WhatsApp",
+    "enquiry_note": "Website enquiry (Contact page)\nProducts: Aluminium Container & Lid (8325); Aluminium Container & Lid (8342)\nFamilies: Aluminium Containers\nQuantity: 20,000 a month\nHow often: monthly\nDelivery: Dubai, UAE\nTrade: Restaurant\nReply by: WhatsApp\nMessage: Weekly deliveries please",
+    "chat_lines_on_timeline": "17"
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "site": "http://localhost:3100",
+  "when": "2026-11-19T20:08:20.009Z",
+  "passed": 6,
+  "of": 6,
+  "consoleErrors": [],
+  "results": [
+    {
+      "step": 1,
+      "start": "/",
+      "said": "Hi, show me kitchen foil",
+      "from": "/",
+      "url_after": "/products?q=30+cm&p=foil-30",
+      "api": {
+        "status": 200,
+        "reply": "We have Aluminium Foil in 30 cm and 45 cm. There are also Blue Line versions of both. I've shown the 30 cm Aluminium Foil on the website. Is there a particular size you are looking for?",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "show_family",
+            "layer": "instant",
+            "family": "foil"
+          },
+          {
+            "type": "show_product",
+            "layer": "agent",
+            "product_id": "foil-30"
+          }
+        ]
+      },
+      "ms_api": 5727,
+      "expected": "/\\/products\\?.*family=foil|\\/products\\/foil/",
+      "moved": "product shown in the page",
+      "ms_until_moved": 50795,
+      "passed": true,
+      "chat_log_new": [
+        "This is the 30 cm, our aluminium foil. Would you like a quote for it?"
+      ],
+      "screenshot": "screens\\01.png"
+    },
+    {
+      "step": 2,
+      "start": null,
+      "said": "do you have 8325?",
+      "from": "/products?q=30+cm&p=foil-30",
+      "url_after": "/products?q=30+cm&family=containers&p=ac-8325",
+      "api": {
+        "status": 200,
+        "reply": "Yes, we have the AC‑8325 container. It’s a sturdy food‑grade container suitable for kitchen use.\n\nCould you let me know the quantity you’re interested in?",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "show_product",
+            "layer": "instant",
+            "product_id": "ac-8325"
+          }
+        ]
+      },
+      "ms_api": 1560,
+      "expected": "/8325/",
+      "moved": "url /products?q=30+cm&family=containers&p=ac-8325",
+      "ms_until_moved": 19181,
+      "passed": true,
+      "chat_log_new": [
+        "Yes, we have the AC‑8325 container. It’s a sturdy food‑grade container suitable for kitchen use.\n\nCould you let me know the quantity you’re interested in?",
+        "This is the 8325, our aluminium container and lid, packed 1000 to a carton. Would you like a quote for it?"
+      ],
+      "screenshot": "screens\\02.png"
+    },
+    {
+      "step": 3,
+      "start": null,
+      "said": "where are your certificates?",
+      "from": "/products?q=30+cm&family=containers&p=ac-8325",
+      "url_after": "/quality#documents",
+      "api": {
+        "status": 200,
+        "reply": "Our team will verify the current certificates and can forward the relevant documents to you. Could you share the best email address (or WhatsApp number) for us to send them?",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "navigate",
+            "layer": "instant",
+            "page": "quality",
+            "section": "documents"
+          }
+        ]
+      },
+      "ms_api": 13761,
+      "expected": "/\\/quality/",
+      "moved": "url /quality#documents",
+      "ms_until_moved": 24978,
+      "passed": true,
+      "chat_log_new": [],
+      "screenshot": "screens\\03.png"
+    },
+    {
+      "step": 4,
+      "start": "/ar",
+      "said": "أرني حاويات ألمنيوم",
+      "from": "/ar",
+      "url_after": "/ar/products?q=83120&p=ac-83120",
+      "api": {
+        "status": 200,
+        "reply": "تم عرض حاوية الألمنيوم AC‑83120 على الصفحة. هل تود معرفة الكمية التي تحتاجها؟",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "show_family",
+            "layer": "instant",
+            "family": "containers"
+          },
+          {
+            "type": "show_product",
+            "layer": "agent",
+            "product_id": "ac-83120"
+          }
+        ]
+      },
+      "ms_api": 3398,
+      "expected": "/\\/ar\\/products.*family=containers/",
+      "moved": "product shown in the page",
+      "ms_until_moved": 48469,
+      "passed": true,
+      "chat_log_new": [
+        "هذا هو المنتج 83120، حاوية ألمنيوم، معبّأ 400 قطعة في الكرتونة. هل تريد عرض سعر له؟"
+      ],
+      "screenshot": "screens\\04.png"
+    },
+    {
+      "step": 5,
+      "start": "/products",
+      "said": "I need containers with lids for biryani takeaway, which one fits 1 kg?",
+      "from": "/products",
+      "url_after": "/products",
+      "api": {
+        "status": 200,
+        "reply": "To be safe, could you share the approximate weight (or volume in liters) of biryani for one container? With that, I can point you to the right size.",
+        "handed_over": false,
+        "actions": []
+      },
+      "ms_api": 5233,
+      "expected": null,
+      "moved": null,
+      "ms_until_moved": null,
+      "passed": true,
+      "chat_log_new": [
+        "To be safe, could you share the approximate weight (or volume in liters) of biryani for one container? With that, I can point you to the right size."
+      ],
+      "screenshot": "screens\\05.png"
+    },
+    {
+      "step": 6,
+      "start": null,
+      "said": "We need about 20,000 pieces a month for our restaurants in Dubai. Please prepare a quotation.",
+      "from": "/products",
+      "url_after": "/products",
+      "api": {
+        "status": 200,
+        "reply": "Could you please share your name and a phone number or email so we can send you a detailed quotation? You can tick WhatsApp or email on the contact card.",
+        "handed_over": false,
+        "actions": [
+          {
+            "type": "ask_contact",
+            "layer": "agent"
+          }
+        ]
+      },
+      "ms_api": 2868,
+      "expected": null,
+      "moved": null,
+      "ms_until_moved": null,
+      "passed": true,
+      "chat_log_new": [
+        "Could you please share your name and a phone number or email so we can send you a detailed quotation? You can tick WhatsApp or email on the contact card."
+      ],
+      "screenshot": "screens\\06.png"
+    }
+  ]
+}

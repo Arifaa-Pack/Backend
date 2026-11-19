@@ -1,0 +1,237 @@
+{
+  "base": "http://localhost:38000",
+  "started": "2026-11-20 01:30:45",
+  "content": {
+    "/v1/content/site": {
+      "status": 200,
+      "ms": 146,
+      "bytes": 815,
+      "etag": "W/\"site:1:en:0\"",
+      "cors": "http://localhost:3100",
+      "price_found": false
+    },
+    "/v1/content/manifest": {
+      "status": 200,
+      "ms": 15,
+      "bytes": 28042,
+      "etag": "W/\"manifest:128\"",
+      "cors": "http://localhost:3100",
+      "price_found": false
+    },
+    "/v1/content/products/ac-8325": {
+      "status": 200,
+      "ms": 9,
+      "bytes": 2864,
+      "etag": "W/\"product:ac-8325:128:en:0\"",
+      "cors": "http://localhost:3100",
+      "price_found": false
+    },
+    "/v1/content/products?family=foil": {
+      "status": 200,
+      "ms": 8,
+      "bytes": 1762,
+      "etag": "W/\"products:128:en:foil:None:None:0\"",
+      "cors": "http://localhost:3100",
+      "price_found": false
+    },
+    "/v1/content/sitemap": {
+      "status": 200,
+      "ms": 9,
+      "bytes": 1724,
+      "etag": "W/\"sitemap:128\"",
+      "cors": "http://localhost:3100",
+      "price_found": false
+    },
+    "/v1/content/redirects": {
+      "status": 200,
+      "ms": 7,
+      "bytes": 6665,
+      "etag": "W/\"redirects:128\"",
+      "cors": "http://localhost:3100",
+      "price_found": false
+    },
+    "/v1/content/manifest (If-None-Match)": {
+      "status": 304
+    }
+  },
+  "session": {
+    "language": "en",
+    "voice_available": false
+  },
+  "turns": [
+    {
+      "text": "Hi, show me kitchen foil",
+      "status": 200,
+      "ms_first_action": 135,
+      "ms_first_words": 3228,
+      "ms_done": 3229,
+      "actions": [
+        {
+          "layer": "instant",
+          "type": "show_family",
+          "family": "foil",
+          "at_ms": 135
+        },
+        {
+          "layer": "agent",
+          "type": "show_product",
+          "product_id": "foil-30",
+          "at_ms": 2172
+        }
+      ],
+      "reply": "Here's our kitchen foil range. We have standard aluminium foil and a Blue Line version, in 30 cm and 45 cm widths. I've opened the standard 30 cm foil for you. Which width are you after, 30 cm or 45 cm, and do you need the Blue Line?",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "do you have 8325?",
+      "status": 200,
+      "ms_first_action": 13,
+      "ms_first_words": 4629,
+      "ms_done": 4629,
+      "actions": [
+        {
+          "layer": "instant",
+          "type": "show_product",
+          "product_id": "ac-8325",
+          "at_ms": 13
+        }
+      ],
+      "reply": "I don't seem to have product 8325 in the system. Could you describe it for me, or tell me its product family?",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "I need containers with lids for biryani takeaway, which one fits 1 kg?",
+      "status": 200,
+      "ms_first_action": null,
+      "ms_first_words": 4538,
+      "ms_done": 4539,
+      "actions": [],
+      "reply": "We have several aluminium containers that might be suitable for 1 kg biryani takeaway. Here are a few options:\n\nAluminium Container 73365\nAluminium Container 831120\nAluminium Container 83120\nAluminium Container 83160\nAluminium Container 83185 N\nAluminium Container 83185 R\nAluminium Container 83190\nAluminium Container 83241\n\nI've shown you a few examples of our aluminium containers for biryani. Which one would you like to know more about? I can open the page for you.",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "What sizes and packing does the 8325 come in, is it in stock, and what is your monthly production capacity?",
+      "status": 200,
+      "ms_first_action": 56,
+      "ms_first_words": 8634,
+      "ms_done": 8635,
+      "actions": [
+        {
+          "layer": "instant",
+          "type": "show_product",
+          "product_id": "ac-8325",
+          "at_ms": 56
+        }
+      ],
+      "reply": "The 8325 container comes as a set of 1,000 aluminium containers and 1,000 lids, packed together. Both the containers and the lids are currently in stock. Regarding the specific sizes and our monthly production capacity for this item, our team will confirm those details for you.",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "How much is the 8325 per carton?",
+      "status": 200,
+      "ms_first_action": 54,
+      "ms_first_words": 1986,
+      "ms_done": 1986,
+      "actions": [
+        {
+          "layer": "instant",
+          "type": "show_product",
+          "product_id": "ac-8325",
+          "at_ms": 54
+        }
+      ],
+      "reply": "I am the company's AI assistant, and a salesperson reviews every quotation. I don't set or state prices directly, but our team can prepare a full quotation for you. To help us get that ready, could you let me know how many cartons of the 8325 container you are looking to order?",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "where are your certificates?",
+      "status": 200,
+      "ms_first_action": 61,
+      "ms_first_words": 1780,
+      "ms_done": 1780,
+      "actions": [
+        {
+          "layer": "instant",
+          "type": "navigate",
+          "page": "quality",
+          "section": "documents",
+          "at_ms": 61
+        }
+      ],
+      "reply": "I am the company's AI assistant, and a salesperson reviews every quotation. I don't manage certificates directly, but our team can provide all relevant quality and product certificates for you. To get those for you, could you let me know how many cartons of the 8325 container you are looking to order?",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "أرني حاويات ألمنيوم",
+      "status": 200,
+      "ms_first_action": 51,
+      "ms_first_words": 3337,
+      "ms_done": 3338,
+      "actions": [
+        {
+          "layer": "instant",
+          "type": "show_family",
+          "family": "containers",
+          "at_ms": 51
+        }
+      ],
+      "reply": "بالتأكيد، تفضل بالاطلاع على مجموعتنا من حاويات الألمنيوم. هل تبحث عن حاويات بحجم معين أو لاستخدام معين؟",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    },
+    {
+      "text": "We need about 20,000 pieces a month for our restaurants in Dubai. Can you prepare a quotation?",
+      "status": 200,
+      "ms_first_action": null,
+      "ms_first_words": 4623,
+      "ms_done": 4623,
+      "actions": [],
+      "reply": "I'm sorry, I still can't find product 8325 in our system to prepare a quotation for you. Earlier, I suggested several aluminium containers that might fit 1 kg biryani, such as Aluminium Container 73365 or Aluminium Container 831120. Would you like me to look into one of those, or perhaps you have another reference number for the container you are interested in?",
+      "handed_over": false,
+      "error": null,
+      "price_in_reply": false
+    }
+  ],
+  "nudges": [
+    {
+      "reply": "Would you like the sizes, packing and availability of the Aluminium Container & Lid? Just ask.",
+      "actions": []
+    },
+    {
+      "reply": null,
+      "actions": []
+    }
+  ],
+  "contact_card": {
+    "status": 200,
+    "body": {
+      "ok": true
+    }
+  },
+  "enquiry": {
+    "status": 201,
+    "body": {
+      "ok": true,
+      "reference": "W-24C210"
+    }
+  },
+  "crm": {
+    "deal": "D-2026-03345 | web_chat | NEW | owner=Live Sales One",
+    "consent": "whatsapp | granted | web_chat | Yes, send my quotation and follow-ups on WhatsApp",
+    "enquiry_note": "Website enquiry (Contact page)\nProducts: Aluminium Container & Lid (8325); Aluminium Container & Lid (8342)\nFamilies: Aluminium Containers\nQuantity: 20,000 a month\nHow often: monthly\nDelivery: Dubai, UAE\nTrade: Restaurant\nReply by: WhatsApp\nMessage: Weekly deliveries please",
+    "chat_lines_on_timeline": "17"
+  }
+}

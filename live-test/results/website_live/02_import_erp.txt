@@ -1,0 +1,9 @@
+rows: 18
+created: 18
+updated: 0
+sellable: 13
+not_sellable: 5
+linked_to_website: 0
+ambiguous_links: 0
+errors: []
+saved

@@ -1,7 +1,7 @@
 # Live test stack (18 Nov): the platform's real code from the current tree, real AI (Groq/Gemini through
 # llm_proxy.py), real email (Stalwart relaying through Hostinger for kairoxaitech.com), monitoring to the running
 # SigNoz (network kairox-platform_default) and Phoenix. Vendors without access yet (WhatsApp Meta, Telnyx, SES,
-# CMS, R2) point at fake_services.py.
+# R2) point at fake_services.py. The CMS is the platform's own package (kx.cms) since 19 Nov.
 #   docker compose -p kxlive -f live-test/compose/live.yml up -d
 # Separate project, ports and volumes: the developer's own containers are untouched.
 
@@ -66,9 +66,11 @@ x-env: &env
   KX_AUTO_TELNYX__CALLBACK_SECRET: live-telnyx-callback-secret
   KX_AUTO_PUBLIC_BASE_URL: http://api:8000
   KX_AUTO_COMPANY_NAME: Arifa Packing & Packaging LLC
-  KX_APP_CMS_URL: http://fakes:9000
-  KX_APP_CMS_API_KEY: live-cms-key
-  KX_APP_CMS_WEBHOOK_SECRET: live-cms-secret
+  # D54 / WP-C3 (20 Nov): the CMS is kx.cms (database pack_cms); the website (Arifa-Pack, next dev on :3100)
+  # calls /v1/public/* and /v1/content/* from the browser and is told to revalidate when content is published
+  KX_APP_CORS_PUBLIC_ORIGINS: '["http://localhost:3100"]'
+  KX_APP_WEBSITE_URL: http://host.docker.internal:3100
+  KX_APP_WEBSITE_REVALIDATE_SECRET: live-test-revalidate-secret
 
 x-app: &app
   image: kxlive/app:local
