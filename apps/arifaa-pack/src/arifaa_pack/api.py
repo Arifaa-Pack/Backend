@@ -19,7 +19,7 @@ from arifaa_pack.telemetry import beat_health, init_telemetry, instrument_api
 from kx.agents.website import build_router as website_router
 from kx.automation.admin.router import build_router as channels_admin_router
 from kx.automation.cms.service import build_router as cms_router
-from kx.automation.optout.unsubscribe import build_router as unsubscribe_router
+from kx.automation.optout.router import build_router as unsubscribe_router
 from kx.automation.webhooks.router import build_router as webhook_router
 from kx.core.errors import Unavailable, install_problem_handlers
 from kx.core.logging import configure_logging

@@ -14,11 +14,11 @@ from typing import Final, Literal
 from sqlalchemy import or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.automation import optout
 from kx.automation._shared.sending import _send_or_skip
 from kx.automation.alerts.service import ApprovalLadder, LadderTicket, notify_staff
 from kx.automation.followups.service import FollowUps  # noqa: F401  (old import path, ADR-0001)
 from kx.automation.models import SCHEMA, ChannelAccount, InboundMessage, Thread
+from kx.automation.optout import service as optout
 from kx.automation.outbound import TRANSIENT_REASONS
 from kx.automation.outbox import emit
 from kx.automation.ports import Clock, TaskScheduler, utc_now

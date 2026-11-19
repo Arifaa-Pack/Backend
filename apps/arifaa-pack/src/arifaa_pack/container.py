@@ -69,7 +69,7 @@ from kx.automation.followups.service import FollowUps
 from kx.automation.handlers import EventHandlers
 from kx.automation.jobs import AutomationRuntime, JobScheduler
 from kx.automation.media import S3MediaStore
-from kx.automation.optout.unsubscribe import UnsubscribeDeps, UnsubscribeLinks
+from kx.automation.optout.router import UnsubscribeDeps, UnsubscribeLinks
 from kx.automation.outbound import OutboundService
 from kx.automation.outbound.killswitch import KillSwitch
 from kx.automation.outbound.ratelimit import Bucket, TokenBucketLimiter
