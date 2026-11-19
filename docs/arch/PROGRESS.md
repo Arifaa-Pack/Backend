@@ -757,3 +757,18 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 23.61s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `scraping` @ `34e6b67`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-scraping`, COMPLETED
+
+## 2b.3 slice `admin` — TESTING (COMPLETED when tagged `arch-slice/automation-admin`)
+
+- **Moved:** `admin_api.py` → `admin/router.py`; alias shim at `admin_api.py` (old path checked: 36 of 36 names); import rewritten in `arifaa_pack/api.py`.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 433 files already formatted
+  - mypy: Success: no issues found in 271 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 21.67s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `cms` @ `3c0f7d2`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-cms`, COMPLETED
