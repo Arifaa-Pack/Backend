@@ -1105,6 +1105,30 @@ so the old import path keeps working; every name of the moved module is checked 
   - kx map json: kx map: identical after renames (path-only diff)
   - kx map --check: docs/FEATURE_MAP.md is current
   - OpenAPI diff: empty
-  - unit: ======================= 1 failed, 130 passed in 26.95s ========================
+  - unit: ======================= 1 failed, 130 passed in 26.95s ======================== (before the test path fix above; re-run after it: 131 passed, exit 0; the fix is in the same commit)
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `roles` @ `23489e6`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-roles`, COMPLETED
+
+## 2b.26 agents public surface `kx/agents/__init__.py` — TESTING
+
+- **Previous slice's full suite:** `runtime` @ `60b4c7d`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/agents-runtime`, COMPLETED.
+- **Done:** `kx/agents/__init__.py` names the 25 things the app uses (explicit `__all__`, lazy PEP 562
+  resolution, `TYPE_CHECKING` imports for mypy): the wiring (`retention`, `AgentHandlers`, `ReplyAddress`,
+  `AgentService`, `Tracer`, `open_checkpointer`), the models (`ModelRouter`, `ModelProvider`, the Anthropic and
+  Gemini providers, `Effort`, `tier_options`, `ModelTier`, `run_suite`), the knowledge base (`KbSource`,
+  `KnowledgeBase`, `KnowledgeIndexer`), voice (`VoiceRoute`, `VoiceRouter`, `voice_routes`,
+  `make_livekit_entrypoint`) and the website API (`LiveKitConfig`, `PublicScope`, `WebsiteDeps`,
+  `website_router`). The app (`adapters.py`, `api.py`, `cli.py`, `config.py`, `container.py`,
+  `migrations/__init__.py`, `texts_sync.py`, `voice_worker.py`) now imports agents only through it (20 imports
+  pointed at it; nothing left unexported; no `kx.agents.<module>` import left in the app). `import kx.agents`
+  loads no submodule and no LangGraph (checked).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 476 files already formatted
+  - mypy: Success: no issues found in 314 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 24.00s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry

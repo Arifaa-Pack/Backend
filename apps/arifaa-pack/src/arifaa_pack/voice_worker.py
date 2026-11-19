@@ -68,7 +68,7 @@ async def entry(ctx: Any) -> None:
     """One website voice call. Builds the container on the process's first call, then reuses it."""
     if "fn" not in _STATE:
         from arifaa_pack.container import build  # noqa: PLC0415 - heavy import, job process only
-        from kx.agents.voice.service import VoiceRouter, make_livekit_entrypoint  # noqa: PLC0415
+        from kx.agents import VoiceRouter, make_livekit_entrypoint  # noqa: PLC0415
 
         stack = AsyncExitStack()
         c = await stack.enter_async_context(build())

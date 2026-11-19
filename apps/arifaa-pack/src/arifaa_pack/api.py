@@ -16,7 +16,7 @@ from arifaa_pack.cors import SplitCors
 from arifaa_pack.errorlog import LogUnhandled
 from arifaa_pack.inputguard import RejectNul, SecurityHeaders
 from arifaa_pack.telemetry import beat_health, init_telemetry, instrument_api
-from kx.agents.website.router import build_router as website_router
+from kx.agents import website_router
 from kx.automation import admin_router as channels_admin_router
 from kx.automation import cms_router, unsubscribe_router, webhook_router
 from kx.core.errors import Unavailable, install_problem_handlers

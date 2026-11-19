@@ -43,21 +43,25 @@ from arifaa_pack.adapters import (
 from arifaa_pack.config import AppSettings, Company, app_settings, company
 from arifaa_pack.jobqueue import CeleryKicker
 from arifaa_pack.telemetry import heartbeat
-from kx.agents import retention as agents_retention
-from kx.agents.handlers import AgentHandlers
-from kx.agents.knowledge.service import KnowledgeBase, KnowledgeIndexer
-from kx.agents.llm.service import (
+from kx.agents import (
+    AgentHandlers,
+    AgentService,
     AnthropicApiProvider,
     GeminiApiProvider,
+    KnowledgeBase,
+    KnowledgeIndexer,
+    LiveKitConfig,
     ModelProvider,
     ModelRouter,
+    Tracer,
+    VoiceRoute,
+    VoiceRouter,
+    WebsiteDeps,
+    open_checkpointer,
     tier_options,
+    voice_routes,
 )
-from kx.agents.memory.service import open_checkpointer
-from kx.agents.runtime.service import AgentService
-from kx.agents.tracing.service import Tracer
-from kx.agents.voice.service import VoiceRoute, VoiceRouter, voice_routes
-from kx.agents.website.router import LiveKitConfig, WebsiteDeps
+from kx.agents import retention as agents_retention
 from kx.automation import (
     ApprovalLadder,
     AutomationRuntime,

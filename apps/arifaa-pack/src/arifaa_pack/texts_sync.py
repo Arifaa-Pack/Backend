@@ -16,8 +16,7 @@ from typing import Final
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from kx.agents.llm.service import ModelRouter
-from kx.agents.roles.registry import ModelTier
+from kx.agents import ModelRouter, ModelTier
 from kx.core.db import Databases
 from kx.core.event_payloads import MessageTextChanged
 from kx.core.events import Event
