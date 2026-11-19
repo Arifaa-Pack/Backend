@@ -13,7 +13,7 @@ import httpx
 from sqlalchemy import text
 
 from kx.agents.handlers import ReplyAddress
-from kx.agents.knowledge import KbSource
+from kx.agents.knowledge.service import KbSource
 from kx.agents.voice import VoiceRoute
 from kx.agents.website import PublicScope
 from kx.automation import Bucket

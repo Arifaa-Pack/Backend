@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, Literal
 
-from kx.agents.knowledge import KnowledgeSearch
+from kx.agents.knowledge.service import KnowledgeSearch
 from kx.agents.registry import AgentSpec, PromptStore
 from kx.core.contracts import AllowedPrice, Channel, CrmGateway, DealContext
 

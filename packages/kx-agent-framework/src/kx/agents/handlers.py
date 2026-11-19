@@ -18,7 +18,7 @@ from typing import Any, Final, Literal, Protocol, runtime_checkable
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from sqlalchemy import text
 
-from kx.agents.knowledge import KnowledgeIndexer
+from kx.agents.knowledge.service import KnowledgeIndexer
 from kx.agents.language import reply_language
 from kx.agents.memory.service import TurnStore
 from kx.agents.orm import SCHEMA
