@@ -9,17 +9,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.core.auth import Principal, Role, require_role
-from kx.crm.api.context import MANAGERS, STAFF, ApiContext
+from kx.crm.api.context import ApiContext, Manager, MdOnly, Staff
 from kx.crm.api.deals import deal_detail
 from kx.crm.api.schemas import DealDetail, ManualQuoteIn, QuoteVersionOut, ReassignIn
 from kx.crm.services import access, assignment, quotes
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.journal import Actor
-
-Manager = Annotated[Principal, Depends(require_role(*MANAGERS))]
-MdOnly = Annotated[Principal, Depends(require_role(Role.MD))]
-Staff = Annotated[Principal, Depends(require_role(*STAFF))]
 
 
 def router(ctx: ApiContext) -> APIRouter:

@@ -10,17 +10,15 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.core.auth import Principal, Role, require_role
+from kx.core.auth import Role
 from kx.core.errors import NotFound
-from kx.crm.api.context import STAFF, ApiContext
+from kx.crm.api.context import ApiContext, Staff
 from kx.crm.api.deals import visible_to
 from kx.crm.api.schemas import ChangeRequestOut, DeclineIn, QuoteEditsIn, QuoteVersionOut, ResolveIn
 from kx.crm.models import ChangeRequest, Deal
 from kx.crm.services import access, change_requests, quotes
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.journal import Actor
-
-Staff = Annotated[Principal, Depends(require_role(*STAFF))]
 
 
 def router(ctx: ApiContext) -> APIRouter:

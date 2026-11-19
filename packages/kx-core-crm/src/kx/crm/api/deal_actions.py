@@ -13,9 +13,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.core.auth import Principal, Role, require_human_mfa, require_role
+from kx.core.auth import Principal, Role, require_role
 from kx.core.errors import Forbidden
-from kx.crm.api.context import MANAGERS, STAFF, ApiContext
+from kx.crm.api.context import MANAGERS, ApiContext, HumanManager, HumanStaff, Staff
 from kx.crm.api.deals import deal_detail
 from kx.crm.api.schemas import (
     CallIn,
@@ -35,9 +35,6 @@ from kx.crm.services import access, consent, handover, orders
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.journal import Actor
 
-Staff = Annotated[Principal, Depends(require_role(*STAFF))]
-HumanManager = Annotated[Principal, Depends(require_human_mfa(Role.MANAGER))]
-HumanStaff = Annotated[Principal, Depends(require_human_mfa(Role.SALES, Role.MANAGER))]
 OrderStaff = Annotated[Principal, Depends(require_role(Role.SALES, *MANAGERS))]  # not Admin / IT (§3)
 
 

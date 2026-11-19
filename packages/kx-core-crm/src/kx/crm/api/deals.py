@@ -13,9 +13,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import Select, exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.core.auth import Principal, Role, require_human_mfa, require_role
+from kx.core.auth import Principal, Role
 from kx.core.contracts import DealStage
-from kx.crm.api.context import MANAGERS, STAFF, ApiContext
+from kx.crm.api.context import ApiContext, HumanManager, Manager, Staff
 from kx.crm.api.pagination import Page, keyset, page_of
 from kx.crm.api.schemas import (
     AiToggleIn,
@@ -43,11 +43,6 @@ from kx.crm.models import (
 from kx.crm.services import access, approvals, assignment, change_requests, negotiation, quotes
 from kx.crm.services import deals as deal_svc
 from kx.crm.services.journal import Actor
-
-Staff = Annotated[Principal, Depends(require_role(*STAFF))]
-Manager = Annotated[Principal, Depends(require_role(*MANAGERS))]
-HumanManager = Annotated[Principal, Depends(require_human_mfa(Role.MANAGER))]
-HumanStaff = Annotated[Principal, Depends(require_human_mfa(Role.SALES, Role.MANAGER))]
 
 
 async def deal_detail(s: AsyncSession, deal: Deal) -> DealDetail:

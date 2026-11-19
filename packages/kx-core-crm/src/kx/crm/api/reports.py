@@ -30,9 +30,10 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from kx.core.auth import Principal, Role, require_role
+from kx.core.auth import Role
 from kx.core.errors import Forbidden
-from kx.crm.api.context import MANAGERS, STAFF, ApiContext
+from kx.crm.api.context import ApiContext, Manager, Staff
+from kx.crm.api.context import MdOnly as Md
 from kx.crm.api.deals import visible_to
 from kx.crm.models import (
     Company,
@@ -54,9 +55,6 @@ from kx.crm.services.dashboards import (
     salesperson_board,
 )
 
-Staff = Annotated[Principal, Depends(require_role(*STAFF))]
-Manager = Annotated[Principal, Depends(require_role(*MANAGERS))]
-Md = Annotated[Principal, Depends(require_role(Role.MD))]
 OPEN = [st.value for st in OPEN_STAGES]
 # M4: a spreadsheet runs a text cell starting with one of these as a formula (buyers choose their names)
 FORMULA_LEADS: Final = ("=", "+", "-", "@", "\t", "\r")

@@ -15,13 +15,12 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
-from kx.crm.api.context import STAFF, ApiContext
+from kx.crm.api.context import ApiContext, Staff
 from kx.crm.models import AuditEvent, StockItem
 from kx.crm.services import inbox, orders, price_lists
 from kx.crm.services.dashboards import PRICE_LIST_ACTIONS
 from kx.crm.services.journal import Actor
 
-Staff = Annotated[Principal, Depends(require_role(*STAFF))]
 # §3 "Edit price list: manager and admin" (a person with MFA: prices are money)
 PriceEditor = Annotated[Principal, Depends(require_human_mfa(Role.MANAGER, Role.ADMIN))]
 StockEditor = Annotated[Principal, Depends(require_role(Role.MANAGER, Role.ADMIN))]

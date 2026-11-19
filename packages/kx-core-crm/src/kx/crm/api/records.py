@@ -21,18 +21,15 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import Select, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kx.core.auth import Principal, Role, require_human_mfa, require_role
+from kx.core.auth import Principal, Role
 from kx.core.errors import Forbidden, NotFound
 from kx.core.timewindow import language_tag, valid_timezone
-from kx.crm.api.context import MANAGERS, STAFF, ApiContext
+from kx.crm.api.context import ApiContext, HumanManager, Manager, Staff
 from kx.crm.api.deals import visible_to
 from kx.crm.api.pagination import Page, keyset, page_of
 from kx.crm.models import Company, Contact, Deal, FxRate, Order, Product
 from kx.crm.services.journal import Actor, record
 
-Staff = Annotated[Principal, Depends(require_role(*STAFF))]
-Manager = Annotated[Principal, Depends(require_role(*MANAGERS))]
-HumanManager = Annotated[Principal, Depends(require_human_mfa(Role.MANAGER))]
 Limit = Annotated[int, Query(ge=1, le=100)]
 
 
