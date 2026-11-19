@@ -1,16 +1,16 @@
-# Review routing (ADR-0001 Phase 0.3). The handles are placeholders: the lead replaces each @OWNER_* with the
-# real GitHub user or team before branch protection "Require review from Code Owners" is switched on.
-# The last matching line wins, so the cross-package contract files come after the package lines.
+# Review routing (ADR-0001 Phase 0.3). Owner of the whole backend: Hamthan (client decision 19 Nov).
+# When the team grows, give each package its own owner here; the last matching line wins, so keep the
+# cross-package contract files after the package lines.
 
-*                                                   @OWNER_APP
+*                                                   @muhammadhamthan
 
-/packages/kx-core-db/                               @OWNER_CORE
-/packages/kx-core-crm/                              @OWNER_CRM
-/packages/kx-core-automation/                       @OWNER_AUTOMATION
-/packages/kx-agent-framework/                       @OWNER_AGENTS
-/apps/arifaa-pack/                                  @OWNER_APP
+/packages/kx-core-db/                               @muhammadhamthan
+/packages/kx-core-crm/                              @muhammadhamthan
+/packages/kx-core-automation/                       @muhammadhamthan
+/packages/kx-agent-framework/                       @muhammadhamthan
+/apps/arifaa-pack/                                  @muhammadhamthan
 
 # The only way packages talk to each other: a change here needs every package owner.
-/packages/kx-core-db/src/kx/core/contracts*         @OWNER_CORE @OWNER_CRM @OWNER_AUTOMATION @OWNER_AGENTS @OWNER_APP
-/packages/kx-core-db/src/kx/core/event_payloads*    @OWNER_CORE @OWNER_CRM @OWNER_AUTOMATION @OWNER_AGENTS @OWNER_APP
-/packages/kx-core-db/src/kx/core/events.py          @OWNER_CORE @OWNER_CRM @OWNER_AUTOMATION @OWNER_AGENTS @OWNER_APP
+/packages/kx-core-db/src/kx/core/contracts*         @muhammadhamthan
+/packages/kx-core-db/src/kx/core/event_payloads*    @muhammadhamthan
+/packages/kx-core-db/src/kx/core/events.py          @muhammadhamthan
