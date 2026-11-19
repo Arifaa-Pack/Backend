@@ -922,3 +922,24 @@ so the old import path keeps working; every name of the moved module is checked 
   - unit: ============================ 131 passed in 19.80s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `outbound` @ `b6a0d44`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-outbound-2b`, COMPLETED
+
+## 2b.14 automation public surface `kx/automation/__init__.py` — TESTING
+
+- **Previous slice's full suite:** `_shared` @ `855014e`: errors=0, failures=0, skipped=4, tests=992, exit=0 → tagged `arch-slice/automation-_shared`, COMPLETED.
+- **Done:** `kx/automation/__init__.py` names the 33 things the app uses (explicit `__all__`, lazy PEP 562
+  resolution, `TYPE_CHECKING` imports for mypy): the wiring (`jobs`, `retention`, `AutomationRuntime`,
+  `JobScheduler`, `EventHandlers`, settings, `S3MediaStore`), sending (`OutboundService`, `KillSwitch`, the
+  rate limiter, the WhatsApp / email / Telnyx clients), `ApprovalLadder` / `CallBridge` / `PauseAlerts` /
+  `VoiceAlerts`, `FollowUps`, `PriceScraper`, and the four routers under distinct names (`webhook_router`,
+  `unsubscribe_router`, `cms_router`, `admin_router`). The app (`adapters.py`, `api.py`, `container.py`)
+  now imports automation only through it (22 imports pointed at it; nothing left unexported).
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 457 files already formatted
+  - mypy: Success: no issues found in 295 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 131 passed in 17.02s =============================
+  - full suite: run on this commit; result logged in the next entry

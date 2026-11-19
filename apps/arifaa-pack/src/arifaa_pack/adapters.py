@@ -16,7 +16,7 @@ from kx.agents.handlers import ReplyAddress
 from kx.agents.knowledge import KbSource
 from kx.agents.voice import VoiceRoute
 from kx.agents.website import PublicScope
-from kx.automation.outbound.ratelimit import Bucket
+from kx.automation import Bucket
 from kx.core.db import Databases
 from kx.core.errors import Unavailable
 from kx.core.logging import get_logger
