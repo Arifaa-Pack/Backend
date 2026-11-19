@@ -131,7 +131,7 @@
       "roles": [],
       "mfa_required": false,
       "auth": "none",
-      "purpose": "End this browser's session: the refresh token is revoked and its cookie cleared.",
+      "purpose": "End this session: the refresh token (cookie) and the session the access token names are revoked and the cookie cleared.",
       "expected_status": 204
     },
     {
@@ -551,8 +551,9 @@
       "name": "Update order status",
       "method": "PATCH",
       "path": "/v1/deals/orders/{order_id}",
-      "who": "manager, md",
+      "who": "sales, manager, md",
       "roles": [
+        "sales",
         "manager",
         "md"
       ],
@@ -1349,7 +1350,7 @@
       ],
       "mfa_required": false,
       "auth": "staff",
-      "purpose": "Edit a company record (logged).",
+      "purpose": "Edit a company record (logged); a salesperson only a company they may see (L3).",
       "expected_status": 200
     },
     {
@@ -1508,7 +1509,7 @@
       ],
       "mfa_required": false,
       "auth": "staff",
-      "purpose": "§20.12: a list as CSV or XLSX (a salesperson exports only their own deals and orders).",
+      "purpose": "§20.12: a list as CSV or XLSX (a salesperson exports only their own deals and orders; Admin / IT only the product list, L4: §3 gives it users, settings and the catalogue, not customer data).",
       "expected_status": 200
     },
     {

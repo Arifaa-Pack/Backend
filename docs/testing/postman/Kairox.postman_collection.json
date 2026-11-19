@@ -602,7 +602,7 @@
                 "logout"
               ]
             },
-            "description": "End this browser's session: the refresh token is revoked and its cookie cleared.\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 204",
+            "description": "End this session: the refresh token (cookie) and the session the access token names are revoked and the cookie cleared.\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 204",
             "auth": {
               "type": "noauth"
             }
@@ -642,7 +642,7 @@
                 "start"
               ]
             },
-            "description": "Recovery: a code to the work address. Always 202 (nobody learns which addresses exist); 429 when the rate limit for this IP or this typed address is reached (the same for unknown addresses, M3).\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 202",
+            "description": "Recovery: a code to the work address. Always 202 (nobody learns which addresses exist); 429 when the rate limit for this IP or this typed address is reached (the same for unknown addresses, M3). L6: the code is mailed after the response, so a real address answers as fast as an unknown one.\n\n**Who may call it:** public (no sign-in)\n\n**Expected on success:** HTTP 202",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{staff_email}}\"\n}",
@@ -2282,7 +2282,7 @@
                 }
               ]
             },
-            "description": "§20.6 companies: search by name, newest first.\n\n**Who may call it:** sales, manager, md, admin\n\n**Expected on success:** HTTP 200"
+            "description": "§20.6 companies: search by name, newest first. A salesperson sees the companies of their own deals' contacts and companies nobody is linked to yet (L3).\n\n**Who may call it:** sales, manager, md, admin\n\n**Expected on success:** HTTP 200"
           },
           "event": [
             {
@@ -2319,7 +2319,7 @@
             "description": "Create a company record.\n\n**Who may call it:** sales, manager, md, admin\n\n**Expected on success:** HTTP 201",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"QA Test Restaurants LLC\",\n  \"country_code\": \"AE\",\n  \"city\": \"Dubai\",\n  \"customer_type\": \"restaurant\",\n  \"website\": \"https://qa-restaurants.example\"\n}",
+              "raw": "{\n  \"name\": \"QA Test Restaurants LLC\",\n  \"country_code\": \"AE\",\n  \"city\": \"Dubai\",\n  \"customer_type\": \"restaurant_chain\",\n  \"website\": \"https://qa-restaurants.example\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2361,7 +2361,7 @@
                 "{{company_id}}"
               ]
             },
-            "description": "Edit a company record (logged).\n\n**Who may call it:** sales, manager, md, admin\n\n**Expected on success:** HTTP 200",
+            "description": "Edit a company record (logged); a salesperson only a company they may see (L3).\n\n**Who may call it:** sales, manager, md, admin\n\n**Expected on success:** HTTP 200",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"QA Test Restaurants LLC\",\n  \"city\": \"Abu Dhabi\"\n}",
@@ -3972,7 +3972,7 @@
                 "{{order_id}}"
               ]
             },
-            "description": "§15.3 order tracking: in production -> ready -> shipped -> delivered (the buyer is told if configured).\n\n**Who may call it:** manager, md\n\n**Expected on success:** HTTP 200",
+            "description": "§15.3 order tracking: in production -> ready -> shipped -> delivered (the buyer is told if configured). §3 / §5 step 14: the deal's salesperson (or the colleague covering them) updates it, as do the manager and the MD; cancelling an order is not in the SRS's salesperson list, so it stays with the manager / MD.\n\n**Who may call it:** sales, manager, md\n\n**Expected on success:** HTTP 200",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"shipped\",\n  \"on_date\": \"2026-11-25\",\n  \"tracking_ref\": \"QA-TRACK-001\"\n}",
@@ -4244,7 +4244,7 @@
                 }
               ]
             },
-            "description": "§20.12: a list as CSV or XLSX (a salesperson exports only their own deals and orders).\n\n**Who may call it:** sales, manager, md, admin\n\n**Expected on success:** HTTP 200"
+            "description": "§20.12: a list as CSV or XLSX (a salesperson exports only their own deals and orders; Admin / IT only the product list, L4: §3 gives it users, settings and the catalogue, not customer data).\n\n**Who may call it:** sales, manager, md, admin\n\n**Expected on success:** HTTP 200"
           },
           "event": [
             {

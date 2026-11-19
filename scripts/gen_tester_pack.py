@@ -31,16 +31,15 @@ from kx.agents.website import WebsiteDeps
 from kx.agents.website import build_router as website_router
 from kx.automation.admin_api import build_router as channels_admin_router
 from kx.automation.cms import build_router as cms_router
+from kx.automation.inbound.webhooks import WebhookDeps
+from kx.automation.inbound.webhooks import build_router as webhook_router
+from kx.automation.optout.unsubscribe import UnsubscribeDeps
+from kx.automation.optout.unsubscribe import build_router as unsubscribe_router
 from kx.automation.settings import AutomationSettings
-from kx.automation.unsubscribe import UnsubscribeDeps
-from kx.automation.unsubscribe import build_router as unsubscribe_router
-from kx.automation.webhooks import WebhookDeps
-from kx.automation.webhooks import build_router as webhook_router
 from kx.core.auth import Role
 from kx.core.errors import install_problem_handlers
-from kx.crm.api import build_router as crm_router
-from kx.crm.deps import CrmDeps
-from kx.crm.pdf import Letterhead
+from kx.crm import CrmDeps, Letterhead
+from kx.crm import build_router as crm_router
 
 HERE = pathlib.Path(__file__).resolve().parent
 OUT = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else HERE.parent / "docs" / "testing"
@@ -566,7 +565,7 @@ BODY: dict[tuple[str, str], Any] = {
         "name": "QA Test Restaurants LLC",
         "country_code": "AE",
         "city": "Dubai",
-        "customer_type": "restaurant",
+        "customer_type": "restaurant_chain",
         "website": "https://qa-restaurants.example",
     },
     ("PATCH", "/v1/companies/{company_id}"): {"name": "QA Test Restaurants LLC", "city": "Abu Dhabi"},
