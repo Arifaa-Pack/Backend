@@ -12,8 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
 from kx.core.errors import Unavailable
 from kx.core.killswitch import KillLevel, KillSwitchLadder
-from kx.crm.api.context import ApiContext
-from kx.crm.services.journal import Actor, record
+from kx.crm._shared.api_context import ApiContext
+from kx.crm._shared.journal import Actor, record
 
 Reader = Annotated[Principal, Depends(require_role(Role.ADMIN, Role.MANAGER))]
 Writer = Annotated[Principal, Depends(require_human_mfa(Role.ADMIN, Role.MD))]

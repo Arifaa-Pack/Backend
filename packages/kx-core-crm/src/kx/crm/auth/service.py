@@ -44,11 +44,11 @@ from kx.core.passwords import (
     verify_totp,
 )
 from kx.core.settings import RateLimit
+from kx.crm._shared import staff
+from kx.crm._shared.journal import Actor, Emit, record
 from kx.crm.auth.throttle import account_key, ip_key
 from kx.crm.deps import CrmDeps
 from kx.crm.models import AuthChallenge, AuthSession, StaffCredential, User
-from kx.crm.services import staff
-from kx.crm.services.journal import Actor, Emit, record
 
 log = get_logger(__name__)
 Factor = Literal["totp", "email"]

@@ -13,15 +13,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role, require_human_mfa
 from kx.core.errors import NotFound
-from kx.crm.api.context import ApiContext, Manager, MdOnly, Staff
-from kx.crm.api.pagination import Page, keyset, page_of
-from kx.crm.api.schemas import ApprovalOut, DecisionIn, LineCostOut, QuoteLineOut, QuoteVersionOut
+from kx.crm._shared import access
+from kx.crm._shared.api_context import ApiContext, Manager, MdOnly, Staff
+from kx.crm._shared.pagination import Page, keyset, page_of
+from kx.crm._shared.schemas import ApprovalOut, DecisionIn, LineCostOut, QuoteLineOut, QuoteVersionOut
 from kx.crm.approvals import service as approvals
 from kx.crm.deals import service as deal_svc
 from kx.crm.models import Approval, Quote, QuoteVersion
 from kx.crm.quotes import service as quotes
 from kx.crm.quotes.issuing import lines_of
-from kx.crm.services import access
 
 # D1: the salesperson, the manager or the MD on takeover; the service checks which deal (access.py)
 Approver = Annotated[Principal, Depends(require_human_mfa(Role.SALES, Role.MANAGER, Role.MD))]

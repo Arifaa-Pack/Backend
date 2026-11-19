@@ -12,9 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role, require_human_mfa
 from kx.core.errors import RuleViolation
-from kx.crm.api.context import ApiContext
+from kx.crm._shared.api_context import ApiContext
+from kx.crm._shared.journal import Actor
 from kx.crm.catalogue import workbook
-from kx.crm.services.journal import Actor
 
 # client decision 18 Nov: manager, MD and admin (a person with MFA: the workbook changes prices)
 Editor = Annotated[Principal, Depends(require_human_mfa(Role.MANAGER, Role.MD, Role.ADMIN))]

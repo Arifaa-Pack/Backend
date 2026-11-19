@@ -23,11 +23,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core import events as ev
 from kx.core.contracts import DealStage
 from kx.core.event_payloads import ConsentScope, OptedOut, StaffNotice, StopSource, StopUnclear
+from kx.crm._shared import staff
+from kx.crm._shared.journal import Actor, Emit, Timeline, record
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Consent, Contact, Deal, Task
 from kx.crm.rules import OPEN_STAGES
-from kx.crm.services import staff
-from kx.crm.services.journal import Actor, Emit, Timeline, record
 
 # CRM consent channels per stop scope (crm.consents CHECK: whatsapp, email, call, marketing ...)
 _CONSENT_CHANNELS: Final[dict[str, tuple[str, ...]]] = {

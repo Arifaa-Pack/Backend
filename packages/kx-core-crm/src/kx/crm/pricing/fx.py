@@ -24,9 +24,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core import events as ev
 from kx.core.event_payloads import StaffNotice
+from kx.crm._shared import staff
+from kx.crm._shared.journal import Actor, Emit, record
 from kx.crm.models import FxRate
-from kx.crm.services import staff
-from kx.crm.services.journal import Actor, Emit, record
 
 # GCC, the main trading currencies, and the markets of the website's languages (South Asia, China)
 DEFAULT_CURRENCIES: Final = (

@@ -32,8 +32,8 @@ from sqlalchemy.orm import aliased
 
 from kx.core.auth import Role
 from kx.core.errors import Forbidden
-from kx.crm.api.context import ApiContext, Manager, Staff
-from kx.crm.api.context import MdOnly as Md
+from kx.crm._shared.api_context import ApiContext, Manager, Staff
+from kx.crm._shared.api_context import MdOnly as Md
 from kx.crm.deals.router import visible_to
 from kx.crm.models import (
     Company,

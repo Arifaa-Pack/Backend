@@ -33,13 +33,13 @@ from kx.core.auth import Principal, Role
 from kx.core.db import get_or_404
 from kx.core.errors import Forbidden, RuleViolation
 from kx.core.event_payloads import DealAssigned, StaffContact
+from kx.crm._shared import staff
+from kx.crm._shared.journal import Actor, Emit, Timeline, record
+from kx.crm._shared.settings import AssignmentRule
 from kx.crm.approvals import service as approvals
 from kx.crm.change_requests import service as change_requests
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Contact, Deal, DealRequirement, Product, User
-from kx.crm.services import staff
-from kx.crm.services.journal import Actor, Emit, Timeline, record
-from kx.crm.services.settings import AssignmentRule
 
 Reason = Literal[
     "round_robin", "rule", "returning_customer", "backup", "manager", "reassigned", "takeover", "hand_back"

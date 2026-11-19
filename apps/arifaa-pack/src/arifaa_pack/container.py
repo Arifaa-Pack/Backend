@@ -90,6 +90,7 @@ from kx.core.retention import prune_batches
 from kx.core.settings import AuthSettings, CoreSettings, Environment, LogicalDb, get_settings
 from kx.core.spend import SpendCaps, SpendMeter
 from kx.crm import jobs as crm_jobs
+from kx.crm._shared.settings import SettingsService
 from kx.crm.deps import CrmDeps
 from kx.crm.gateway import ApprovalStatusReaderImpl, CrmGatewayImpl, GrantConsumerImpl
 from kx.crm.models import Product
@@ -102,7 +103,6 @@ from kx.crm.quotes.pdf import (
     WeasyPrintEngine,
 )
 from kx.crm.retention import service as crm_retention
-from kx.crm.services.settings import SettingsService
 
 EventFn = Callable[[Event], Awaitable[Any]]
 Periodic = Callable[[datetime], Awaitable[Any]]

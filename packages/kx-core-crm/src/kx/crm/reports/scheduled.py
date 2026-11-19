@@ -21,12 +21,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core import events as ev
 from kx.core.event_payloads import StaffNotice
+from kx.crm._shared import staff
+from kx.crm._shared.journal import Actor, Emit, record
+from kx.crm._shared.settings import BusinessSettings
 from kx.crm.deps import CrmDeps
 from kx.crm.models import AuditEvent, User
 from kx.crm.reports.dashboards import ManagerBoard, manager_board
-from kx.crm.services import staff
-from kx.crm.services.journal import Actor, Emit, record
-from kx.crm.services.settings import BusinessSettings
 
 Kind = Literal["daily", "weekly"]
 ACTION = "report.sent"

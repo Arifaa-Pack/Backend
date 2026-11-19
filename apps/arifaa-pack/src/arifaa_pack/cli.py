@@ -101,8 +101,8 @@ def _create_user(args: argparse.Namespace) -> None:
     import asyncio  # noqa: PLC0415
 
     from arifaa_pack.container import build  # noqa: PLC0415
+    from kx.crm._shared.journal import Actor  # noqa: PLC0415
     from kx.crm.auth.service import create_user  # noqa: PLC0415
-    from kx.crm.services.journal import Actor  # noqa: PLC0415
 
     async def run() -> None:
         async with build() as c, c.databases.transaction(LogicalDb.CRM) as s:
@@ -134,10 +134,10 @@ def _first_run(args: argparse.Namespace) -> None:
     from arifaa_pack.migrations import status  # noqa: PLC0415
     from kx.core.platform import summary  # noqa: PLC0415
     from kx.core.settings import get_settings  # noqa: PLC0415
+    from kx.crm._shared.journal import Actor  # noqa: PLC0415
     from kx.crm.auth.service import create_user  # noqa: PLC0415
     from kx.crm.company import service as company  # noqa: PLC0415
     from kx.crm.models import User  # noqa: PLC0415
-    from kx.crm.services.journal import Actor  # noqa: PLC0415
 
     print("1. databases")
     behind = []

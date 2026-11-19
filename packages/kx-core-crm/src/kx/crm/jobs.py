@@ -40,6 +40,8 @@ from kx.core.events import Event, Publisher, inbox_once, relay_once
 from kx.core.jobs import RetryLater
 from kx.core.logging import get_logger
 from kx.core.settings import LogicalDb
+from kx.crm._shared import staff
+from kx.crm._shared.journal import Actor, Emit, Timeline, record
 from kx.crm.approvals import service as approvals
 from kx.crm.catalogue import service as catalogue
 from kx.crm.change_requests import service as change_requests
@@ -56,8 +58,6 @@ from kx.crm.quotes import service as quotes
 from kx.crm.reports import scheduled as scheduled_reports
 from kx.crm.retention import service as retention
 from kx.crm.rules import OPEN_STAGES
-from kx.crm.services import staff
-from kx.crm.services.journal import Actor, Emit, Timeline, record
 
 log = get_logger(__name__)
 _STAFF_KINDS: Final = frozenset({"approval_alert", "md_notice"})

@@ -29,15 +29,15 @@ from kx.core.errors import Conflict, RuleViolation
 from kx.core.event_payloads import ApprovalOverdue, QuoteCorrectionRequested, QuoteRejected, QuoteSubmitted
 from kx.core.identity import new_id
 from kx.core.money import display
+from kx.crm._shared import access, staff
+from kx.crm._shared.journal import Actor, Emit, Timeline, record
+from kx.crm._shared.settings import BusinessSettings
 from kx.crm.change_requests import service as change_requests
 from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Approval, ApprovalEvent, Deal, Quote, QuoteVersion
 from kx.crm.quotes.grants import GrantPolicy
 from kx.crm.quotes.issuing import issue_to_buyer
-from kx.crm.services import access, staff
-from kx.crm.services.journal import Actor, Emit, Timeline, record
-from kx.crm.services.settings import BusinessSettings
 
 ApprovalKind = Literal["initial", "revision", "counter", "final", "special_price"]
 RequiredRole = Literal["sales", "manager", "md"]

@@ -15,8 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role, require_role
 from kx.core.errors import Forbidden
-from kx.crm.api.context import MANAGERS, ApiContext, HumanManager, HumanStaff, Staff
-from kx.crm.api.schemas import (
+from kx.crm._shared import access
+from kx.crm._shared.api_context import MANAGERS, ApiContext, HumanManager, HumanStaff, Staff
+from kx.crm._shared.journal import Actor
+from kx.crm._shared.schemas import (
     CallIn,
     CallOut,
     DealDetail,
@@ -35,8 +37,6 @@ from kx.crm.deals import service as deal_svc
 from kx.crm.deals.router import deal_detail
 from kx.crm.handover import service as handover
 from kx.crm.orders import service as orders
-from kx.crm.services import access
-from kx.crm.services.journal import Actor
 
 OrderStaff = Annotated[Principal, Depends(require_role(Role.SALES, *MANAGERS))]  # not Admin / IT (§3)
 

@@ -18,8 +18,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.event_payloads import ProductPublished
+from kx.crm._shared.journal import Actor, record
 from kx.crm.models import Product, ProductCategory
-from kx.crm.services.journal import Actor, record
 
 UNFILED = "UNCATEGORISED"
 _ACTOR = Actor.system("cms_sync")

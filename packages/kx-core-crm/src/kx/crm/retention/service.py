@@ -20,11 +20,11 @@ from kx.core.event_payloads import ContactAnonymised
 from kx.core.identity import recipient_hash
 from kx.core.retention import PruneRule
 from kx.core.settings import RetentionSettings
+from kx.crm._shared.journal import Actor, Emit, record
 from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Company, Contact, Deal, TimelineEvent
 from kx.crm.rules import OPEN_STAGES
-from kx.crm.services.journal import Actor, Emit, record
 
 MESSAGE_KINDS: Final = ("message_in", "message_out", "call")
 BATCH: Final = 200

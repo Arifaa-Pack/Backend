@@ -13,9 +13,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
-from kx.crm.api.context import ApiContext, HumanManager, Manager, Staff
-from kx.crm.api.pagination import Page, keyset, page_of
-from kx.crm.api.schemas import (
+from kx.crm._shared.api_context import ApiContext, HumanManager, Manager, Staff
+from kx.crm._shared.journal import Actor
+from kx.crm._shared.pagination import Page, keyset, page_of
+from kx.crm._shared.schemas import (
     AvailabilityIn,
     DashboardSummary,
     FlagIn,
@@ -31,7 +32,6 @@ from kx.crm.assignment import service as assignment
 from kx.crm.models import Approval, Deal, MaterialRate, Quote, QuoteVersion, Setting, Task
 from kx.crm.pricing import proposals as price_proposals
 from kx.crm.rules import OPEN_STAGES
-from kx.crm.services.journal import Actor
 
 # §20.11: settings are for the manager, the MD and admin (MD passes wherever MANAGER is listed)
 SettingsReader = Annotated[Principal, Depends(require_role(Role.ADMIN, Role.MANAGER))]

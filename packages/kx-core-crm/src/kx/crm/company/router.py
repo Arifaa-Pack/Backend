@@ -13,9 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
 from kx.core.errors import RuleViolation
-from kx.crm.api.context import ApiContext
+from kx.crm._shared.api_context import ApiContext
+from kx.crm._shared.journal import Actor
 from kx.crm.company import service as company
-from kx.crm.services.journal import Actor
 
 # client decision 18 Nov: admin, MD and manager
 Viewer = Annotated[Principal, Depends(require_role(Role.ADMIN, Role.MD, Role.MANAGER))]

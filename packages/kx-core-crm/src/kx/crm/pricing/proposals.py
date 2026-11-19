@@ -19,11 +19,11 @@ from kx.core.db import get_or_404
 from kx.core.errors import Conflict
 from kx.core.event_payloads import PriceProposed, PriceStale
 from kx.core.identity import new_id
+from kx.crm._shared.journal import Actor, Emit, record
+from kx.crm._shared.settings import BusinessSettings
 from kx.crm.models import Material, MaterialRate
 from kx.crm.pricing.service import current_rate
 from kx.crm.rules import Staleness, days_since, staleness
-from kx.crm.services.journal import Actor, Emit, record
-from kx.crm.services.settings import BusinessSettings
 
 CHANGE_PLACES = Decimal("0.001")
 

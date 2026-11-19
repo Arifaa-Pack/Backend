@@ -11,11 +11,11 @@ from datetime import datetime
 from sqlalchemy import and_, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from kx.crm._shared import staff
+from kx.crm._shared.journal import Actor, Timeline, record
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Deal, Quote, QuoteSendGrant, QuoteVersion, Task, TimelineEvent
 from kx.crm.rules import lost_proposal_due
-from kx.crm.services import staff
-from kx.crm.services.journal import Actor, Timeline, record
 
 AWAITING = ("QUOTATION", "NEGOTIATION")
 

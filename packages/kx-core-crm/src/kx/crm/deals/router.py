@@ -15,9 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role
 from kx.core.contracts import DealStage
-from kx.crm.api.context import ApiContext, HumanManager, Manager, Staff
-from kx.crm.api.pagination import Page, keyset, page_of
-from kx.crm.api.schemas import (
+from kx.crm._shared import access
+from kx.crm._shared.api_context import ApiContext, HumanManager, Manager, Staff
+from kx.crm._shared.journal import Actor
+from kx.crm._shared.pagination import Page, keyset, page_of
+from kx.crm._shared.schemas import (
     AiToggleIn,
     ContactOut,
     DealDetail,
@@ -46,8 +48,6 @@ from kx.crm.models import (
 )
 from kx.crm.negotiation import service as negotiation
 from kx.crm.quotes import service as quotes
-from kx.crm.services import access
-from kx.crm.services.journal import Actor
 
 
 async def deal_detail(s: AsyncSession, deal: Deal) -> DealDetail:

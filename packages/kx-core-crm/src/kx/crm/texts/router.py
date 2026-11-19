@@ -13,8 +13,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
-from kx.crm.api.context import ApiContext
-from kx.crm.services.journal import Actor
+from kx.crm._shared.api_context import ApiContext
+from kx.crm._shared.journal import Actor
 from kx.crm.texts import service as texts
 
 # client decision 18 Nov: the manager edits, the MD may too and sees every change; the admin may look

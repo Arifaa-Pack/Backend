@@ -1,4 +1,6 @@
-"""Staff CRM HTTP API (thin routers over kx.crm.services).
+"""Staff CRM HTTP API: assembles each feature slice's router (`kx/crm/<slice>/router.py`, ADR-0001).
+
+The other modules in this folder are alias shims for the pre-ADR-0001 paths (`kx.crm.api.deals` ...).
 
 Wire in the app:
     app.include_router(build_router(databases, deps), prefix="/v1")
@@ -10,8 +12,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from kx.core.db import Databases
+from kx.crm._shared.api_context import ApiContext
 from kx.crm.admin import router as admin
-from kx.crm.api.context import ApiContext
 from kx.crm.assignment import router as assignment
 from kx.crm.auth import router as auth
 from kx.crm.auth import users_router as users

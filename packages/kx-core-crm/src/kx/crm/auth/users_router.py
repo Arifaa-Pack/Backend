@@ -15,11 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core.auth import Principal, Role, require_human_mfa, require_role
 from kx.core.db import get_or_404
 from kx.core.errors import Forbidden
-from kx.crm.api.context import ApiContext
+from kx.crm._shared.api_context import ApiContext
+from kx.crm._shared.journal import Actor, record
 from kx.crm.auth import service as auth_svc
 from kx.crm.auth.router import StaffUserOut
 from kx.crm.models import StaffCredential, User
-from kx.crm.services.journal import Actor, record
 
 # §3 "Admin / IT: users, roles, settings"; the manager and MD see the team (team board, reassign).
 # D12(a) (17 Nov): the MD may also manage users, because only an MD may give or remove the MD role, deactivate

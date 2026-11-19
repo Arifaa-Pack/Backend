@@ -28,9 +28,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core.db import get_or_404
 from kx.core.errors import Conflict, NotFound, RuleViolation
+from kx.crm._shared.journal import Actor, record
 from kx.crm.models import Product, ProductPriceTier, QuoteLineTier
 from kx.crm.pricing.service import current_tiers_many
-from kx.crm.services.journal import Actor, record
 
 COLUMNS: Final = ("sku", "min_qty", "max_qty", "list_price", "min_price", "currency")
 

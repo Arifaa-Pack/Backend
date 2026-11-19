@@ -20,6 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core import events as ev
 from kx.core.event_payloads import QuoteApproved, QuoteNotDelivered, QuoteResendRequested
 from kx.core.identity import priced_content_sha256, sha256_hex
+from kx.crm._shared import staff
+from kx.crm._shared.journal import Actor, Emit, Timeline, record
+from kx.crm._shared.settings import BusinessSettings
 from kx.crm.company import service as company_svc
 from kx.crm.contacts import phone
 from kx.crm.deals import service as deal_svc
@@ -39,9 +42,6 @@ from kx.crm.models import (
 )
 from kx.crm.quotes.grants import GrantPolicy, SendChannel, issue_grant, recipient
 from kx.crm.quotes.pdf import DocLine, QuoteDocument, SalesContact, pdf_key, quote_message
-from kx.crm.services import staff
-from kx.crm.services.journal import Actor, Emit, Timeline, record
-from kx.crm.services.settings import BusinessSettings
 
 _ISSUED: Final = ("approved", "sent")  # = quotes.ISSUED (quotes imports this module)
 

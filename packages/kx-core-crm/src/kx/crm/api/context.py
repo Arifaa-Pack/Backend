@@ -1,40 +1,12 @@
-"""What every router factory needs: the CRM session dependency and the service deps."""
+"""Old path of `kx.crm._shared.api_context` (moved by ADR-0001).
 
-from __future__ import annotations
+This module is an alias of the new one (the same module object, so every name, private helper and monkeypatch
+still works); it is removed once nothing in this repository or the Arifaa Auto backend imports the old path.
+"""
 
-from collections.abc import AsyncIterator, Callable
-from dataclasses import dataclass, field
-from typing import Annotated
+import sys
 
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from kx.crm._shared import api_context as _moved
+from kx.crm._shared.api_context import *  # noqa: F403
 
-from kx.core.auth import Principal, Role, require_human_mfa, require_role
-from kx.core.db import Databases
-from kx.core.settings import LogicalDb
-from kx.crm.deps import CrmDeps
-
-STAFF = (
-    Role.SALES,
-    Role.MANAGER,
-    Role.ADMIN,
-)  # Principal.has() lets the MD through wherever MANAGER is listed
-MANAGERS = (Role.MANAGER,)
-
-# review §3.1: the role aliases every router used to define for itself (one callable each: FastAPI also runs a
-# shared dependency once per request). Module-specific aliases (SettingsReader, PriceEditor ...) stay put.
-Staff = Annotated[Principal, Depends(require_role(*STAFF))]
-Manager = Annotated[Principal, Depends(require_role(*MANAGERS))]
-HumanManager = Annotated[Principal, Depends(require_human_mfa(Role.MANAGER))]
-HumanStaff = Annotated[Principal, Depends(require_human_mfa(Role.SALES, Role.MANAGER))]
-MdOnly = Annotated[Principal, Depends(require_role(Role.MD))]
-
-
-@dataclass(frozen=True, slots=True)
-class ApiContext:
-    databases: Databases
-    deps: CrmDeps
-    session: Callable[[], AsyncIterator[AsyncSession]] = field(init=False)
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "session", self.databases.dependency(LogicalDb.CRM))
+sys.modules[__name__] = _moved

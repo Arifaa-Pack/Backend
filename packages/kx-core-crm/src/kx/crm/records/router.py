@@ -25,11 +25,11 @@ from kx.core.auth import Principal, Role
 from kx.core.db import get_or_404
 from kx.core.errors import Forbidden, NotFound
 from kx.core.timewindow import language_tag, valid_timezone
-from kx.crm.api.context import ApiContext, HumanManager, Manager, Staff
-from kx.crm.api.pagination import Page, keyset, page_of
+from kx.crm._shared.api_context import ApiContext, HumanManager, Manager, Staff
+from kx.crm._shared.journal import Actor, record
+from kx.crm._shared.pagination import Page, keyset, page_of
 from kx.crm.deals.router import visible_to
 from kx.crm.models import Company, Contact, Deal, FxRate, Order, Product
-from kx.crm.services.journal import Actor, record
 
 Limit = Annotated[int, Query(ge=1, le=100)]
 

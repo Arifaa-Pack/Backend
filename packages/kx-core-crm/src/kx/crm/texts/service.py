@@ -25,8 +25,8 @@ from kx.core import events as ev
 from kx.core.errors import NotFound, RuleViolation
 from kx.core.event_payloads import MessageTextChanged
 from kx.core.texts import CATALOG, LANGUAGES, TRANSLATED, TextDef, check_edit
+from kx.crm._shared.journal import Actor, Emit, record
 from kx.crm.models import AuditEvent, MessageText
-from kx.crm.services.journal import Actor, Emit, record
 
 Status = Literal["built-in", "edited", "translated", "outdated", "missing"]
 

@@ -23,6 +23,7 @@ from sqlalchemy.orm import aliased
 
 from kx.core.errors import RuleViolation
 from kx.core.money import MONEY_PLACES, q
+from kx.crm._shared.settings import BusinessSettings
 from kx.crm.models import (
     Company,
     Deal,
@@ -60,7 +61,6 @@ from kx.crm.pricing.types import (
     QuoteLineInput,
 )
 from kx.crm.rules import Staleness, days_since, staleness
-from kx.crm.services.settings import BusinessSettings
 
 BASE = "AED"
 

@@ -26,7 +26,7 @@ from kx.core.auth import Principal, current_principal
 from kx.core.clientip import client_ip
 from kx.core.errors import Forbidden, TooManyRequests, Unauthorized, Unavailable
 from kx.core.settings import LogicalDb
-from kx.crm.api.context import ApiContext
+from kx.crm._shared.api_context import ApiContext
 from kx.crm.auth import service as svc
 from kx.crm.models import User
 

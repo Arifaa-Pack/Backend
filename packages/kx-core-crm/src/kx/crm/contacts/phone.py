@@ -22,9 +22,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core import events as ev
 from kx.core.event_payloads import StaffNotice
+from kx.crm._shared import staff
+from kx.crm._shared.journal import Actor, Emit, Timeline, record
 from kx.crm.models import Contact, Deal, Task
-from kx.crm.services import staff
-from kx.crm.services.journal import Actor, Emit, Timeline, record
 
 PhoneStatus = Literal["unknown", "not_reached", "reachable", "likely", "verified"]
 Signal = Literal["delivered", "read", "reply", "failed"]

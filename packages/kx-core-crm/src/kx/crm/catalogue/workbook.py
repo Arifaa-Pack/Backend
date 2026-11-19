@@ -44,10 +44,10 @@ from kx.core import events as ev
 from kx.core.errors import Conflict, RuleViolation
 from kx.core.event_payloads import ProductContentChanged
 from kx.core.price_guard import extract_prices
+from kx.crm._shared.journal import Actor, Emit, record
 from kx.crm.models import Product, ProductCategory, ProductPriceTier
 from kx.crm.pricing.price_list_service import RowError, check_xlsx, parse_rows
 from kx.crm.pricing.service import current_tiers, current_tiers_many
-from kx.crm.services.journal import Actor, Emit, record
 
 PRODUCTS: Final = "Products"
 TIERS: Final = "Price tiers"

@@ -41,6 +41,8 @@ from kx.core.db import Databases
 from kx.core.identity import phone_kind
 from kx.core.money import MONEY_PLACES, q
 from kx.core.settings import LogicalDb
+from kx.crm._shared import staff
+from kx.crm._shared.journal import Actor
 from kx.crm.approvals import service as approvals
 from kx.crm.assignment import service as assignment
 from kx.crm.change_requests import service as change_requests
@@ -73,8 +75,6 @@ from kx.crm.quotes import grants
 from kx.crm.quotes import service as quotes
 from kx.crm.quotes.issuing import lines_of
 from kx.crm.rules import pause_reason
-from kx.crm.services import staff
-from kx.crm.services.journal import Actor
 
 
 # ---------------------------------------------------------------- buyer-safe views (pure)

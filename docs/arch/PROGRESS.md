@@ -492,3 +492,18 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 22.41s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `deals` @ `bb67d8f`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-deals`, COMPLETED
+
+## 1.22 slice `_shared` — TESTING (COMPLETED when tagged `arch-slice/crm-_shared`)
+
+- **Moved:** `services/{journal,access,staff,settings}.py` → `_shared/{journal,access,staff,settings}.py`, `api/context.py` → `_shared/api_context.py`, `api/pagination.py` → `_shared/pagination.py`, `api/schemas.py` → `_shared/schemas.py`; shims at the seven old paths; 102 imports rewritten; `api/__init__.py` and `services/__init__.py` docstrings say they now hold the router assembly / shims. No `src/` import of an old path is left (grep): `kx/crm/services/*` and `kx/crm/api/*` (except `build_router`) are shims only.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 436 files already formatted
+  - mypy: Success: no issues found in 280 source files
+  - lint-imports: Contracts: 3 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 21.66s =============================
+  - full suite: run on this commit in the test worktree; result logged in the next entry
+- **Previous slice's full suite:** `quotes` @ `99040c5`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/crm-quotes`, COMPLETED

@@ -29,6 +29,9 @@ from kx.core import events as ev
 from kx.core.contracts import CounterVerdict, CounterVerdictKind, DealStage, RequirementPatch
 from kx.core.errors import RuleViolation
 from kx.core.event_payloads import NegotiationPaused
+from kx.crm._shared import staff
+from kx.crm._shared.journal import Actor, Emit, Timeline, record
+from kx.crm._shared.settings import BusinessSettings
 from kx.crm.deals import service as deal_svc
 from kx.crm.deps import CrmDeps
 from kx.crm.models import Deal, MarginRuleRow, NegotiationRound, QuoteLine, QuoteLineCost, QuoteVersion, Task
@@ -41,9 +44,6 @@ from kx.crm.quotes import service as quotes
 from kx.crm.quotes.issuing import local_today
 from kx.crm.quotes.service import ISSUED, costs_of, create_final_version, latest_version, tiers_of
 from kx.crm.rules import PauseReason, round_verdict
-from kx.crm.services import staff
-from kx.crm.services.journal import Actor, Emit, Timeline, record
-from kx.crm.services.settings import BusinessSettings
 
 THOUSAND = Decimal(1000)
 EventReason = Literal["below_range", "concessions_exhausted", "exception", "manual"]

@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from kx.core import events as ev
 from kx.core.event_payloads import RequirementSummary
 from kx.core.identity import phone_kind, sha256_hex
+from kx.crm._shared.journal import Actor, Emit, Timeline, record
 from kx.crm.company import service as company_svc
 from kx.crm.contacts import phone
 from kx.crm.deals import service as deal_svc
@@ -27,7 +28,6 @@ from kx.crm.deps import CrmDeps
 from kx.crm.models import Company, Contact, Deal, DealRequirement, Product
 from kx.crm.quotes.issuing import local_today
 from kx.crm.quotes.pdf import SummaryDocument, SummaryLine, summary_caption, summary_key, summary_phrase
-from kx.crm.services.journal import Actor, Emit, Timeline, record
 
 Route = Literal["whatsapp", "email"]
 

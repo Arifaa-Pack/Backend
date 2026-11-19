@@ -18,6 +18,7 @@ from kx.core.contracts import Channel, ContactPatch, DealStage, QualifyResult, R
 from kx.core.errors import Conflict, NotFound, RuleViolation
 from kx.core.event_payloads import DealNextActionSet, DealQualified, DealStageChanged
 from kx.core.identity import new_id, normalise_email, normalise_phone
+from kx.crm._shared.journal import Actor, Emit, Timeline, record
 from kx.crm.models import (
     Approval,
     ChangeRequest,
@@ -33,7 +34,6 @@ from kx.crm.models import (
     StageHistory,
 )
 from kx.crm.rules import OPEN_STAGES, QualificationFacts, check_transition, missing_fields
-from kx.crm.services.journal import Actor, Emit, Timeline, record
 
 IdentityKind = Literal["phone", "email"]
 NextActionReason = Literal["followup_d2", "followup_d5", "followup_d10", "reorder", "custom"]
