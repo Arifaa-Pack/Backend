@@ -1,0 +1,45 @@
+name: pr-labels
+
+# ADR-0001 Phase 0.3: label a pull request `cross-package` when it touches more than one packages/kx-* folder or
+# the cross-package contract files (contracts, events, event payloads), so the reviewers of every package look.
+# No checkout and no third-party action: the job only reads the PR's file list through the GitHub API, so running
+# on pull_request_target (needed for a token that can label PRs from forks) never executes the PR's code.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: pr-labels-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  cross-package:
+    name: cross-package label
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Decide and apply the label
+        run: |
+          set -euo pipefail
+          files="$(gh api --paginate "repos/$GH_REPO/pulls/$PR/files" --jq '.[].filename')"
+          packages="$(printf '%s\n' "$files" | sed -n 's#^packages/\(kx-[^/]*\)/.*#\1#p' | sort -u | wc -l)"
+          contracts="$(printf '%s\n' "$files" \
+            | grep -cE '^packages/kx-core-db/src/kx/core/(contracts|event_payloads|events)[^/]*$' || true)"
+          echo "packages touched: $packages, contract files: $contracts"
+          if [ "$packages" -gt 1 ] || [ "$contracts" -gt 0 ]; then
+            gh label create cross-package --color B60205 \
+              --description "Touches more than one package or a cross-package contract" --force
+            gh pr edit "$PR" --add-label cross-package
+          elif gh pr view "$PR" --json labels --jq '.labels[].name' | grep -qx cross-package; then
+            gh pr edit "$PR" --remove-label cross-package
+          fi
