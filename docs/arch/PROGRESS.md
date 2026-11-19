@@ -607,3 +607,48 @@ Mapping and order: `docs/arch/CRM_SLICES.md` (1.0, `9257af7`). How each slice is
   - unit: ============================ 124 passed in 22.01s =============================
   - full suite: run on this commit in the test worktree; result logged in the next entry
 - **Previous slice's full suite:** `inbound` @ `a4b8550`: errors=0, failures=0, skipped=4, tests=982, exit=0 → tagged `arch-slice/automation-inbound`, COMPLETED
+
+## 2.1–2.3 automation slices — COMPLETED
+
+| Slice | Commit | Full suite | Tag |
+| --- | --- | --- | --- |
+| `outbound` | `027295f` | tests=982, failures=0, errors=0, skipped=4, exit=0 | `arch-slice/automation-outbound` |
+| `inbound` | `a4b8550` | tests=982, failures=0, errors=0, skipped=4, exit=0 | `arch-slice/automation-inbound` |
+| `optout` | `bac4548` | tests=982, failures=0, errors=0, skipped=4, exit=0 | `arch-slice/automation-optout` |
+
+The three feature modules (`outbound.py`, `inbound.py`, `optout.py`) are byte-identical as `__init__.py` except
+`outbound`'s two import lines (`contact_hours`, `ratelimit` now under it), checked with `diff`.
+
+## 2.4 import contracts — TESTING
+
+- **Done:** seven new contracts in `pyproject.toml` (the existing three kept), generated from the real import graph
+  (grimp) so every baseline line is an import that exists today:
+  - CRM: the ORM (`kx.crm.models`) imports nothing above it (no baseline needed);
+  - CRM: `_shared` imports no slice, router assembly, gateway or job table (2 baseline lines:
+    `_shared.settings → company.service`, `_shared.schemas → quotes.pdf`);
+  - CRM rule 4 (`layers`, one container per slice with routers): routers above the service-side modules;
+  - CRM rule 5 (`independence` of the 21 slices): 74 baseline lines, each a direct service-level call between two
+    slices today (plus the `deps` / `_shared` / `gateway` edges through which those chains run), marked
+    `# baseline 2026-11-19: may only shrink`;
+  - automation: `outbound`, `inbound`, `optout` independent (1 baseline line: `inbound → optout`);
+  - rule 3: the app imports no ORM / query module (`kx.crm.models`, `kx.automation.models`, `kx.automation.repo`,
+    `kx.agents.orm`); 2 baseline lines (`container → kx.crm.models`, `cli → kx.crm.models`);
+  - CRM: the pricing maths (`engine`, `price_list`, `types`) imports no database, ORM, HTTP or Redis code.
+  `include_external_packages = true` so the last contract can name `sqlalchemy`, `httpx`, `redis`.
+- **Contracts proven to bite:** three deliberate violations (a service importing its router, `_shared` importing a
+  slice, the ORM importing the job table) broke 4 contracts; the files were restored.
+- **Gates:**
+  - ruff check: All checks passed!
+  - ruff format: 442 files already formatted
+  - mypy: Success: no issues found in 285 source files
+  - lint-imports: Contracts: 10 kept, 0 broken.
+  - kx map json: kx map: identical after renames (path-only diff)
+  - kx map --check: docs/FEATURE_MAP.md is current
+  - OpenAPI diff: empty
+  - unit: ============================ 124 passed in 21.07s =============================
+  - full suite: run on this commit; result logged in the next entry
+- **Deviations:** the brief's `layers` "router → service → repository → models" per slice: there are no
+  repository modules and the ORM is the shared layer (`CRM_SLICES.md`), so the per-slice contract has two layers
+  (routers; service-side modules) and the ORM rule is a separate `forbidden` contract. The `forbidden` contract on
+  `*.models` names the ORM modules explicitly because `kx.agents.models` is the LLM model router, not ORM
+  (`CURRENT_STATE.md` §4).

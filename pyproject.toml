@@ -90,6 +90,8 @@ ignore_missing_imports = true
 # Module boundaries: a package may not import another package's internals
 [tool.importlinter]
 root_packages = ["kx", "arifaa_pack"]
+# ADR-0001: lets a contract name third-party packages (the pure pricing maths may not import sqlalchemy ...)
+include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "core depends on nothing else in kx"
@@ -107,3 +109,230 @@ name = "platform never imports a client app"
 type = "forbidden"
 source_modules = ["kx.core", "kx.crm", "kx.automation", "kx.agents"]
 forbidden_modules = ["arifaa_pack"]
+
+# ---- ADR-0001 Phase 2: rules inside the packages (docs/adr/0001-modular-monolith-with-feature-slices.md) ----
+
+[[tool.importlinter.contracts]]
+name = "CRM: the ORM (kx.crm.models) imports nothing above it"
+type = "forbidden"
+source_modules = ["kx.crm.models"]
+forbidden_modules = [
+    "kx.crm.admin",
+    "kx.crm.approvals",
+    "kx.crm.assignment",
+    "kx.crm.auth",
+    "kx.crm.catalogue",
+    "kx.crm.change_requests",
+    "kx.crm.company",
+    "kx.crm.contacts",
+    "kx.crm.deals",
+    "kx.crm.handover",
+    "kx.crm.inbox",
+    "kx.crm.negotiation",
+    "kx.crm.operations",
+    "kx.crm.orders",
+    "kx.crm.pricing",
+    "kx.crm.quotes",
+    "kx.crm.records",
+    "kx.crm.reports",
+    "kx.crm.retention",
+    "kx.crm.screens",
+    "kx.crm.texts",
+    "kx.crm._shared",
+    "kx.crm.api",
+    "kx.crm.gateway",
+    "kx.crm.jobs",
+    "kx.crm.deps",
+]
+
+[[tool.importlinter.contracts]]
+name = "CRM: _shared imports no slice, router assembly, gateway or job table"
+type = "forbidden"
+source_modules = ["kx.crm._shared"]
+forbidden_modules = [
+    "kx.crm.admin",
+    "kx.crm.approvals",
+    "kx.crm.assignment",
+    "kx.crm.auth",
+    "kx.crm.catalogue",
+    "kx.crm.change_requests",
+    "kx.crm.company",
+    "kx.crm.contacts",
+    "kx.crm.deals",
+    "kx.crm.handover",
+    "kx.crm.inbox",
+    "kx.crm.negotiation",
+    "kx.crm.operations",
+    "kx.crm.orders",
+    "kx.crm.pricing",
+    "kx.crm.quotes",
+    "kx.crm.records",
+    "kx.crm.reports",
+    "kx.crm.retention",
+    "kx.crm.screens",
+    "kx.crm.texts",
+    "kx.crm.api",
+    "kx.crm.gateway",
+    "kx.crm.jobs",
+]
+allow_indirect_imports = true
+ignore_imports = [
+    "kx.crm._shared.schemas -> kx.crm.quotes.service",
+    "kx.crm._shared.settings -> kx.crm.company.service",
+]  # baseline 2026-11-19: may only shrink
+
+[[tool.importlinter.contracts]]
+name = "CRM rule 4: inside each slice the routers sit above the service code"
+type = "layers"
+containers = [
+    "kx.crm.admin",
+    "kx.crm.assignment",
+    "kx.crm.auth",
+    "kx.crm.catalogue",
+    "kx.crm.change_requests",
+    "kx.crm.company",
+    "kx.crm.deals",
+    "kx.crm.operations",
+    "kx.crm.quotes",
+    "kx.crm.records",
+    "kx.crm.reports",
+    "kx.crm.screens",
+    "kx.crm.texts",
+]
+layers = [
+    "(router) : (actions_router) : (users_router)",
+    "(service) : (issuing) : (grants) : (pdf) : (workbook) : (dashboards) : (scheduled) : (summary) : (lost_proposals) : (session_guard) : (throttle) : (consent) : (phone) : (fx) : (proposals) : (price_list_service)",
+]
+
+[[tool.importlinter.contracts]]
+name = "CRM rule 5: feature slices are independent; today's service-level calls are the baseline"
+type = "independence"
+modules = [
+    "kx.crm.admin",
+    "kx.crm.approvals",
+    "kx.crm.assignment",
+    "kx.crm.auth",
+    "kx.crm.catalogue",
+    "kx.crm.change_requests",
+    "kx.crm.company",
+    "kx.crm.contacts",
+    "kx.crm.deals",
+    "kx.crm.handover",
+    "kx.crm.inbox",
+    "kx.crm.negotiation",
+    "kx.crm.operations",
+    "kx.crm.orders",
+    "kx.crm.pricing",
+    "kx.crm.quotes",
+    "kx.crm.records",
+    "kx.crm.reports",
+    "kx.crm.retention",
+    "kx.crm.screens",
+    "kx.crm.texts",
+]
+ignore_imports = [
+    "kx.crm.admin.router -> kx.crm.approvals.service",
+    "kx.crm.admin.router -> kx.crm.assignment.service",
+    "kx.crm.admin.router -> kx.crm.pricing.proposals",
+    "kx.crm.approvals.service -> kx.crm.change_requests.service",
+    "kx.crm.approvals.service -> kx.crm.deals.service",
+    "kx.crm.approvals.service -> kx.crm.quotes.grants",
+    "kx.crm.approvals.service -> kx.crm.quotes.issuing",
+    "kx.crm.assignment.router -> kx.crm.deals.router",
+    "kx.crm.assignment.router -> kx.crm.deals.service",
+    "kx.crm.assignment.router -> kx.crm.quotes.service",
+    "kx.crm.assignment.service -> kx.crm.approvals.service",
+    "kx.crm.assignment.service -> kx.crm.change_requests.service",
+    "kx.crm.catalogue.workbook -> kx.crm.pricing.price_list_service",
+    "kx.crm.catalogue.workbook -> kx.crm.pricing.service",
+    "kx.crm.change_requests.router -> kx.crm.deals.router",
+    "kx.crm.change_requests.router -> kx.crm.deals.service",
+    "kx.crm.change_requests.router -> kx.crm.quotes.service",
+    "kx.crm.change_requests.service -> kx.crm.deals.service",
+    "kx.crm.change_requests.service -> kx.crm.quotes.issuing",
+    "kx.crm.change_requests.service -> kx.crm.quotes.service",
+    "kx.crm.company.service -> kx.crm.quotes.pdf",
+    "kx.crm.deals.actions_router -> kx.crm.contacts.consent",
+    "kx.crm.deals.actions_router -> kx.crm.handover.service",
+    "kx.crm.deals.actions_router -> kx.crm.orders.service",
+    "kx.crm.deals.router -> kx.crm.approvals.service",
+    "kx.crm.deals.router -> kx.crm.assignment.service",
+    "kx.crm.deals.router -> kx.crm.change_requests.service",
+    "kx.crm.deals.router -> kx.crm.negotiation.service",
+    "kx.crm.deals.router -> kx.crm.quotes.service",
+    "kx.crm.deals.summary -> kx.crm.company.service",
+    "kx.crm.deals.summary -> kx.crm.contacts.phone",
+    "kx.crm.deals.summary -> kx.crm.quotes.issuing",
+    "kx.crm.deals.summary -> kx.crm.quotes.pdf",
+    "kx.crm.handover.service -> kx.crm.company.service",
+    "kx.crm.handover.service -> kx.crm.deals.service",
+    "kx.crm.handover.service -> kx.crm.quotes.grants",
+    "kx.crm.handover.service -> kx.crm.quotes.issuing",
+    "kx.crm.inbox.service -> kx.crm.approvals.service",
+    "kx.crm.inbox.service -> kx.crm.change_requests.service",
+    "kx.crm.negotiation.service -> kx.crm.deals.service",
+    "kx.crm.negotiation.service -> kx.crm.pricing.engine",
+    "kx.crm.negotiation.service -> kx.crm.pricing.price_list",
+    "kx.crm.negotiation.service -> kx.crm.pricing.service",
+    "kx.crm.negotiation.service -> kx.crm.pricing.types",
+    "kx.crm.negotiation.service -> kx.crm.quotes.issuing",
+    "kx.crm.negotiation.service -> kx.crm.quotes.service",
+    "kx.crm.orders.service -> kx.crm.deals.service",
+    "kx.crm.orders.service -> kx.crm.quotes.grants",
+    "kx.crm.orders.service -> kx.crm.quotes.service",
+    "kx.crm.quotes.grants -> kx.crm.deals.service",
+    "kx.crm.quotes.issuing -> kx.crm.company.service",
+    "kx.crm.quotes.issuing -> kx.crm.contacts.phone",
+    "kx.crm.quotes.issuing -> kx.crm.deals.service",
+    "kx.crm.quotes.router -> kx.crm.approvals.service",
+    "kx.crm.quotes.router -> kx.crm.deals.service",
+    "kx.crm.quotes.service -> kx.crm.approvals.service",
+    "kx.crm.quotes.service -> kx.crm.deals.service",
+    "kx.crm.quotes.service -> kx.crm.pricing.engine",
+    "kx.crm.quotes.service -> kx.crm.pricing.price_list",
+    "kx.crm.quotes.service -> kx.crm.pricing.service",
+    "kx.crm.quotes.service -> kx.crm.pricing.types",
+    "kx.crm.records.router -> kx.crm.deals.router",
+    "kx.crm.reports.router -> kx.crm.deals.router",
+    "kx.crm.retention.service -> kx.crm.deals.service",
+    "kx.crm.screens.router -> kx.crm.inbox.service",
+    "kx.crm.screens.router -> kx.crm.orders.service",
+    "kx.crm.screens.router -> kx.crm.pricing.price_list_service",
+    "kx.crm.screens.router -> kx.crm.reports.dashboards",
+    "kx.crm._shared.schemas -> kx.crm.quotes.service",
+    "kx.crm._shared.settings -> kx.crm.company.service",
+    "kx.crm.deps -> kx.crm.auth.throttle",
+    "kx.crm.deps -> kx.crm.pricing.fx",
+    "kx.crm.deps -> kx.crm.quotes.pdf",
+    "kx.crm.handover.service -> kx.crm.gateway",
+]  # baseline 2026-11-19: may only shrink
+
+[[tool.importlinter.contracts]]
+name = "automation: feature slices are independent"
+type = "independence"
+modules = [
+    "kx.automation.outbound",
+    "kx.automation.inbound",
+    "kx.automation.optout",
+]
+ignore_imports = [
+    "kx.automation.inbound -> kx.automation.optout",
+]  # baseline 2026-11-19: may only shrink
+
+[[tool.importlinter.contracts]]
+name = "rule 3: the app imports no ORM or query module (only the packages' public code)"
+type = "forbidden"
+source_modules = ["arifaa_pack"]
+forbidden_modules = ["kx.crm.models", "kx.automation.models", "kx.automation.repo", "kx.agents.orm"]
+allow_indirect_imports = true
+ignore_imports = [
+    "arifaa_pack.cli -> kx.crm.models",
+    "arifaa_pack.container -> kx.crm.models",
+]  # baseline 2026-11-19: may only shrink
+
+[[tool.importlinter.contracts]]
+name = "CRM: the pricing maths stays pure (no database, no ORM, no I/O)"
+type = "forbidden"
+source_modules = ["kx.crm.pricing.engine", "kx.crm.pricing.price_list", "kx.crm.pricing.types"]
+forbidden_modules = ["sqlalchemy", "kx.core.db", "kx.crm.models", "kx.crm._shared", "httpx", "redis"]
+
