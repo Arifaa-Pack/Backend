@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from kx.automation.channels import ChannelError, HttpRetry
 from kx.automation.settings import WhatsAppSettings
-from kx.core.identity import constant_time_equals, hmac_sha256_hex, normalise_phone, try_normalise_phone
+from kx.core.identity import constant_time_equals, hmac_sha256_hex, try_normalise_phone
 from kx.core.logging import get_logger
 
 log = get_logger(__name__)
@@ -278,13 +278,9 @@ def _status(phone_number_id: str, s: _Status) -> WaStatus | None:
     )
 
 
-def wa_id_to_e164(wa_id: str) -> str:
-    """wa_id is the international number without '+'; normalise so it hashes like CRM contacts."""
-    return normalise_phone(wa_id if wa_id.startswith("+") else f"+{wa_id}")
-
-
 def try_wa_id_to_e164(wa_id: str) -> str | None:
-    """`wa_id_to_e164`, or None when Meta sends an id that is not a valid number."""
+    """wa_id is the international number without '+'; normalise it so it hashes like CRM contacts. None
+    when Meta sends an id that is not a valid number."""
     return try_normalise_phone(wa_id if wa_id.startswith("+") else f"+{wa_id}")
 
 

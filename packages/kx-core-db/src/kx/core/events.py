@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import Any, Final
 
@@ -172,10 +172,6 @@ class InMemoryBus:
         self.published.append(event)
         for handler in self._subs.get(event.event_type, ()):
             await handler(event)
-
-    @property
-    def subscriptions(self) -> Mapping[str, list[Handler]]:
-        return self._subs
 
 
 _SCHEMAS: Final = frozenset({"crm", "automation", "agents"})

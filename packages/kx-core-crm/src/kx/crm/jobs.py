@@ -404,13 +404,7 @@ async def _deal_for_message(session: AsyncSession, m: MessageReceived) -> Deal |
         contact_id = c.id
     if contact_id is None:
         return None
-    stmt = (
-        select(Deal)
-        .where(Deal.primary_contact_id == contact_id)
-        .order_by(Deal.stage.in_([s.value for s in OPEN_STAGES]).desc(), Deal.created_at.desc())
-        .limit(1)
-    )
-    return (await session.execute(stmt)).scalar_one_or_none()
+    return await _latest_deal(session, contact_id)
 
 
 HANDLERS: Final[dict[str, EventHandler]] = {

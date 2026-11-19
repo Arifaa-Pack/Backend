@@ -32,15 +32,6 @@ async def md_user(session: AsyncSession) -> User:
     return md
 
 
-async def manager_for(session: AsyncSession, deal: Deal) -> User:
-    """The deal owner if they are a manager/MD, else the first active manager (MD as last resort)."""
-    if deal.owner_user_id is not None:
-        owner = await session.get(User, deal.owner_user_id)
-        if owner is not None and owner.is_active and owner.role in APPROVER_ROLES:
-            return owner
-    return await first_active(session, "manager") or await md_user(session)
-
-
 async def manager_user(session: AsyncSession) -> User:
     """D2: the manager (escalations, notices, special prices); the MD only if no manager is configured."""
     return await first_active(session, "manager") or await md_user(session)

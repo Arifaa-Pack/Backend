@@ -487,15 +487,8 @@ def summary_phrase(doc: SummaryDocument) -> str:
 
 def summary_caption(doc: SummaryDocument) -> str:
     """The WhatsApp / email words that carry the summary (never a code, never "verify", §8.2 step 5)."""
-    parts = [
-        " ".join(x for x in (fmt_qty(ln.quantity) if ln.quantity else None, ln.description) if x)
-        for ln in doc.lines
-    ]
-    place = doc.delivery_city or doc.delivery_country
-    if place:
-        parts.append(TEXTS.get("buyer.summary_delivery_to", doc.lang, place=place))
     return TEXTS.get(
-        "buyer.summary_caption", doc.lang, name=doc.buyer_name or "", summary=", ".join(p for p in parts if p)
+        "buyer.summary_caption", doc.lang, name=doc.buyer_name or "", summary=summary_phrase(doc)
     )
 
 

@@ -117,9 +117,6 @@ class EventBus:
     def route(self, event_type: str, task: str) -> None:
         self._routes.setdefault(event_type, []).append(task)
 
-    def subscribers(self, event_type: str) -> tuple[str, ...]:
-        return tuple(self._routes.get(event_type, ()))
-
     async def publish(self, event: Event) -> None:
         payload = {"event": event.model_dump(mode="json")}
         for task in self._routes.get(event.event_type, ()):

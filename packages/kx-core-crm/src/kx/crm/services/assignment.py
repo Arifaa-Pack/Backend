@@ -25,7 +25,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Final, Literal
 
-from sqlalchemy import func, select, text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kx.core import events as ev
@@ -398,13 +398,3 @@ async def set_availability(
         await approvals.reroute_open(session, deps, deal, actor)
         await change_requests.reroute(session, deps, deal, actor)
     return user
-
-
-async def load_by_owner(session: AsyncSession) -> dict[uuid.UUID | None, int]:
-    """Open deals per owner (dashboard / tests)."""
-    rows = await session.execute(
-        select(Deal.owner_user_id, func.count())
-        .where(Deal.stage.not_in(_CLOSED))
-        .group_by(Deal.owner_user_id)
-    )
-    return {owner: int(n) for owner, n in rows.tuples()}
