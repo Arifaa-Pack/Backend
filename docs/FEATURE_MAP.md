@@ -189,7 +189,7 @@ other mapping files, and this table is updated with each move.
 | PUT | `/v1/feature-flags/{key}` | `kx.crm.api.admin:router.<locals>.put_flag` | - |
 | GET | `/v1/fx-rates` | `kx.crm.records.router:router.<locals>.fx_rates` | - |
 | POST | `/v1/fx-rates` | `kx.crm.records.router:router.<locals>.fx_override` | `kx.crm.services.journal:record` |
-| GET | `/v1/inbox` | `kx.crm.api.screens:router.<locals>.my_inbox` | `kx.crm.services.inbox:inbox_for` |
+| GET | `/v1/inbox` | `kx.crm.api.screens:router.<locals>.my_inbox` | `kx.crm.inbox.service:inbox_for` |
 | GET | `/v1/materials/freshness` | `kx.crm.api.admin:router.<locals>.freshness` | `kx.crm.pricing.proposals:material_freshness` |
 | GET | `/v1/orders` | `kx.crm.records.router:router.<locals>.orders` | `kx.crm.api.deals:visible_to`<br>`kx.crm.api.pagination:keyset`<br>`kx.crm.api.pagination:page_of` |
 | GET | `/v1/price-list/export` | `kx.crm.api.screens:router.<locals>.export_price_list` | `kx.crm.pricing.price_list_service:export_xlsx` |
