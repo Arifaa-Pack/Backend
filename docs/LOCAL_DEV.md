@@ -62,3 +62,18 @@ DB tests talk to Postgres directly (port 5432). To run the suite through PgBounc
 ## 5. Free version locally
 
 With `KX_PLATFORM_PLAN=free` (the `.env.example` default for local) no paid key is needed except the Claude key for real AI replies; without it the AI gives the safe reply and hands over. Voice: `make up-voice`, then open the website's voice page against `http://localhost:8000`.
+
+## 6. The website against the local stack (live test, 20 Nov)
+
+The live-test stack (`live-test/compose/live.yml`, API on `:38000`) runs the website API, the CMS and the AI.
+
+1. Rebuild the image after any code change: `docker build -t kxlive/app:local .`, then
+   `docker compose -p kxlive -f live-test/compose/live.yml --env-file .env up -d --force-recreate api worker worker-ai beat`.
+2. Load the content once: `docker exec kxlive-api-1 kx content import-site`; the ERP list:
+   `cat export.tsv | docker exec -i kxlive-api-1 sh -c 'cat > /tmp/erp.tsv && kx catalogue import-erp /tmp/erp.tsv'`.
+3. The website: clone Arifa-Pack **outside this repo**, `npm install`, `.env.local` with
+   `NEXT_PUBLIC_ARIFA_API_URL=http://localhost:38000`, then `npx next dev --port 3100` (the stack allows that origin).
+   To see the page move, `git apply docs/handoff/website-adapter/arifa-site-actions.patch` in that clone.
+4. Tests: `python live-test/scripts/website_live_api.py`; the browser run `live-test/scripts/website_live_browser.mjs`
+   (playwright-core outside the repo; `PW_DIR`, `CHROME`). Root tests that need Redis use `KX_TEST_REDIS_URL`
+   (the whole-app test `tests/integration/test_whole_app_flow.py`).

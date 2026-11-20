@@ -56,7 +56,7 @@ to durable jobs, DB bootstrap script (6 runs), actionlint, hadolint, shellcheck,
 **Not run in this sandbox** (blocked downloads / no daemon / no accounts) — run these first:
 1. `terraform init / validate / plan` for each env (registry blocked here).
 2. `docker build` (no Docker daemon).
-3. Live calls: Meta WhatsApp, SES, Twilio, Bedrock, Anthropic API, Langfuse, Payload CMS, Titan embeddings.
+3. Live calls: Meta WhatsApp, SES, Twilio, Bedrock, Anthropic API, Langfuse, Payload CMS (since replaced by the `kx.cms` package, D54), Titan embeddings.
 4. Voice worker: LiveKit speech plugins (`livekit-plugins-elevenlabs/-sarvam/-azure/-silero`) are not in the
    lock yet; the routing table is tested, the live worker is not.
 

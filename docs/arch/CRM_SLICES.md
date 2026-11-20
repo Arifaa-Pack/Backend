@@ -36,6 +36,7 @@ Order = the order of the moves (least depended-on first, `_shared/` last). One c
 | 6 | `catalogue` | `services/catalogue.py` | `catalogue/service.py` |
 | | | `services/workbook.py` | `catalogue/workbook.py` |
 | | | `api/catalogue_workbook.py` | `catalogue/router.py` |
+| | | (new, 19 Nov, D61) | `catalogue/erp_import.py` (the ERP stock list), `catalogue/variants.py` (website product ↔ ERP items) |
 | 7 | `pricing` (existing package) | `services/pricing.py` | `pricing/service.py` |
 | | | `services/price_lists.py` | `pricing/price_list_service.py` |
 | | | `services/fx.py` | `pricing/fx.py` |

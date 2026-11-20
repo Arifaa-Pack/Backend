@@ -53,16 +53,17 @@ schedule table), `models.py` (ORM), `repo.py` (queries), `retention.py`, `__init
 | `runtime/` | The turn engine: one inbound buyer turn → route → one idempotent run → guarded reply; run bookkeeping, per-run context, the role middleware | `service.py` (AgentService, GraphRunner), `runs.py`, `context.py`, `middleware.py` | `service.py`, `runs.py`, `context.py`, `middleware.py` |
 | `router/` | The deterministic router (the Orchestrator role): which graph answers; no LLM decides | `service.py` | `orchestrator.py` |
 | `graphs/` | LangGraph graphs: conversation, quotation (interrupt / resume), deal | `conversation.py`, `quotation.py`, `deal.py`, `compose.py` | (unchanged) |
-| `tools/` | Agent tools over the CrmGateway and the knowledge base | `service.py` | `tools.py` |
-| `guard/` | The reply guard: prices, cost wording, injection, length (§11.1; fails closed) | `service.py` | `guard.py` |
+| `tools/` | Agent tools over the CrmGateway and the knowledge base; the site, catalogue and specialist tools (D55, D56, D61) | `service.py`, `site.py` | `tools.py` |
+| `guard/` | The reply guard: prices, cost wording, injection, length (§11.1; fails closed); the claims guard (no invented certificates or capacities) and the language guard (live test 20 Nov) | `service.py`, `claims.py`, `language.py` | `guard.py` |
 | `llm/` | Model factory: tier → chat model, the provider fallback (D27, D51) | `service.py` | `models.py` (the LLM router, not the ORM) |
 | `roles/` | The 12 sales roles as data, and the buyer languages (T17) | `registry.py`, `language.py` | `registry.py`, `language.py` |
 | `knowledge/` | Hybrid knowledge search over approved CMS content, and the indexer | `service.py` | `knowledge.py` |
 | `memory/` | Conversation memory: recent turns, rolling summary, the LangGraph checkpointer | `service.py` | `memory.py` |
-| `voice/` | Speech vendor routing by language, the LiveKit worker entrypoint (D52) | `service.py` | `voice.py` |
-| `website/` | §6 website conversation API (D39 public-endpoint protection) | `router.py` | `website.py` |
+| `voice/` | Speech vendor routing by language, the LiveKit worker entrypoint (D52); the bridge that makes a call the visit's own turn (WP-C5) | `service.py`, `bridge.py` | `voice.py` |
+| `website/` | §6 website conversation API (D39 public-endpoint protection): context in, site actions out, SSE, events, contact card, enquiry desk (WP-C3) | `router.py`, `service.py` (the turn, nudges), `enquiry.py` (the desk's fields → CRM) | `website.py` |
+| `site/` | The site map resolver and the site actions (D55, D57): the website's place, the instant layer, every action checked against the CMS site map | `models.py`, `resolver.py`, `actions.py` | (new, 19 Nov) |
 | `tracing/` | AI audit trail over OpenTelemetry (D46) | `service.py` | `tracing.py` |
-| `evals/` | §23 eval scenarios and trick prompts | `harness.py`, `scenarios/` | (unchanged) |
+| `evals/` | §23 eval scenarios and trick prompts; the site navigation cases (`site_nav/cases.json`, checked by `tests/integration/test_site_nav_eval.py`) | `harness.py`, `scenarios/`, `site_nav/` | (unchanged) |
 
 **Package level:** `handlers.py` (event reactions), `orm.py` (ORM), `retention.py`, `testing.py` (test doubles
 shipped with the package), `__init__.py` (public surface).
@@ -115,3 +116,12 @@ None of them works any more. The table of every old path and its new path is in 
 3. Its tests: search the package's `tests/` folder (and `tests/` at the root) for the slice's import path,
    e.g. `grep -rln "kx.automation.alerts" packages/kx-core-automation/tests tests`. Where it is wired:
    `apps/arifaa-pack/src/arifaa_pack/container.py`.
+
+## `kx.cms` (19 Nov, D54, ADR-0003)
+
+The CMS is its own package with the same rules (feature folders, a public surface, layers in `pyproject.toml`):
+`content/` (`service.py` drafts / publish / versions, `schemas.py` the content model, `reader.py`, `public_router.py`
+`/v1/content/*`, `admin_router.py` `/v1/cms/*`, `drafts.py` product drafts from the CRM workbook), `media/` (R2
+presigned uploads), `manifest/` (the site map), `preview/`, `publish/` (website revalidation), `site_import/`,
+`_shared/` (access, journal, localisation, paths), `models.py` (ORM), `deps.py`. Layers: routers > import / drafts >
+manifest > reads > writes > `_shared` > ORM.

@@ -1,5 +1,8 @@
 # Current state (recon, Phase 0.0)
 
+> Historical snapshot (19 Nov, before the restructure and the CMS package). Today's map: `docs/FEATURE_MAP.md`
+> (`kx map`), `docs/ARCHITECTURE.md`.
+
 Snapshot of `main` at `2389b0d` (19 Nov), taken on branch `arch/phase0-tooling` before any code moves.
 Purpose: the starting point for the feature-slice restructuring (`docs/adr/0001-modular-monolith-with-feature-slices.md`).
 

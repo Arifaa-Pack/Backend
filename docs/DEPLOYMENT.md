@@ -6,12 +6,12 @@ Server stacks and runbooks: `infra/server/README.md`. Platforms, paid / free ver
 
 | Runs | Compose stack | What |
 |---|---|---|
-| `api` | `compose.app.yml` | CRM API `/v1`, staff login `/v1/auth`, website API `/v1/public`, webhooks `/webhooks/{whatsapp,telnyx,cms}`, `/.well-known/jwks.json`, `/healthz`, `/healthz/beat` |
+| `api` | `compose.app.yml` | CRM API `/v1`, staff login `/v1/auth`, website API `/v1/public`, CMS `/v1/content` (public) and `/v1/cms` (editors), webhooks `/webhooks/{whatsapp,telnyx,cms}` (`cms` = the old Payload webhook until D54 is approved), `/.well-known/jwks.json`, `/healthz`, `/healthz/beat` |
 | `worker` | `compose.app.yml` | Celery worker (concurrency 3): deliveries, ladder steps, follow-ups, event handlers, ingest, mail poll, retention |
 | `beat` | `compose.app.yml`, **exactly 1** | sweeps `automation.scheduled_jobs` every 30 s, relays outboxes every 5 s, periodic jobs, heartbeat to Redis |
 | `voice` | `compose.app.yml` | LiveKit agent worker (paid: Deepgram / ElevenLabs → free fallback; free: speech server) |
 | `redis` | `compose.app.yml` | Celery broker, rate limits, kill switches, spend counters (`noeviction`, AOF) |
-| `cms` | `compose.app.yml` | Payload CMS (Node), database `pack_cms` |
+| `cms` | `compose.app.yml` | **Payload, to be removed once D54 is approved** (OPEN_QUESTIONS #79): since 19 Nov the CMS is the `kx.cms` package inside `api`, database `pack_cms`; the website reads `/v1/content/*` |
 | `web`, `crm-web` | `compose.app.yml` profile `selfhost-web` | only in the free hosting version (otherwise Vercel Pro) |
 | `postgres`, `pgbouncer` | `compose.data.yml` | PostgreSQL 18 + pgvector, WAL-G to R2; PgBouncer (transaction mode) |
 | `phoenix-postgres` | `compose.obs.yml` | Phoenix's own database (Telemetry tier) |
@@ -99,3 +99,15 @@ Unchanged: changed in the CRM by the manager, MD or admin, not through env vars.
 - **faster-whisper Small** measured on the server; set `KX_APP_VOICE_MAX_CONCURRENT_FREE` (OPEN #72).
 - **Backups:** WAL-G running, first restore test done (`infra/server/runbooks/restore.md`).
 - Live switch-off test of every vendor, once in `paid` and once in `free` (Fallback plan, "Test before go-live").
+
+## Website and CMS settings (19–20 Nov, D54–D61)
+
+| Setting | Value | Why |
+|---|---|---|
+| `KX_APP_CORS_PUBLIC_ORIGINS` | `["https://www.arifapack.com","https://arifapack.com"]` | the website calls `/v1/public/*` and `/v1/content/*` from the browser |
+| `KX_APP_WEBSITE_URL`, `KX_APP_WEBSITE_REVALIDATE_SECRET` | the site's address; a long random secret shared with the site | every CMS publish asks the site to refresh (HMAC-signed) |
+| `KX_APP_MEDIA_PUBLIC_URL` | the R2 media bucket's public address (e.g. `https://media.arifapack.com`) | images in CMS content |
+| `KX_CMS_DSN`, `KX_MIGRATE_CMS_DSN` | the `pack_cms` database | the CMS package's own database |
+
+After the first deploy: `kx content import-site` (the current website into the CMS, idempotent) and
+`kx catalogue import-erp <export>` (the ERP stock list; `--dry-run` first).

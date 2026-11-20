@@ -145,7 +145,7 @@ The platform code is built, connected and tested. It is in `kairox-platform-v1.z
 **NOT yet verified (do first):**
 1. `terraform init/validate/plan` (registry was blocked in the sandbox).
 2. `docker build` (there was no Docker daemon).
-3. Live API calls: Meta WhatsApp, SES, Twilio, Bedrock, Anthropic, Langfuse, Payload CMS, Titan embeddings.
+3. Live API calls: Meta WhatsApp, SES, Twilio, Bedrock, Anthropic, Langfuse, Payload CMS (since replaced by the `kx.cms` package, D54), Titan embeddings.
 4. Voice: the LiveKit speech plugins (ElevenLabs, Sarvam, Azure, Silero) still need adding to the lock. Only the routing table is tested.
 
 ## 3. Key dates (Mon–Sat, 9 h/day; Fri 25 Dec holiday)
@@ -172,7 +172,7 @@ Weekly reporting to the CEO is one report covering both projects: the Monday pla
 | **Ismail** | Auto backend on shared core; test lead for both; shared automation module | Own `kx.automation` (live WhatsApp/SES/Twilio tests, SNS, templates); test lead; then Auto backend |
 | **Habib** | Pack agents except orchestrator + Commercial Approval | Own `kx.agents` for Pack: prompts per role and language, live-model evals, KB content indexing, voice worker + LiveKit plugins |
 | **Mahalakshmi** | Auto agents likewise | Review `kx.crm` (pricing, negotiation, PDF) now; Auto agents after the 14 Nov sign-off |
-| **Rizwan** | Both websites (design + 3D) | Website + "Enter the factory" + LiveKit client; Payload CMS collections (they feed the KB) |
+| **Rizwan** | Both websites (design + 3D) | Website + "Enter the factory" + LiveKit client; since 20 Nov: the website on the CMS content API and the assistant's site actions (`docs/handoff/FRONTEND_GUIDE.md`, the adapter patch) |
 | **Nishath** | CRM frontend for both | CRM screens against `/v1` API (OpenAPI from FastAPI); MFA login (Cognito) |
 | **Flex member** (name TBD) | Content entry, daily testing, UAT scripts, user guides | Same, plus eval scenarios in `kx/agents/evals` and the UAT checklist from the business flow below |
 
@@ -242,7 +242,8 @@ The full detail, with 27 sections (incl. §7A) and 10 worked scenarios, is in **
 > outbox, the send grant and the deterministic router are unchanged.
 - **Repos:**
   - Backend: `kairox-platform`, a uv workspace with 4 packages and one app per client.
-  - Frontend: separate repo, Next.js 16 + React 19 + Payload 3.92.
+  - Frontend: separate repo (Arifa-Pack), Next.js 16 + React 19. The CMS is no longer Payload: it is the
+    `kx.cms` package in this repo (D54, 19 Nov).
   - Packages are published to GitHub Packages (CodeArtifact is not in me-central-1).
 - **Packages never import each other** (import-linter enforces this). They talk through Protocols in `kx.core.contracts` (CrmGateway, GrantConsumer, MessageSender) and versioned events.
 - **One image, 4 ECS Fargate ARM64 services** in me-central-1, zones az1 + az3:

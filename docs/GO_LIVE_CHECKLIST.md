@@ -18,6 +18,8 @@ Flash as the Claude standby, MD and admin created at launch (the admin adds ever
 | A7 | **Telnyx** (ready) | TeXML application, the UAE caller-ID number, API key, account SID, webhook public key | `KX_AUTO_TELNYX__*` |
 | A8 | **Turnstile** (Cloudflare) | Site key for the website, secret for the API | `KX_APP_TURNSTILE_SECRET_KEY` |
 | A9 | **UptimeRobot** (free) | Account for outside checks | — |
+| A11 | **Media address** (Cloudflare) | a custom domain on the R2 media bucket, e.g. `media.arifapack.com` (OPEN_QUESTIONS #84) | `KX_APP_MEDIA_PUBLIC_URL` |
+| A12 | **Website hand-off** (Rizwan) | the website's address and a revalidate secret shared with it; FRONTEND_GUIDE steps 1–8 done (text box, site actions, streaming, enquiry desk, contact card, CMS content) | `KX_APP_WEBSITE_URL`, `KX_APP_WEBSITE_REVALIDATE_SECRET`, `KX_APP_CORS_PUBLIC_ORIGINS` |
 | A10 | **Arifa** | VAT **TRN** (15 digits), bank details for quotes (account name, bank, IBAN, SWIFT), logo (PNG / JPEG, < 200 KB), MD and admin names / emails / mobiles | CRM screens (section E) |
 
 ## B. DNS records (Cloudflare)
@@ -118,8 +120,14 @@ creates a new version (`name_v2`) for Meta; the approved one keeps sending.
 1. The MD signs in, enrols the authenticator app, creates the manager and salespeople (or the admin does).
 2. **Company details**: TRN, phone, email, address, logo, bank details (the MD and manager get an alert for the
    bank change: expected). Production will not start until the TRN is set here or in company.yaml.
-3. **Product workbook**: Catalogue > Product workbook > Download, fill products + price tiers, Upload, check the
-   preview, Apply. Then a manager publishes the product drafts in the CMS.
+3. **Website content and products**: `kx content import-site` loads today's website into the CMS (once). Then
+   `kx catalogue import-erp <export> --dry-run`, then without `--dry-run`: the ERP items become the variants of
+   the website products (check the unlinked ones and link them: Catalogue > Products > website link). Then the
+   **product workbook**: Catalogue > Product workbook > Download, fill price tiers, Upload, check the preview,
+   Apply. Editors (role `content_editor`) review the content in the CMS and publish.
+3a. **Approved facts for the AI** (OPEN_QUESTIONS #87, #88): certificates, capacity, machines, lead times and
+   product specifications in the CMS (`certificates`, `faqs`, product `specs`); without them the AI answers
+   "our team will confirm".
 4. **Message texts**: Settings > Message texts > "Translate all missing"; the reviewer checks Arabic and the
    other languages there (start from `docs/translations/Translation review 18 Nov.xlsx`).
 5. Business settings: alert hours, quote validity, spend caps (defaults kept), FX currencies if any country maps
@@ -136,6 +144,9 @@ creates a new version (`name_v2`) for Meta; the approved one keeps sending.
 | Calls | `click-to-call` to a du and an e& mobile; an approval-alert call | both connect |
 | Voice (website) | a browser call in English and Arabic, from a network outside the office (signalling through Cloudflare, media direct); one call held 5+ minutes | agent answers within 2 s; no drop |
 | Workbook | download -> change one price -> upload -> apply | new price on the next quote |
+| Website assistant | `live-test/scripts/website_live_api.py` against the server, then the six browser turns of `website_live_browser.mjs` on the real site | page moves in < 0.2 s (streamed), no price, no invented fact, Arabic answered in Arabic |
+| CMS publish | edit a product, publish | the website shows it within a minute; the AI uses the new name |
+| Enquiry desk | send the Contact page form | a `web_form` deal with its salesperson and the English note |
 | Monitoring | stop the worker 3 minutes | UptimeRobot `/healthz/beat` alert, SigNoz shows it |
 | Backup | restore test (`infra/server/runbooks/restore.md`) | data back |
 | Switch-offs | each vendor off once (Fallback plan) | safe reply / hand-over, never silence |

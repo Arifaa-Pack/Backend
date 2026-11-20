@@ -1,4 +1,4 @@
-# Architecture (16 Nov v2)
+# Architecture (16 Nov v2; website AI, CMS package and ERP variants added 20 Nov)
 
 This replaces `docs/Architecture-and-System-Design.docx` (12 Nov, AWS). Business rules: the SRS. Platforms: the server plan v2. Database: `docs/DATABASE.md`. Paid / free switch: `docs/PLATFORM_MODES.md`.
 
@@ -56,7 +56,7 @@ Inside each package the code is organised by feature (slice folders; a public su
 
 | Process | Command | Replicas | Does |
 | --- | --- | --- | --- |
-| api | `kx api` | 1–2 | HTTP: CRM API, website API, webhooks (Meta, Telnyx, CMS), health |
+| api | `kx api` | 1–2 | HTTP: CRM API, website API (`/v1/public`, SSE), CMS (`/v1/content` public, `/v1/cms` editors), webhooks (Meta, Telnyx; the old Payload CMS webhook until D54 is approved), health |
 | worker | `kx worker` | 1 (concurrency 3) | Celery tasks: outbox relays, sends, AI runs, PDFs, ingest, mail poll, retention |
 | beat | `kx beat` | **exactly 1** | sweeps the PostgreSQL schedule table every 30 s, periodic jobs, heartbeat |
 | voice | `kx voice` | 1 (idle processes 2) | LiveKit agent: website voice calls |
@@ -81,12 +81,17 @@ Quotes are built by the backend (§11.1); the AI never calculates or types a pri
 ## 5. Website voice call
 
 ```
-browser ─(Turnstile, consent)─► api /v1/public/voice/token ─► LiveKit room
+browser ─(Turnstile, consent)─► api /v1/public/sessions/{id}/voice ─► LiveKit room web-{session}
 LiveKit server ◄──► voice worker (AgentSession: Silero VAD + turn detector)
      STT: Deepgram ─► faster-whisper (speech server)      [free version: faster-whisper only]
-     reply: the same agent graph as chat (llm_node), price guard
+     reply: the visit's own website turn (kx.agents.voice.bridge → WebsiteTurns.turn): the instant resolver,
+            the agent with its site tools, price / claims / language guards, one more price check before TTS
      TTS: ElevenLabs ─► Piper (speech server)             [free version: Piper; Tamil ElevenLabs; Sinhala text]
+     data channel: kx.site.actions + kx.captions ─► browser;  kx.chat.in + kx.site.context ◄─ browser
 ```
+
+A call is the same visit and conversation as the chat (thread `web:{session}`, D58). The recording notice plays
+once per visit, so a page reload that rejoins the room neither repeats it nor greets again (WP-C5).
 
 LiveKit's fallback adapters switch vendors inside a live call. In free STT mode the number of calls at once is capped (`KX_APP_VOICE_MAX_CONCURRENT_FREE`); above it the visitor gets chat.
 
@@ -120,6 +125,9 @@ id). The live test of 20 Nov ran the current website against this flow with the 
 - **Outbox / inbox:** every state change writes audit + timeline + outbox in one transaction; relays publish exactly once; inboxes dedupe.
 - **OutboundService:** the only way out; checks suppression (§8.1), consent, quiet hours, rate limits, kill switch and, for priced kinds, consumes a single-use send grant.
 - **Price guard:** every AI reply and every staff reply on a handed-over deal.
+- **Claims and language guards (20 Nov):** a certificate, standard or capacity stands only when a tool result of the turn contains it; the reply's script matches the visitor's; website replies are plain text.
+- **Site actions (D55):** every action the AI sends to the website is checked against the CMS site map; never a selector, a free URL or a price.
+- **No prices in content (D54):** the CMS refuses price fields; the CRM mirror drops price-like keys; variants reach the AI as availability words and quantity breaks.
 - **Spend caps:** AI USD, voice minutes, WhatsApp templates per company per day (80 % alert, 100 % degrade).
 - **Kill-switch ladder:** marketing → calls → text only → hold.
 
@@ -155,3 +163,8 @@ id). The live test of 20 Nov ran the current website against this flow with the 
 - One server: no automatic failover. Recovery = restore from WAL-G on a new server (runbook). Website can show a static "contact us on WhatsApp" page meanwhile.
 - No GPU: CPU speech-to-text is slower; Deepgram is the quality path.
 - Monitoring on the same server goes down with it; UptimeRobot covers that from outside.
+- Website AI (20 Nov live test): product specifications are protected by the prompt only (the claims guard covers
+  certificates, standards and capacity); the knowledge base has no approved certificates or capacities yet; voice
+  and Claude were not run live (OPEN_QUESTIONS #87, #88, #94, #95).
+- The website (Arifa-Pack `0e160eb`) does not yet show the site actions, stream, send its context, or post the
+  enquiry desk to the API (FRONTEND_GUIDE; `docs/handoff/WEBSITE_API.md` §5).
