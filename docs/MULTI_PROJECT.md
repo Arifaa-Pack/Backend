@@ -48,6 +48,9 @@ A new project = copy `infra/server/stacks/compose.app.yml` with a new company co
 
 - The four `kx-*` packages get semantic versions and are published as wheels to a private index (GitHub Packages or a Coolify-hosted index); this repo becomes the platform repo.
 - Each project repo holds only its app package (`apps/<project>`): `company.yaml`, prompts, its LangGraph graphs and business rules, migrations for its own settings rows, and the pinned `kx-*` versions in its `uv.lock`.
+- Since 20 Nov a project also brings its router words (`topics.py`, the products it sells, `TopicWords`) and the
+  seed of its website content (`seed/`: catalogue, page layouts with section ids, synonyms, `erp_match`), loaded with
+  `kx content import-site`.
 - A platform fix is released once and each project upgrades on its own schedule.
 - Business-flow differences live in the app layer or in `crm.settings` rows, never as `if company == …` in the platform.
 

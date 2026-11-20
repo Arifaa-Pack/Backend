@@ -48,7 +48,7 @@ The website and CRM screens (Next.js, not in this repo) run on Vercel Pro in the
 | App | `arifaa_pack` | wiring (`container.py`), vendor adapters, Celery app, API, CLI, voice worker, telemetry, migrations | imports everything; imported by nothing |
 | Speech | `services/speech` | free STT/TTS server (own image) | HTTP only |
 
-import-linter enforces: `kx.core` imports no other `kx.*`; the three packages are independent; nothing imports the app. Celery is imported only by the app.
+import-linter enforces: `kx.core` imports no other `kx.*`; the four packages (`kx.crm`, `kx.automation`, `kx.agents`, `kx.cms`) are independent; nothing imports the app. Celery is imported only by the app.
 
 Inside each package the code is organised by feature (slice folders; a public surface in `kx/crm/__init__.py`, `kx/automation/__init__.py` and `kx/agents/__init__.py`, the only names the app imports; import rules in `pyproject.toml`; see `CONTRACTS.md` §1). The decision is [ADR-0001](adr/0001-modular-monolith-with-feature-slices.md); where each Protocol, event handler, route and job is implemented today is generated in [`FEATURE_MAP.md`](FEATURE_MAP.md) (`kx map`).
 
