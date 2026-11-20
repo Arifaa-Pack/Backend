@@ -16,7 +16,7 @@ services:
   docker-socket-proxy:
     # read-only Docker API for CrowdSec's `docker` datasource (crowdsec-acquis.yaml): list containers, read their
     # logs, follow events. Everything else (exec, create, POST of any kind) answers 403.
-    image: ${KX_IMG_SOCKET_PROXY:-tecnativa/docker-socket-proxy:v0.5.0}
+    image: ${KX_IMG_SOCKET_PROXY:-tecnativa/docker-socket-proxy:3.4}
     restart: unless-stopped
     environment:
       CONTAINERS: "1"
