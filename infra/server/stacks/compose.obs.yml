@@ -36,7 +36,7 @@ services:
       options: { max-size: "50m", max-file: "3", labels: "com.docker.compose.service,com.docker.compose.project" }
 
   phoenix:
-    image: ${KX_IMG_PHOENIX:-arizephoenix/phoenix:version-12.9.0}
+    image: ${KX_IMG_PHOENIX:-arizephoenix/phoenix:version-21.1.0}
     restart: unless-stopped
     environment:
       PHOENIX_SQL_DATABASE_URL: postgresql://phoenix:${PHOENIX_DB_PASSWORD}@phoenix-postgres:5432/phoenix
