@@ -6,7 +6,7 @@ name: kx-ai
 services:
   embeddings:
     # TEI CPU image (amd64): cpu-1.8, not 1.7.2 (crashes with Qwen3 on CPU, bench R4)
-    image: ${KX_IMG_TEI:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.8}
+    image: ${KX_IMG_TEI:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.9}
     restart: unless-stopped
     # KX_PLATFORM__EMBEDDINGS=bge-m3 -> BAAI/bge-m3 ; qwen3 -> Qwen/Qwen3-Embedding-0.6B (then `kx reindex`)
     command: ["--model-id", "${EMBEDDING_MODEL_ID:-BAAI/bge-m3}", "--port", "80", "--auto-truncate",
