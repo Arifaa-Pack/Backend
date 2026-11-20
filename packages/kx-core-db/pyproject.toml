@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Kairox shared kernel: settings, databases, ids, money, events/outbox, auth, errors, logging, phone/time/hash utils, price guard"
 requires-python = ">=3.14,<3.15"
 dependencies = [
-    "pydantic==2.14.2",
+    "pydantic==2.14.3",
     "pydantic-settings==2.16.2",
     "sqlalchemy[asyncio]==2.1.6",
     "asyncpg==0.32.0",
