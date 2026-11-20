@@ -5,7 +5,7 @@ against a mock first. Taken from the code (`packages/kx-agent-framework/src/kx/a
 `kx/agents/website/service.py`, `kx/agents/voice/bridge.py`) and the SRS §6 (website flow), §8 (qualification), §8.1 (opt-out), D34/D36/D39. The
 endpoint reference in the second half is **generated from the code**.
 
-Companion files: `openapi-website.json` (OpenAPI 3.1 of these endpoints), `CMS.md` (where the page content
+Companion files: `openapi-website.json` (OpenAPI 3.1 of these endpoints), `CMS_API.md` (where the page content
 comes from), `CRM_API.md` (staff app).
 
 ---
@@ -30,7 +30,7 @@ with `403`.
 
 ## 2. What the website does with the API (core design)
 
-The site shows CMS content (pages, categories, products, FAQs, certificates, the factory tour; see `CMS.md`)
+The site shows CMS content (pages, categories, products, FAQs, certificates, the factory tour; see `CMS_API.md`)
 and hosts the AI assistant. The assistant is the **same AI as on WhatsApp and email**: same rules, same price
 guard, and it never states a price that is not in an approved quote (prices never appear on the website,
 §7). The conversation becomes a deal in the CRM.

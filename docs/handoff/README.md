@@ -29,7 +29,6 @@ Do not edit generated files by hand: change the code or the hand-written heads i
 | `postman/Kairox-local` / `Kairox-staging` `.postman_environment.json` | Settings for the developer's live-test stack (`http://localhost:38000`) and for staging (secrets blank) | generated |
 | `vectors/site-nav.json` | Test vectors for the assistant's instant navigation resolver (the website's layer 0 uses the same); 65 cases checked against the real site | copied by `make handoff` from `kx/agents/evals/site_nav/cases.json` |
 | `endpoints.json` | Every route as data (method, path, package, who, MFA, purpose, expected status); read by both Word guides | generated |
-| `CMS.md`, `CHANGES_18NOV.md` | History: the earlier Payload CMS contract (replaced by `CMS_API.md`, D54) and the 18 Nov change note | hand-written |
 
 ## Regenerate (after any API change)
 

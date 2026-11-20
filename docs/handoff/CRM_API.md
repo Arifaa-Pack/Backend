@@ -8,7 +8,7 @@ in the second half is **generated from the code** (FastAPI OpenAPI), so names, t
 Companion files in this folder:
 
 * `openapi-crm.json`: the OpenAPI 3.1 document of every CRM endpoint (import into Postman, or mock it, below).
-* `WEBSITE_API.md`: the public website API. `CMS.md`: the content side.
+* `WEBSITE_API.md`: the public website API. `CMS_API.md`: the content side (the CMS).
 
 ---
 

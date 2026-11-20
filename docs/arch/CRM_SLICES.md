@@ -10,7 +10,7 @@ are a record of where the code was; they no longer import.
 
 | Module | Why it stays |
 | --- | --- |
-| `models/` (9 modules + `__init__`) | The ORM is the package's shared data layer: `models.quotes` is imported by 18 module groups, `models.deals` by 28, `models.catalogue` by 18 (`CURRENT_STATE.md` §3). Splitting it per slice would turn most of those imports into rule-5 violations without making any feature easier to read. It stays one layer under every slice; per-slice repositories (and then per-slice models) are follow-up work once a slice has a repository. |
+| `models/` (9 modules + `__init__`) | The ORM is the package's shared data layer: `models.quotes` is imported by 18 module groups, `models.deals` by 28, `models.catalogue` by 18 (`docs/archive/ARCH_RECON_19NOV.md` §3). Splitting it per slice would turn most of those imports into rule-5 violations without making any feature easier to read. It stays one layer under every slice; per-slice repositories (and then per-slice models) are follow-up work once a slice has a repository. |
 | `pricing/engine.py`, `pricing/price_list.py`, `pricing/types.py` | Already a slice-shaped package of pure maths; not touched (contest-verified). |
 | `gateway.py` | The package's implementation of the `kx.core.contracts` Protocols for other packages (brief §2.2 keeps it at the root). |
 | `jobs.py`, `deps.py`, `rules.py` | Package-wide: the job table, the long-lived collaborators every slice gets, the pure stage / rule tables. |

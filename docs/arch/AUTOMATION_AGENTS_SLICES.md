@@ -4,7 +4,7 @@ Same method as `CRM_SLICES.md`. Each feature was moved with `git mv`, and an old
 got an alias shim. `src/` imports were rewritten, and tests stayed on the old paths until Phase 2c (19 Nov) moved
 them and removed every shim. Every gate ran after every
 move, with one commit and one tag per slice (`arch-slice/automation-*`, `arch-slice/agents-*`). Log:
-`docs/arch/PROGRESS.md` §2b.
+`docs/archive/ARCH_RESTRUCTURE_LOG.md` §2b.
 
 ## The rule used here
 

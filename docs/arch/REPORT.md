@@ -1,7 +1,7 @@
 # Architecture restructuring (ADR-0001): final report
 
 Phases 0–2, 2b, 2c and 2d of the restructuring brief, 19 Nov 2026. The details of every step, with the real gate output, are in
-`docs/arch/PROGRESS.md`. **No behaviour change in the product:** moves, import-path renames and new tooling only.
+`docs/archive/ARCH_RESTRUCTURE_LOG.md`. **No behaviour change in the product:** moves, import-path renames and new tooling only.
 Phase 2d also fixed a false match in the `kx map` tool, so its output lost two wrong entries.
 
 ## Done
@@ -12,7 +12,7 @@ one commit per slice; Phase 2c is three commits and no tag, as it moves no slice
 `-2b` suffix) and `arch-slice/agents-<slice>` (11).
 
 **Phase 0: make the wiring visible.**
-- `docs/arch/CURRENT_STATE.md`: the recon (inventory, Protocol → implementation, event → handlers, route →
+- `docs/archive/ARCH_RECON_19NOV.md`: the recon (inventory, Protocol → implementation, event → handlers, route →
   service, the intra-package import tables).
 - `kx map` (`apps/arifaa-pack/src/arifaa_pack/featuremap.py`, wired in `cli.py`). It builds the map from the real
   container, in Markdown or JSON, with `--feature`, `--write` and `--check`. 15 unit tests.
@@ -103,7 +103,7 @@ Each gate was run on every commit. Shown here: the final head (Phase 2d on `arch
 | `mypy` (strict, 5 source trees + `scripts`) | PASS: no issues found in 275 source files |
 | `lint-imports` | PASS: Contracts: 12 kept, 0 broken; no contract has a baseline line left except the two recorded ORM imports of the app |
 | `pytest tests/unit` | PASS: 133 passed |
-| Full suite (Linux app image, own PostgreSQL) | PASS on every Phase 2d commit: tests=992 to 994 (the two new unit tests), failures=0, errors=0, skipped=4 (they need `redis-server`). Earlier: 982 tests in Phases 1–2, 992 in Phases 2b–2c; each result is in `PROGRESS.md` |
+| Full suite (Linux app image, own PostgreSQL) | PASS on every Phase 2d commit: tests=992 to 994 (the two new unit tests), failures=0, errors=0, skipped=4 (they need `redis-server`). Earlier: 982 tests in Phases 1–2, 992 in Phases 2b–2c; each result is in `docs/archive/ARCH_RESTRUCTURE_LOG.md` |
 | OpenAPI (`scripts/gen_frontend_docs.py` + `git diff docs/frontend`) | PASS: `openapi-crm.json` and `openapi-website.json` byte-identical on every commit (see Deviations for how) |
 | `kx map --check docs/FEATURE_MAP.md` | PASS |
 | `kx map --format json`, compared after applying the renames | PASS: path-only on every commit, with 3 explained exceptions (below) |

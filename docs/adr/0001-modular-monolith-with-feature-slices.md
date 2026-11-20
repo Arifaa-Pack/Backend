@@ -3,8 +3,8 @@
 - **Status:** accepted
 - **Date:** 2026-11-19
 - **Deciders:** Kairox engineering lead
-- **References:** `docs/ARCHITECTURE.md` §2, `CONTRACTS.md`, `docs/arch/CURRENT_STATE.md` (recon),
-  `docs/arch/PROGRESS.md` (the log of this change), ADR-0002 (the later split)
+- **References:** `docs/ARCHITECTURE.md` §2, `CONTRACTS.md`, `docs/archive/ARCH_RECON_19NOV.md` (recon),
+  `docs/archive/ARCH_RESTRUCTURE_LOG.md` (the log of this change), ADR-0002 (the later split)
 
 ## Context
 
@@ -17,7 +17,7 @@ Inside each package, code is grouped by technical layer (`services/`, `api/`, `m
 business feature (for example, a quote: price it, approve it, send it, change it) is spread over files in
 four folders, and nothing in the code says which handlers react to which event or which class implements which
 Protocol; that lives only in `container.py`. A reviewer cannot answer "where is this implemented, and who reacts
-to this event?" without reading the wiring by hand. The recon (`docs/arch/CURRENT_STATE.md`) counted the
+to this event?" without reading the wiring by hand. The recon (`docs/archive/ARCH_RECON_19NOV.md`) counted the
 intra-package imports this causes.
 
 A second team (Arifaa Auto) is building on these packages at the same time, so old import paths must keep
