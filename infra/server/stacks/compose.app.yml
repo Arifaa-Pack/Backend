@@ -38,7 +38,7 @@ x-logs: &logs
 services:
   redis:
     # pinned patch release: 8.2.0-8.2.1 carry the Lua use-after-free RCE (CVE-2025-49844)
-    image: ${KX_IMG_REDIS:-redis:8.2.3}
+    image: ${KX_IMG_REDIS:-redis:8.10.3}
     restart: unless-stopped
     # Celery broker: never evict; AOF so queued jobs survive a restart (Options by field §11).
     # Password required (H1): the same value is in KX_REDIS_URL / KX_APP_CELERY_BROKER_URL of the env file.
