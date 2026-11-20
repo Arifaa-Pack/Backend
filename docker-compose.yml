@@ -117,7 +117,7 @@ services:
 
   embeddings:
     profiles: ["embed"]
-    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.8
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9
     # Qwen3 (≈ 3.1 GB RAM) fits a small laptop; BGE-M3 (≈ 4.8 GB) is the server default. Set KX_PLATFORM__EMBEDDINGS
     # to match the model you run here, or search keeps to full-text.
     command: ["--model-id", "${LOCAL_EMBEDDING_MODEL_ID:-Qwen/Qwen3-Embedding-0.6B}", "--port", "80",
