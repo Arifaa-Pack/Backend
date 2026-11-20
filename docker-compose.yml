@@ -102,7 +102,7 @@ services:
         limits: { memory: 128m }
 
   redis:
-    image: redis:8.2.3   # ≥ 8.2.2: CVE-2025-49844, as on the server
+    image: redis:8.10.3   # ≥ 8.2.2: CVE-2025-49844, as on the server
     command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory-policy", "noeviction"]
     ports:
       - "${KX_DEV_BIND:-127.0.0.1}:6379:6379"
