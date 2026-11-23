@@ -178,7 +178,7 @@ services:
 
   phoenix:
     profiles: ["obs"]
-    image: arizephoenix/phoenix:version-12.9.0
+    image: arizephoenix/phoenix:version-22.0.0
     ports:
       - "${KX_DEV_BIND:-127.0.0.1}:6006:6006"
     deploy:
