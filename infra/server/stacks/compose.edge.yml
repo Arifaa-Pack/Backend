@@ -34,7 +34,7 @@ services:
     logging: *logs
 
   crowdsec:
-    image: ${KX_IMG_CROWDSEC:-crowdsecurity/crowdsec:v1.7.3}
+    image: ${KX_IMG_CROWDSEC:-crowdsecurity/crowdsec:v1.8.2}
     restart: unless-stopped
     environment:
       # no hub collection parses Stalwart's log (checked 18 Nov); crowdsecurity/postfix never matched it
